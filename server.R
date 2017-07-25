@@ -7,7 +7,7 @@
 
 library(shiny)
 
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
 
   output$contents <- renderTable({
     # input$file1 will be NULL initially. After the user selects
@@ -15,12 +15,25 @@ shinyServer(function(input, output) {
     # 'size', 'type', and 'datapath' columns. The 'datapath'
     # column will contain the local filenames where the data can
     # be found.
-    inFile <- input$file1
+    inFile <- input$csvfile
     
     if (is.null(inFile))
       return(NULL)
     
-    read.csv(inFile$datapath, header = input$header)
+    datadf = read.csv(inFile$datapath)
+
+    for(col in c("yCol", "dateCol")) {
+      updateSelectInput(session, col, choices=names(datadf))
+    }
+    
+    datadf
+    
+  })
+  
+  
+  observeEvent(input$run, {
+    print(input$yCol)
+    print(input$dateCol)
   })
 
 })

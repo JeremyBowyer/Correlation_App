@@ -11,14 +11,19 @@ shinyUI(fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      fileInput("file1", "Choose CSV File",
+      
+      fileInput("csvfile", "Choose CSV File",
                 accept = c(
                   "text/csv",
                   "text/comma-separated-values,text/plain",
                   ".csv")
       ),
       tags$hr(),
-      checkboxInput("header", "Header", TRUE)
+      selectInput("yCol", "Select Y column", choices=list()),
+      selectInput("dateCol", "Select Date column", choices=list()),
+      tags$hr(),
+      actionButton("run", "Run Analysis")
+      
     ),
     mainPanel(
       tableOutput("contents")
