@@ -6,28 +6,38 @@
 #
 
 library(shiny)
+library(shinythemes)
 
-shinyUI(fluidPage(
-  
-  sidebarLayout(
-    sidebarPanel(
-      
-      fileInput("csvfile", "Choose CSV File",
-                accept = c(
-                  "text/csv",
-                  "text/comma-separated-values,text/plain",
-                  ".csv")
+shinyUI(navbarPage(
+  title = "Correlation App",
+  theme = shinytheme("sandstone"),
+  fluid = TRUE,
+  tabPanel("Options",
+    sidebarLayout(
+      sidebarPanel(
+        
+        fileInput("csvfile", "Choose CSV File",
+                  accept = c(
+                    "text/csv",
+                    "text/comma-separated-values,text/plain",
+                    ".csv")
+        ),
+        tags$hr(),
+        selectInput("yCol", "Select Y column", choices=list()),
+        selectInput("dateCol", "Select Date column", choices=list()),
+        selectInput("categoryCol", "Select Category column", choices=list()),
+        tags$hr(),
+        actionButton("run", "Run Analysis"),
+        tags$hr(),
+        downloadButton('downloadData', 'Download'),
+        tags$head(tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });')))
+        
       ),
-      tags$hr(),
-      selectInput("yCol", "Select Y column", choices=list()),
-      selectInput("dateCol", "Select Date column", choices=list()),
-      tags$hr(),
-      actionButton("run", "Run Analysis")
-      
-    ),
-    mainPanel(
-      tableOutput("contents")
+      mainPanel(tableOutput("dataPreview"))
     )
-  )
+  ),
+  
+  tabPanel("Correlations", mainPanel(tableOutput("allCorrelations"))),
+  tabPanel("Metric Dive", mainPanel())
   
 ))
