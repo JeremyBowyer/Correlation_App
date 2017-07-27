@@ -37,7 +37,11 @@ shinyUI(navbarPage(
     )
   ),
   
-  tabPanel("Correlations", mainPanel(tableOutput("allCorrelations"))),
+  tabPanel("Correlations", tabsetPanel(
+    tabPanel("All", mainPanel(tableOutput("allCorrelations"))),
+    tabPanel("By Date", mainPanel(tableOutput("dateCorrelations")))
+    )
+  ),
   tabPanel("Metric Dive", mainPanel())
   
 ))

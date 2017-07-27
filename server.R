@@ -7,33 +7,34 @@
 
 library(shiny)
 library(XLConnect)
+options(stringsAsFactors = FALSE)
 script <- "
-var count;
-var tableid = 'allCorrelations'
 
-count = $('#' + tableid + ' th').length;
+for(i = 0; i < $('#allCorrelations th').length; i++) {
+  colorTable('allCorrelations', i);
+}
 
-for(i = 0; i < count; i++) {
-
-  colorColumn(tableid, i);
-
+for(i = 0; i < $('#dateCorrelations th').length; i++) {
+  colorTable('dateCorrelations', i);
 }
 
 
-function colorColumn(tableid, colindex){
+function colorTable(tableid, colindex){
 
   var columnarray, max, min, n;
 
   columnarray = [];
   $('#' + tableid + ' tr:not(:first)').each(function(){
-  
-    columnarray.push(parseInt($(this).find('td').eq(colindex).text()));
-  
+    var val = parseFloat($(this).find('td').eq(colindex).text());
+    if(val === val) {
+      columnarray.push(val);
+    }
   })
   
   max = Math.max(...columnarray);
   min = Math.min(...columnarray);
-  
+  console.log(columnarray);
+
   n = max-min;
   
   // Define the min colour, which is white
@@ -48,10 +49,8 @@ function colorColumn(tableid, colindex){
   
   $('#' + tableid + ' tr td:nth-child(' + (colindex + 1) + ')').each(function() {
 
-    var val = parseInt($(this).text());    
+    var val = parseFloat($(this).text());    
 
-    console.log(max);
-    console.log(min);
     // Catch exceptions outside of range
     if (val > max) {
     var val = max;
@@ -63,7 +62,7 @@ function colorColumn(tableid, colindex){
 
     // Find value's position relative to range
     
-    var pos = ((val-min) / (n-1));
+    var pos = ((val-min) / (n));
     
     // Generate RGB code
     red = parseInt((xr + (( pos * (yr - xr)))).toFixed(0));
@@ -104,16 +103,65 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$run, {
-      
+    
+    # Read in user-provided CSV file
+    inFile <- input$csvfile
+    if (is.null(inFile))
+      return(NULL)
+    datadf = read.csv(inFile$datapath)
+    
+    # Create vector of metric columns
+    ignoreCols = c(input$yCol, input$dateCol, input$categoryCol)
+    correlCols = names(datadf)[!names(datadf) %in% ignoreCols]
+    
+    ###################
+    # All Data Points #
+    ###################
+    # Loop through each metric column, run regression, populate summary table
+    summaryDF <- data.frame(Metric = character(),
+                            Correlation = numeric(),
+                            DoF = integer())
+    
+    for(col in correlCols) {
+      form <- as.formula(paste0(input$yCol, " ~ ", col))
+      tryCatch({fit <- lm(form, datadf)}, error = function(e) {NULL})
+      summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
+      summaryDF[nrow(summaryDF), "Correlation"] <- cor(datadf[, col], datadf[, input$yCol], use = "pairwise.complete.obs")
+      summaryDF[nrow(summaryDF), "DoF"] <- fit$df
+    }
+    
     output$allCorrelations <- renderTable({
-      # Read in user-provided CSV file
-      inFile <- input$csvfile
-      if (is.null(inFile))
-        return(NULL)
-      datadf = read.csv(inFile$datapath)
-      
-      
+      summaryDF
     })
+    
+    ###########
+    # By Date #
+    ###########
+    dateCorrelations <- data.frame(Metric = correlCols,
+                                   "Total Years" = integer(length(correlCols)),
+                                   "Negative Years" = integer(length(correlCols)),
+                                   "Avg Correlation" = numeric(length(correlCols)),
+                                   check.names = FALSE)
+    # Fill in correlations by date
+    for(date in unique(datadf[, input$dateCol])) {
+      dateDF <- datadf[datadf[,input$dateCol]==date, ]
+      for(col in correlCols) {
+        dateCorrelations[dateCorrelations$Metric == col, date] <- cor(dateDF[, col], dateDF[, input$yCol], use = "pairwise.complete.obs")
+      }
+    }
+    
+    # Fill in summary stats of date correlations
+    for(col in correlCols) {
+      metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, unique(datadf[, input$dateCol])])
+      dateCorrelations[dateCorrelations$Metric == col, "Total Years"] <- length(metricCorrelations[!is.na(metricCorrelations)])
+      dateCorrelations[dateCorrelations$Metric == col, "Negative Years"] <- length(metricCorrelations[metricCorrelations < 0])
+      dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
+    }
+    
+    output$dateCorrelations <- renderTable({
+      dateCorrelations
+    })
+    
     
   })
   
