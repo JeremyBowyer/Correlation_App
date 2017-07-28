@@ -12,7 +12,9 @@ shinyUI(navbarPage(
   title = "Correlation App",
   theme = shinytheme("sandstone"),
   fluid = TRUE,
+  id = "mainTabset",
   tabPanel("Options",
+    value = "options",
     sidebarLayout(
       sidebarPanel(
         
@@ -47,11 +49,13 @@ shinyUI(navbarPage(
     )
   ),
   
-  tabPanel("Correlations", tabsetPanel(
-    tabPanel("All", mainPanel(tableOutput("allCorrelations"))),
-    tabPanel("By Date", mainPanel(tableOutput("dateCorrelations")))
-    )
+  tabPanel("Correlations",
+        value="correlations",
+        tabsetPanel(
+          tabPanel("All", mainPanel(tableOutput("allCorrelations"))),
+          tabPanel("By Date", mainPanel(tableOutput("dateCorrelations")))
+        )
   ),
-  tabPanel("Metric Dive", mainPanel())
+  tabPanel("Metric Dive", value="metric", mainPanel())
   
 ))

@@ -246,8 +246,8 @@ shinyServer(function(input, output, session) {
     
     ## By Date ##
     dateCorrelations <- data.frame(Metric = correlCols,
-                                   "Total Years" = integer(length(correlCols)),
-                                   "Negative Years" = integer(length(correlCols)),
+                                   "Total Periods" = integer(length(correlCols)),
+                                   "Negative Periods" = integer(length(correlCols)),
                                    "Avg Correlation" = numeric(length(correlCols)),
                                    check.names = FALSE)
     # Fill in correlations by date
@@ -261,8 +261,8 @@ shinyServer(function(input, output, session) {
     # Fill in summary stats of date correlations
     for(col in correlCols) {
       metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, unique(datadf[, input$dateCol])])
-      dateCorrelations[dateCorrelations$Metric == col, "Total Years"] <- length(metricCorrelations[!is.na(metricCorrelations)])
-      dateCorrelations[dateCorrelations$Metric == col, "Negative Years"] <- length(metricCorrelations[metricCorrelations < 0])
+      dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations[!is.na(metricCorrelations)])
+      dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
       dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
     }
     
@@ -270,6 +270,7 @@ shinyServer(function(input, output, session) {
       dateCorrelations
     })
     
+    updateTabsetPanel(session, "mainTabset", selected="correlations")
     
   })
   
