@@ -81,12 +81,31 @@ function colorTable(tableid, colindex){
 
 shinyServer(function(input, output, session) {
   
+  ###################
+  # Reactive Values #
+  ###################
   vals <- reactiveValues(filterCount = 0, datadf = data.frame(), originaldf = data.frame())
   
+  ###########
+  # Methods #
+  ###########
   getCols <- reactive({
     df = vals$datadf
     return(names(df))
   })
+  
+  ###########################
+  # Option Panel Conditions #
+  ###########################
+  output$fileUploaded <- reactive({
+    return(nrow(vals$originaldf) > 0)
+  })
+  outputOptions(output, 'fileUploaded', suspendWhenHidden=FALSE)
+  
+  output$hierarchicalCheck <- reactive({
+    return(input$hierBox)
+  })
+  outputOptions(output, 'hierarchicalCheck', suspendWhenHidden=FALSE)
   
   ##################
   # Event Handlers #
@@ -187,8 +206,24 @@ shinyServer(function(input, output, session) {
     # Read in user-provided CSV file
     datadf <- vals$datadf
     
+    # Y Column
+    if(input$hierBox){
+      
+      form <- as.formula(paste0(input$yCol, " ~ ", input$hierCol))
+      fit <- lm(form, datadf)
+      intercept <- fit$coefficients[1]
+      coefficient <- fit$coefficients[2]
+      datadf$residual <- datadf[,input$yCol] - (datadf[, input$hierCol] * coefficient + intercept)
+      
+      ignoreCols = c(input$hierCol, input$yCol, input$dateCol, input$categoryCol, "residual")
+      yColumn <- "residual"
+      
+    } else {
+      ignoreCols = c(input$yCol, input$dateCol, input$categoryCol)
+      yColumn <- input$yCol
+    }
+    
     # Create vector of metric columns
-    ignoreCols = c(input$yCol, input$dateCol, input$categoryCol)
     correlCols = names(datadf)[!names(datadf) %in% ignoreCols]
     
     ## All Data Points ##
@@ -198,10 +233,10 @@ shinyServer(function(input, output, session) {
                             DoF = integer())
     
     for(col in correlCols) {
-      form <- as.formula(paste0(input$yCol, " ~ ", col))
+      form <- as.formula(paste0(yColumn, " ~ ", col))
       tryCatch({fit <- lm(form, datadf)}, error = function(e) {NULL})
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
-      summaryDF[nrow(summaryDF), "Correlation"] <- cor(datadf[, col], datadf[, input$yCol], use = "pairwise.complete.obs")
+      summaryDF[nrow(summaryDF), "Correlation"] <- cor(datadf[, col], datadf[, yColumn], use = "pairwise.complete.obs")
       summaryDF[nrow(summaryDF), "DoF"] <- fit$df
     }
     
@@ -219,7 +254,7 @@ shinyServer(function(input, output, session) {
     for(date in unique(datadf[, input$dateCol])) {
       dateDF <- datadf[datadf[,input$dateCol]==date, ]
       for(col in correlCols) {
-        dateCorrelations[dateCorrelations$Metric == col, date] <- cor(dateDF[, col], dateDF[, input$yCol], use = "pairwise.complete.obs")
+        dateCorrelations[dateCorrelations$Metric == col, date] <- cor(dateDF[, col], dateDF[, yColumn], use = "pairwise.complete.obs")
       }
     }
     
@@ -243,7 +278,7 @@ shinyServer(function(input, output, session) {
   #######################
   output$dataPreview <- renderTable({
     
-    for(col in c("yCol", "dateCol", "categoryCol")) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol")) {
       updateSelectInput(session, col, choices=getCols(), selected=input[[col]])
     }
     
