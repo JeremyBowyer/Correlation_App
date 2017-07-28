@@ -81,42 +81,117 @@ function colorTable(tableid, colindex){
 
 shinyServer(function(input, output, session) {
   
-  output$dataPreview <- renderTable({
-    # input$file1 will be NULL initially. After the user selects
-    # and uploads a file, it will be a data frame with 'name',
-    # 'size', 'type', and 'datapath' columns. The 'datapath'
-    # column will contain the local filenames where the data can
-    # be found.
-    inFile <- input$csvfile
+  vals <- reactiveValues(filterCount = 0, datadf = data.frame(), originaldf = data.frame())
+  
+  getCols <- reactive({
+    df = vals$datadf
+    return(names(df))
+  })
+  
+  ##################
+  # Event Handlers #
+  ##################
+  # File Uploaded
+  observeEvent(input$csvfile, {
+      inFile <- input$csvfile
+
+      if (is.null(inFile))
+        return(NULL)
+
+      datadf = read.csv(inFile$datapath)
+      vals$datadf <- datadf
+      vals$originaldf <- datadf
+  })
+  
+  # Add filter Button
+  observeEvent(input$addFilter, {
     
-    if (is.null(inFile))
-      return(NULL)
-    
-    datadf = read.csv(inFile$datapath)
-    
-    for(col in c("yCol", "dateCol", "categoryCol")) {
-      updateSelectInput(session, col, choices=names(datadf))
+    if(vals$filterCount == 0){
+      insertUI(
+        selector="#addFilter",
+        where="afterEnd",
+        ui = actionLink("filterClear", "Clear All Filters", style="color: #f12828;")
+      )
+      
+      insertUI(
+        selector="#addFilter",
+        where="afterEnd",
+        ui = tags$br(class="filter")
+      )
+      
+      insertUI(
+        selector="#tagsDiv",
+        where="afterEnd",
+        ui = actionButton("applyFilters", "Apply Filters", icon("filter"), style="padding: 5px 10px 5px 10px;")
+      )
+      
     }
     
-    datadf
+    vals$filterCount <- vals$filterCount + 1
+    
+    insertUI(
+      selector="#tagsDiv",
+      where="beforeEnd",
+      ui = tags$div(selectInput(paste0("filter",vals$filterCount), paste0("Filter ",vals$filterCount), getCols()), class="filter")
+    )
+    
+    insertUI(
+      selector="#tagsDiv",
+      where="beforeEnd",
+      ui = tags$div(numericInput(paste0("filter",vals$filterCount, "Max"), "Max", getCols()), class="filter")
+    )
+    
+    insertUI(
+      selector="#tagsDiv",
+      where="beforeEnd",
+      ui = tags$div(numericInput(paste0("filter",vals$filterCount, "Min"), "Min", getCols()), class="filter")
+    )
+    
+    insertUI(
+      selector="#tagsDiv",
+      where="beforeEnd",
+      tags$div(tags$hr(), class="filter")
+    )
     
   })
   
+  # Clear Filters Button
+  observeEvent(input$filterClear, {
+    removeUI(".filter", multiple = TRUE)
+    removeUI("#applyFilters")
+    removeUI("#filterClear")
+    vals$filterCount <- 0
+    vals$datadf <- vals$originaldf
+  })
+  
+  # Apply Filters Button
+  observeEvent(input$applyFilters, {
+    df <- vals$originaldf
+    # Subset by filters, if necessary
+    if(vals$filterCount > 0) {
+      for(filter in 1:vals$filterCount){
+        filterCol <- input[[paste0("filter",filter)]]
+        filterMax <- input[[paste0("filter",filter, "Max")]]
+        filterMin <- input[[paste0("filter",filter, "Min")]]
+        
+        df <- subset(df, df[,filterCol] <= filterMax & df[,filterCol] >= filterMin)
+      }
+    }
+    
+    vals$datadf <- df
+  })
+  
+  # Run Analysis Button
   observeEvent(input$run, {
     
     # Read in user-provided CSV file
-    inFile <- input$csvfile
-    if (is.null(inFile))
-      return(NULL)
-    datadf = read.csv(inFile$datapath)
+    datadf <- vals$datadf
     
     # Create vector of metric columns
     ignoreCols = c(input$yCol, input$dateCol, input$categoryCol)
     correlCols = names(datadf)[!names(datadf) %in% ignoreCols]
     
-    ###################
-    # All Data Points #
-    ###################
+    ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table
     summaryDF <- data.frame(Metric = character(),
                             Correlation = numeric(),
@@ -134,9 +209,7 @@ shinyServer(function(input, output, session) {
       summaryDF
     })
     
-    ###########
-    # By Date #
-    ###########
+    ## By Date ##
     dateCorrelations <- data.frame(Metric = correlCols,
                                    "Total Years" = integer(length(correlCols)),
                                    "Negative Years" = integer(length(correlCols)),
@@ -165,21 +238,22 @@ shinyServer(function(input, output, session) {
     
   })
   
-  data1 <- mtcars
+  #######################
+  # Data Preview Screen #
+  #######################
+  output$dataPreview <- renderTable({
+    
+    for(col in c("yCol", "dateCol", "categoryCol")) {
+      updateSelectInput(session, col, choices=getCols(), selected=input[[col]])
+    }
+    
+    return(vals$datadf)
+    
+  })
   
-  output$downloadData <- downloadHandler(
-    filename = function(){"mtcars.xlsx"},
-    content = function(file) {
-      fname <- paste(file,"xlsx",sep=".")
-      wb <- loadWorkbook(fname,create = TRUE)
-      createSheet(wb,"cars")
-      writeWorksheet(wb,data = data1,sheet = "cars")
-      saveWorkbook(wb)
-      file.rename(fname,file)
-    },
-    contentType="application/xlsx" 
-  )
-  
+  #####################################
+  # JavaScript Conditional Formatting #
+  #####################################
   session$onFlushed(function() {
     session$sendCustomMessage(type='jsCode', list(value = script))
   }, FALSE)
