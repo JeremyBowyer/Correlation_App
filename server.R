@@ -217,11 +217,11 @@ shinyServer(function(input, output, session) {
       coefficient <- fit$coefficients[2]
       datadf$residual <- datadf[,input$yCol] - (datadf[, input$hierCol] * coefficient + intercept)
       
-      ignoreCols = c(input$hierCol, input$yCol, input$dateCol, input$categoryCol, "residual")
+      ignoreCols = c(input$hierCol, input$yCol, input$dateCol, input$categoryCol, input$ignoreCols, "residual")
       yColumn <- "residual"
       
     } else {
-      ignoreCols = c(input$yCol, input$dateCol, input$categoryCol)
+      ignoreCols = c(input$yCol, input$dateCol, input$categoryCol, input$ignoreCols)
       yColumn <- input$yCol
     }
     
@@ -250,30 +250,32 @@ shinyServer(function(input, output, session) {
     })
     
     ## By Date ##
-    dateCorrelations <- data.frame(Metric = correlCols,
-                                   "Total Periods" = integer(length(correlCols)),
-                                   "Negative Periods" = integer(length(correlCols)),
-                                   "Avg Correlation" = numeric(length(correlCols)),
-                                   check.names = FALSE)
-    # Fill in correlations by date
-    for(date in unique(datadf[, input$dateCol])) {
-      dateDF <- datadf[datadf[,input$dateCol]==date, ]
-      for(col in correlCols) {
-        dateCorrelations[dateCorrelations$Metric == col, date] <- cor(dateDF[, col], dateDF[, yColumn], use = "pairwise.complete.obs")
+    if(input$dateCol != "") {
+      dateCorrelations <- data.frame(Metric = correlCols,
+                                     "Total Periods" = integer(length(correlCols)),
+                                     "Negative Periods" = integer(length(correlCols)),
+                                     "Avg Correlation" = numeric(length(correlCols)),
+                                     check.names = FALSE)
+      # Fill in correlations by date
+      for(date in unique(datadf[, input$dateCol])) {
+        dateDF <- datadf[datadf[,input$dateCol]==date, ]
+        for(col in correlCols) {
+          dateCorrelations[dateCorrelations$Metric == col, date] <- cor(dateDF[, col], dateDF[, yColumn], use = "pairwise.complete.obs")
+        }
       }
+      
+      # Fill in summary stats of date correlations
+      for(col in correlCols) {
+        metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, unique(datadf[, input$dateCol])])
+        dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations[!is.na(metricCorrelations)])
+        dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
+        dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
+      }
+      
+      output$dateCorrelations <- renderTable({
+        dateCorrelations
+      })
     }
-    
-    # Fill in summary stats of date correlations
-    for(col in correlCols) {
-      metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, unique(datadf[, input$dateCol])])
-      dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations[!is.na(metricCorrelations)])
-      dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
-      dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
-    }
-    
-    output$dateCorrelations <- renderTable({
-      dateCorrelations
-    })
     
     updateTabsetPanel(session, "mainTabset", selected="correlations")
     
@@ -282,17 +284,17 @@ shinyServer(function(input, output, session) {
   # Upon selection of metric in Metric Dive tab
   observeEvent(input$xCol, {
     if(input$xCol != ""){
-      
+
       vis <- reactive({
-        
+
         df <- vals$datadf
         df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
         df[, input$categoryCol] <- as.factor(df[, input$categoryCol])
-        
+
         xvar <- prop("x", as.symbol(input$xCol))
         yvar <- prop("y", as.symbol(input$yCol))
         fillvar <- prop("fill", as.symbol(input$categoryCol))
-  
+
         df %>%
           ggvis(x = xvar, y = yvar) %>%
           layer_points(fill = fillvar) %>%
@@ -304,7 +306,7 @@ shinyServer(function(input, output, session) {
           layer_model_predictions(model = "lm", se = TRUE) %>%
           hide_legend('fill')
       })
-      
+
       vis %>% bind_shiny("metricPlot")
     }
   })
@@ -314,7 +316,7 @@ shinyServer(function(input, output, session) {
   #######################
   output$dataPreview <- renderTable({
     
-    for(col in c("hierCol", "yCol", "dateCol", "categoryCol")) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols")) {
       updateSelectInput(session, col, choices=getCols(), selected=input[[col]])
     }
     

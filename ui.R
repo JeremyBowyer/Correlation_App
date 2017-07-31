@@ -33,8 +33,9 @@ shinyUI(navbarPage(
             selectInput("hierCol", "Select First Layer column", choices=list())
           ),
           selectInput("yCol", "Select Y column", choices=list()),
-          selectInput("dateCol", "Select Date column", choices=list()),
-          selectInput("categoryCol", "Select Category column", choices=list()),
+          selectInput("dateCol", "Select Date column (optional)", choices=list()),
+          selectInput("categoryCol", "Select Category column (optional)", choices=list()),
+          selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list(), multiple = TRUE),
           tags$hr(),
           tags$h3("Filters"),
           actionLink("addFilter", "Add Filter"),
