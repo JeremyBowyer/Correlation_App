@@ -7,6 +7,8 @@
 
 library(shiny)
 library(XLConnect)
+library(ggvis)
+library(dplyr)
 options(stringsAsFactors = FALSE)
 script <- "
 
@@ -226,6 +228,9 @@ shinyServer(function(input, output, session) {
     # Create vector of metric columns
     correlCols = names(datadf)[!names(datadf) %in% ignoreCols]
     
+    # Update Metric Dive Dropdown
+    updateSelectInput(session, "xCol", choices=correlCols)
+    
     ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table
     summaryDF <- data.frame(Metric = character(),
@@ -272,6 +277,36 @@ shinyServer(function(input, output, session) {
     
     updateTabsetPanel(session, "mainTabset", selected="correlations")
     
+  })
+  
+  # Upon selection of metric in Metric Dive tab
+  observeEvent(input$xCol, {
+    if(input$xCol != ""){
+      
+      vis <- reactive({
+        
+        df <- vals$datadf
+        df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+        df[, input$categoryCol] <- as.factor(df[, input$categoryCol])
+        
+        xvar <- prop("x", as.symbol(input$xCol))
+        yvar <- prop("y", as.symbol(input$yCol))
+        fillvar <- prop("fill", as.symbol(input$categoryCol))
+  
+        df %>%
+          ggvis(x = xvar, y = yvar) %>%
+          layer_points(fill = fillvar) %>%
+          add_tooltip(function(data){
+            paste0(input$categoryCol, ": ", data[[input$categoryCol]], "<br>",
+                   input$xCol, ": ", data[[input$xCol]], "<br>",
+                   input$yCol, ": ", data[[input$yCol]], "<br>")
+          }, "hover") %>%
+          layer_model_predictions(model = "lm", se = TRUE) %>%
+          hide_legend('fill')
+      })
+      
+      vis %>% bind_shiny("metricPlot")
+    }
   })
   
   #######################

@@ -56,6 +56,10 @@ shinyUI(navbarPage(
           tabPanel("By Date", mainPanel(tableOutput("dateCorrelations")))
         )
   ),
-  tabPanel("Metric Dive", value="metric", mainPanel())
+  tabPanel("Metric Dive", value="metric", mainPanel(
+    selectInput("xCol", "Select Metric", choices=list()),
+    ggvisOutput("metricPlot")
+    )
+  )
   
 ))
