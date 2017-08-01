@@ -43,7 +43,10 @@ shinyUI(navbarPage(
           tags$hr(),
           actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
           tags$hr(),
-          tags$head(tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });')))
+          tags$head(
+            tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });')),
+            tags$style(HTML(".shiny-notification {position: fixed; top: 150px; left: 200px;}"))
+          )
         )
       ),
       mainPanel(tableOutput("dataPreview"))
@@ -59,7 +62,9 @@ shinyUI(navbarPage(
   ),
   tabPanel("Metric Dive", value="metric", mainPanel(
     selectInput("xCol", "Select Metric", choices=list()),
-    ggvisOutput("metricPlot")
+    ggvisOutput("metricPlot"),
+    h3('ANOVA Table'),
+    verbatimTextOutput('aovSummary')
     )
   )
   

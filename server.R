@@ -159,13 +159,13 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#tagsDiv",
       where="beforeEnd",
-      ui = tags$div(numericInput(paste0("filter",vals$filterCount, "Max"), "Max", getCols()), class="filter")
+      ui = tags$div(textInput(paste0("filter",vals$filterCount, "Max"), "Max"), class="filter")
     )
     
     insertUI(
       selector="#tagsDiv",
       where="beforeEnd",
-      ui = tags$div(numericInput(paste0("filter",vals$filterCount, "Min"), "Min", getCols()), class="filter")
+      ui = tags$div(textInput(paste0("filter",vals$filterCount, "Min"), "Min"), class="filter")
     )
     
     insertUI(
@@ -192,10 +192,13 @@ shinyServer(function(input, output, session) {
     if(vals$filterCount > 0) {
       for(filter in 1:vals$filterCount){
         filterCol <- input[[paste0("filter",filter)]]
-        filterMax <- input[[paste0("filter",filter, "Max")]]
-        filterMin <- input[[paste0("filter",filter, "Min")]]
+        filterMax <- as.numeric(input[[paste0("filter",filter, "Max")]])
+        filterMin <- as.numeric(input[[paste0("filter",filter, "Min")]])
         
-        df <- subset(df, df[,filterCol] <= filterMax & df[,filterCol] >= filterMin)
+        if(is.na(filterMax)) filterMax <- Inf
+        if(is.na(filterMin)) filterMin <- -Inf
+        
+        df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
       }
     }
     
@@ -238,11 +241,14 @@ shinyServer(function(input, output, session) {
                             DoF = integer())
     
     for(col in correlCols) {
-      form <- as.formula(paste0(yColumn, " ~ ", col))
-      tryCatch({fit <- lm(form, datadf)}, error = function(e) {NULL})
+      rm("fit")
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
-      summaryDF[nrow(summaryDF), "Correlation"] <- cor(datadf[, col], datadf[, yColumn], use = "pairwise.complete.obs")
-      summaryDF[nrow(summaryDF), "DoF"] <- fit$df
+      tryCatch({
+        form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
+        fit <- lm(form, datadf)
+        summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(tempDF[, col]), as.numeric(tempDF[, yColumn]), use = "pairwise.complete.obs")
+        summaryDF[nrow(summaryDF), "DoF"] <- fit$df
+      }, error = function(e) {NULL})
     }
     
     output$allCorrelations <- renderTable({
@@ -260,14 +266,15 @@ shinyServer(function(input, output, session) {
       for(date in unique(datadf[, input$dateCol])) {
         dateDF <- datadf[datadf[,input$dateCol]==date, ]
         for(col in correlCols) {
-          dateCorrelations[dateCorrelations$Metric == col, date] <- cor(dateDF[, col], dateDF[, yColumn], use = "pairwise.complete.obs")
+          dateCorrelations[dateCorrelations$Metric == col, date] <- cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")
         }
       }
       
       # Fill in summary stats of date correlations
       for(col in correlCols) {
         metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, unique(datadf[, input$dateCol])])
-        dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations[!is.na(metricCorrelations)])
+        metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
+        dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations)
         dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
         dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
       }
@@ -285,29 +292,48 @@ shinyServer(function(input, output, session) {
   observeEvent(input$xCol, {
     if(input$xCol != ""){
 
-      vis <- reactive({
-
-        df <- vals$datadf
-        df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
-        df[, input$categoryCol] <- as.factor(df[, input$categoryCol])
-
+      # Process Data
+      df <- vals$datadf
+      df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+      
+      if(nrow(df) == 0) {
+        showNotification("No Data. Try selecting another column, or removing some filters on the Options page.",
+                         type="warning",
+                         duration=NULL)
+      } else {
+      
+        # Scatter Plot
         xvar <- prop("x", as.symbol(input$xCol))
         yvar <- prop("y", as.symbol(input$yCol))
-        fillvar <- prop("fill", as.symbol(input$categoryCol))
-
+  
+        if(input$categoryCol == "") {
+          fillvar <- prop("fill", as.symbol(input$xCol))
+          category <- "Data"
+        } else {
+          df[, input$categoryCol] <- as.factor(df[, input$categoryCol])
+          fillvar <- prop("fill", as.symbol(input$categoryCol))
+          category <- input$categoryCol
+        }
+        
         df %>%
           ggvis(x = xvar, y = yvar) %>%
           layer_points(fill = fillvar) %>%
           add_tooltip(function(data){
-            paste0(input$categoryCol, ": ", data[[input$categoryCol]], "<br>",
+            paste0(category, ": ", data[[category]], "<br>",
                    input$xCol, ": ", data[[input$xCol]], "<br>",
                    input$yCol, ": ", data[[input$yCol]], "<br>")
           }, "hover") %>%
           layer_model_predictions(model = "lm", se = TRUE) %>%
-          hide_legend('fill')
-      })
-
-      vis %>% bind_shiny("metricPlot")
+          hide_legend('fill') %>%
+          bind_shiny("metricPlot")
+          
+        # ANOVA Output
+        output$aovSummary = reactivePrint(function() {
+          form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
+          summary(lm(form, data = tempDF))
+        })
+        
+      }
     }
   })
   
