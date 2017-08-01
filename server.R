@@ -159,13 +159,19 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#tagsDiv",
       where="beforeEnd",
-      ui = tags$div(textInput(paste0("filter",vals$filterCount, "Max"), "Max"), class="filter")
+      ui = tags$div(textInput(paste0("filter",vals$filterCount, "Min"), "Min"), class="filter", style="display:inline-block")
     )
     
     insertUI(
       selector="#tagsDiv",
       where="beforeEnd",
-      ui = tags$div(textInput(paste0("filter",vals$filterCount, "Min"), "Min"), class="filter")
+      ui = tags$div(textInput(paste0("filter",vals$filterCount, "Max"), "Max"), class="filter", style="display:inline-block")
+    )
+    
+    insertUI(
+      selector="#tagsDiv",
+      where="beforeEnd",
+      ui = tags$div(checkboxInput(paste0("filter",vals$filterCount, "dateCheck"), "Date? Format should be: MM/DD/YYY"), class="filter", style="display:inline-block")
     )
     
     insertUI(
@@ -192,9 +198,20 @@ shinyServer(function(input, output, session) {
     if(vals$filterCount > 0) {
       for(filter in 1:vals$filterCount){
         filterCol <- input[[paste0("filter",filter)]]
-        filterMax <- as.numeric(input[[paste0("filter",filter, "Max")]])
-        filterMin <- as.numeric(input[[paste0("filter",filter, "Min")]])
+        filterMin <- input[[paste0("filter",filter, "Min")]]
+        filterMax <- input[[paste0("filter",filter, "Max")]]
+        filterDate <- input[[paste0("filter",filter,"dateCheck")]]
         
+        if(filterDate) {
+          filterMin <- as.Date(filterMin, format= "%m/%d/%Y")
+          filterMax <- as.Date(filterMax, format= "%m/%d/%Y")
+          df[, filterCol] <- as.Date(df[, filterCol], format= "%m/%d/%Y")
+        } else {
+          filterMin <- as.numeric(filterMin)
+          filterMax <- as.numeric(filterMax)
+          df[, filterCol] <- as.numeric(df[, filterCol])
+        }
+
         if(is.na(filterMax)) filterMax <- Inf
         if(is.na(filterMin)) filterMin <- -Inf
         
