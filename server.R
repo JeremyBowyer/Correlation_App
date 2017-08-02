@@ -9,6 +9,7 @@ library(shiny)
 library(XLConnect)
 library(ggvis)
 library(dplyr)
+options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 script <- "
 
@@ -259,7 +260,7 @@ shinyServer(function(input, output, session) {
   })
   
   # Clear Filters Button
-  observeEvent(input$valueFilterClear, {
+  observeEvent(input$filterClear, {
     removeUI(".valueFilter", multiple = TRUE)
     removeUI(".percentileFilter", multiple = TRUE)
     removeUI(".dateFilter", multiple = TRUE)
@@ -414,7 +415,9 @@ shinyServer(function(input, output, session) {
   })
   
   # Upon selection of metric in Metric Dive tab
-  observeEvent(input$xCol, {
+  observeEvent({
+    c(input$xCol,input$run,input$applyFilters,input$filterClear)
+    }, {
     if(input$xCol != ""){
 
       # Process Data
