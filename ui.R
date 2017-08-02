@@ -62,7 +62,11 @@ shinyUI(navbarPage(
   ),
   tabPanel("Metric Dive", value="metric", mainPanel(
     selectInput("xCol", "Select Metric", choices=list()),
-    ggvisOutput("metricPlot"),
+    h3("Metric Plots"),
+    tabsetPanel(
+      tabPanel("Scatter", ggvisOutput("metricScatter")),
+      tabPanel("Histogram", ggvisOutput("metricHist"))
+    ),
     h3('ANOVA Table'),
     verbatimTextOutput('aovSummary')
     )

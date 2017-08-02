@@ -171,7 +171,11 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#tagsDiv",
       where="beforeEnd",
-      ui = tags$div(checkboxInput(paste0("filter",vals$filterCount, "dateCheck"), "Date? Format should be: MM/DD/YYY"), class="filter", style="display:inline-block")
+      ui = tags$div(
+        textInput(paste0("filter",vals$filterCount, "dateFormat"), "If date, provide format, otherwise leave blank."),
+        a("Example Formats", href="http://www.statmethods.net/input/dates.html", target="_blank"),
+        class="filter", style="display:inline-block"
+      )
     )
     
     insertUI(
@@ -200,12 +204,12 @@ shinyServer(function(input, output, session) {
         filterCol <- input[[paste0("filter",filter)]]
         filterMin <- input[[paste0("filter",filter, "Min")]]
         filterMax <- input[[paste0("filter",filter, "Max")]]
-        filterDate <- input[[paste0("filter",filter,"dateCheck")]]
+        filterDateFormat <- input[[paste0("filter",filter,"dateFormat")]]
         
-        if(filterDate) {
-          filterMin <- as.Date(filterMin, format= "%m/%d/%Y")
-          filterMax <- as.Date(filterMax, format= "%m/%d/%Y")
-          df[, filterCol] <- as.Date(df[, filterCol], format= "%m/%d/%Y")
+        if(filterDateFormat != "") {
+          filterMin <- as.Date(filterMin, format= filterDateFormat)
+          filterMax <- as.Date(filterMax, format= filterDateFormat)
+          df[, filterCol] <- as.Date(df[, filterCol], format= filterDateFormat)
         } else {
           filterMin <- as.numeric(filterMin)
           filterMax <- as.numeric(filterMax)
@@ -216,6 +220,11 @@ shinyServer(function(input, output, session) {
         if(is.na(filterMin)) filterMin <- -Inf
         
         df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
+        
+        if(filterDateFormat != "") {
+          df[, filterCol] <- as.character(df[, filterCol])
+        }
+        
       }
     }
     
@@ -342,7 +351,13 @@ shinyServer(function(input, output, session) {
           }, "hover") %>%
           layer_model_predictions(model = "lm", se = TRUE) %>%
           hide_legend('fill') %>%
-          bind_shiny("metricPlot")
+          bind_shiny("metricScatter")
+        
+        # Histogram of X values
+        df %>%
+          ggvis(xvar) %>%
+          layer_histograms(fill := "#f8f5f0") %>%
+          bind_shiny("metricHist")
           
         # ANOVA Output
         output$aovSummary = reactivePrint(function() {
