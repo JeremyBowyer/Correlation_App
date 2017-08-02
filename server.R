@@ -246,7 +246,7 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#dateFilters",
       where="beforeEnd",
-      ui = tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Format"), "Format dates are in (see above for example formats)."),
+      ui = tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Format"), "Format dates are in (see above for example formats).", "%m/%d/%Y"),
         class="dateFilter", style="display:inline-block")
     )
     
@@ -314,11 +314,12 @@ shinyServer(function(input, output, session) {
         filterMax <- input[[paste0("dateFilter",filter, "Max")]]
         filterDateFormat <- input[[paste0("dateFilter",filter,"Format")]]
         
+        filterMin <- as.Date(filterMin, format= filterDateFormat)
+        filterMax <- as.Date(filterMax, format= filterDateFormat)
+        
         if(is.na(filterMax)) filterMax <- Inf
         if(is.na(filterMin)) filterMin <- -Inf
         
-        filterMin <- as.Date(filterMin, format= filterDateFormat)
-        filterMax <- as.Date(filterMax, format= filterDateFormat)
         df[, filterCol] <- as.Date(as.character(df[, filterCol]), format= filterDateFormat)
         df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
         df[, filterCol] <- as.character(df[, filterCol])
