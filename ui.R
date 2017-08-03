@@ -7,6 +7,9 @@
 
 library(shiny)
 library(shinythemes)
+library(XLConnect)
+library(ggvis)
+library(dplyr)
 
 shinyUI(navbarPage(
   title = "Correlation App",
@@ -38,10 +41,10 @@ shinyUI(navbarPage(
           selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list(), multiple = TRUE),
           tags$hr(),
           tags$h2("Filters"),
-          tags$p("Warning: Filters will be applied to all subsequent analysis, including Metric Dive tab."),
-          tags$div(actionLink("addValueFilter", "Add Value Filter"), id="valueFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin-top: 10px; border-radius: 5px;"),
-          tags$div(actionLink("addPercentileFilter", "Add Percentile Filter"), id="percentileFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin-top: 10px; border-radius: 5px;"),
-          tags$div(actionLink("addDateFilter", "Add Date Filter"), id="dateFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin-top: 10px; border-radius: 5px;"),
+          tags$p("Warning: Filtering by one column will be applied to entire dataset, and will affect all subsequent analysis, including Metric Dive tab."),
+          tags$div(actionLink("addValueFilter", "Add Value Filter"), id="valueFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+          tags$div(actionLink("addPercentileFilter", "Add Percentile Filter"), id="percentileFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+          tags$div(actionLink("addDateFilter", "Add Date Filter"), id="dateFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
           actionButton("applyFilters", "Apply Filters", icon("filter"), style="padding: 5px 10px 5px 10px;"),
           tags$br(),
           actionLink("filterClear", "Clear All Filters", style="color: #f12828;"),
@@ -65,15 +68,19 @@ shinyUI(navbarPage(
           tabPanel("By Date", mainPanel(tableOutput("dateCorrelations")))
         )
   ),
-  tabPanel("Metric Dive", value="metric", mainPanel(
-    selectInput("xCol", "Select Metric", choices=list()),
-    h3("Metric Plots"),
-    tabsetPanel(
-      tabPanel("Scatter", ggvisOutput("metricScatter")),
-      tabPanel("Histogram", ggvisOutput("metricHist"))
-    ),
-    h3('ANOVA Table'),
-    verbatimTextOutput('aovSummary')
+  tabPanel("Metric Dive", value="metric", mainPanel(width = 12,
+    column(12, align="center",
+      selectInput("xCol", "Select Metric", choices=list()),
+      h3("Metric Plots"),
+      tabsetPanel(
+        tabPanel("Scatter", ggvisOutput("metricScatter")),
+        tabPanel("Histogram", ggvisOutput("metricHist")),
+        tabPanel("QQ - Normal Dist", ggvisOutput("metricQQnorm")),
+        tabPanel("QQ - Y", ggvisOutput("metricQQy"))
+      ),
+      h3('ANOVA Table'),
+      verbatimTextOutput('aovSummary')
+      )
     )
   )
   

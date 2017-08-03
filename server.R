@@ -174,7 +174,7 @@ shinyServer(function(input, output, session) {
       insertUI(
         selector="#percentileFilters",
         where="afterBegin",
-        ui = h3("Percentile Filters (example: 0.05 for 5th percentile)", class="valueFilter")
+        ui = h3("Percentile Filters (example: 0.05 for 5th percentile)", class="percentileFilter")
       )
       
     }
@@ -211,6 +211,18 @@ shinyServer(function(input, output, session) {
   observeEvent(input$addDateFilter, {
     
     if(vals$dateFilterCount == 0){
+      
+      insertUI(
+        selector="#dateFilters",
+        where="afterBegin",
+        ui = tags$br(class = "dateFilter")
+      )
+      
+      insertUI(
+        selector="#dateFilters",
+        where="afterBegin",
+        ui = tags$br(class = "dateFilter")
+      )
       
       insertUI(
         selector="#dateFilters",
@@ -445,6 +457,7 @@ shinyServer(function(input, output, session) {
         
         df %>%
           ggvis(x = xvar, y = yvar) %>%
+          set_options(height = 480, width = 800) %>%
           layer_points(fill = fillvar) %>%
           add_tooltip(function(data){
             paste0(category, ": ", data[[category]], "<br>",
@@ -458,8 +471,20 @@ shinyServer(function(input, output, session) {
         # Histogram of X values
         df %>%
           ggvis(xvar) %>%
+          set_options(height = 480, width = 800) %>%
           layer_histograms(fill := "#f8f5f0") %>%
           bind_shiny("metricHist")
+        
+        # QQ Plot
+        xyDF <- df[complete.cases(df[, c(input$xCol, input$yCol)]), c(input$xCol, input$yCol)]
+        sortedX <- xyDF[order(xyDF[, input$xCol]), input$xCol]
+        sortedY <- xyDF[order(xyDF[, input$yCol]), input$yCol]
+        sortedDF <- data.frame(x = sortedX, y = sortedY)
+
+        ggvis(sortedDF, ~x, ~y) %>%
+          set_options(height = 480, width = 800) %>%
+          layer_points() %>%
+          bind_shiny("metricQQy")
           
         # ANOVA Output
         output$aovSummary = reactivePrint(function() {
