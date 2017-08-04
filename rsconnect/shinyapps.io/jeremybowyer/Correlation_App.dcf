@@ -2,9 +2,10 @@ name: Correlation_App
 title: Correlation_App
 account: jeremybowyer
 server: shinyapps.io
-appId: 199460
-bundleId: 924987
+appId: 202046
+bundleId: 927673
 url: https://jeremybowyer.shinyapps.io/Correlation_App/
-when: 1501694558.09643
+when: 1501853593.94154
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: tempDF.csv

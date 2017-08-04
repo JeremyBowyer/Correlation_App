@@ -384,7 +384,7 @@ shinyServer(function(input, output, session) {
       tryCatch({
         form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
         fit <- lm(form, datadf)
-        summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(tempDF[, col]), as.numeric(tempDF[, yColumn]), use = "pairwise.complete.obs")
+        summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
         summaryDF[nrow(summaryDF), "DoF"] <- fit$df
       }, error = function(e) {NULL})
     }
@@ -489,7 +489,7 @@ shinyServer(function(input, output, session) {
         # ANOVA Output
         output$aovSummary = reactivePrint(function() {
           form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
-          summary(lm(form, data = tempDF))
+          summary(lm(form, data = df))
         })
         
       }
