@@ -30,26 +30,35 @@ shinyUI(navbarPage(
         conditionalPanel(
           condition = "output.fileUploaded",
           tags$hr(),
-          checkboxInput("hierBox", "Hierarchical?", value=FALSE),
-          conditionalPanel(
-            condition = "output.hierarchicalCheck",
-            selectInput("hierCol", "Select First Layer column", choices=list())
-          ),
-          selectInput("yCol", "Select Y column", choices=list()),
-          selectInput("dateCol", "Select Date column (optional)", choices=list()),
-          selectInput("categoryCol", "Select Category column (optional)", choices=list()),
-          selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list(), multiple = TRUE),
-          tags$hr(),
-          tags$h2("Filters"),
-          tags$p("Warning: Filtering by one column will be applied to entire dataset, and will affect all subsequent analysis, including Metric Dive tab."),
-          tags$div(actionLink("addValueFilter", "Add Value Filter"), id="valueFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-          tags$div(actionLink("addPercentileFilter", "Add Percentile Filter"), id="percentileFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-          tags$div(actionLink("addDateFilter", "Add Date Filter"), id="dateFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-          actionButton("applyFilters", "Apply Filters", icon("filter"), style="padding: 5px 10px 5px 10px;"),
-          tags$br(),
-          actionLink("filterClear", "Clear All Filters", style="color: #f12828;"),
-          tags$hr(),
+          tabsetPanel(
+            tabPanel("Column Selection",
+              checkboxInput("hierBox", "Hierarchical?", value=FALSE),
+              conditionalPanel(
+                condition = "output.hierarchicalCheck",
+                selectInput("hierCol", "Select First Layer column", choices=list())
+              ),
+              selectInput("yCol", "Select Y column", choices=list()),
+              selectInput("dateCol", "Select Date column (optional)", choices=list()),
+              selectInput("categoryCol", "Select Category column (optional)", choices=list()),
+              selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list(), multiple = TRUE),
+              tags$hr()),
+            tabPanel("Filters",
+                     tags$p("Warning: Filtering by one column will be applied to entire dataset, and will affect all subsequent analysis, including Metric Dive tab."),
+                     tags$div(actionLink("addValueFilter", "Add Value Filter"), id="valueFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     tags$div(actionLink("addPercentileFilter", "Add Percentile Filter"), id="percentileFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     tags$div(actionLink("addDateFilter", "Add Date Filter"), id="dateFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     actionButton("applyFilters", "Apply Filters", icon("filter"), style="padding: 5px 10px 5px 10px;"),
+                     tags$br(),
+                     actionLink("filterClear", "Clear All Filters", style="color: #f12828;"),
+                     tags$hr()),
+            tabPanel("Metric Transformation",
+                     tags$div(actionLink("addTransformation", "Add Transformation"), id="transformations", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     actionButton("applyTransformations", "Create Transformations", icon("recycle"), style="padding: 5px 10px 5px 10px;"),
+                     tags$br(),
+                     actionLink("transformationsClear", "Clear All Transformations", style="color: #f12828;"),
+                     tags$hr())),
           actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
+          
           tags$hr(),
           tags$head(
             tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });')),
@@ -75,7 +84,7 @@ shinyUI(navbarPage(
       tabsetPanel(
         tabPanel("Scatter", ggvisOutput("metricScatter")),
         tabPanel("Histogram", ggvisOutput("metricHist")),
-        tabPanel("QQ - Normal Dist", ggvisOutput("metricQQnorm")),
+        tabPanel("QQ - Normal Dist", ggvisOutput("metricQQNorm")),
         tabPanel("QQ - Y", ggvisOutput("metricQQy"))
       ),
       h3('ANOVA Table'),

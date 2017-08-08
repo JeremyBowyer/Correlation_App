@@ -87,7 +87,12 @@ shinyServer(function(input, output, session) {
   ###################
   # Reactive Values #
   ###################
-  vals <- reactiveValues(valueFilterCount = 0, percentileFilterCount = 0, dateFilterCount = 0, datadf = data.frame(), originaldf = data.frame())
+  vals <- reactiveValues(valueFilterCount = 0,
+                         percentileFilterCount = 0,
+                         dateFilterCount = 0,
+                         transformationCount = 0,
+                         datadf = data.frame(),
+                         originaldf = data.frame())
   
   ###########
   # Methods #
@@ -143,25 +148,10 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#valueFilters",
       where="beforeEnd",
-      ui = tags$div(selectInput(paste0("valueFilter",vals$valueFilterCount), paste0("Filter ",vals$valueFilterCount), getCols()), class="valueFilter")
-    )
-    
-    insertUI(
-      selector="#valueFilters",
-      where="beforeEnd",
-      ui = tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Min"), "Min"), class="valueFilter", style="display:inline-block")
-    )
-    
-    insertUI(
-      selector="#valueFilters",
-      where="beforeEnd",
-      ui = tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Max"), "Max"), class="valueFilter", style="display:inline-block")
-    )
-    
-    insertUI(
-      selector="#valueFilters",
-      where="beforeEnd",
-      tags$div(tags$hr(), class="valueFilter")
+      ui = tags$div(selectInput(paste0("valueFilter",vals$valueFilterCount), paste0("Filter ",vals$valueFilterCount), getCols()),
+                    tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Min"), "Min"), style="display:inline-block"),
+                    tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Max"), "Max"), style="display:inline-block"),
+                    tags$div(tags$hr()), class="valueFilter")
     )
     
   })
@@ -184,25 +174,10 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#percentileFilters",
       where="beforeEnd",
-      ui = tags$div(selectInput(paste0("percentileFilter",vals$percentileFilterCount), paste0("Filter ",vals$percentileFilterCount), getCols()), class="percentileFilter")
-    )
-    
-    insertUI(
-      selector="#percentileFilters",
-      where="beforeEnd",
-      ui = tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Min"), "Min"), class="percentileFilter", style="display:inline-block")
-    )
-    
-    insertUI(
-      selector="#percentileFilters",
-      where="beforeEnd",
-      ui = tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Max"), "Max"), class="percentileFilter", style="display:inline-block")
-    )
-    
-    insertUI(
-      selector="#percentileFilters",
-      where="beforeEnd",
-      tags$div(tags$hr(), class="percentileFilter")
+      ui = tags$div(selectInput(paste0("percentileFilter",vals$percentileFilterCount), paste0("Filter ",vals$percentileFilterCount), getCols()),
+                    tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Min"), "Min"), style="display:inline-block"),
+                    tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Max"), "Max"), style="display:inline-block"),
+                    tags$div(tags$hr()), class="percentileFilter")
     )
     
   })
@@ -241,32 +216,11 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#dateFilters",
       where="beforeEnd",
-      ui = tags$div(selectInput(paste0("dateFilter",vals$dateFilterCount), paste0("Filter ",vals$dateFilterCount), getCols()), class="dateFilter")
-    )
-    
-    insertUI(
-      selector="#dateFilters",
-      where="beforeEnd",
-      ui = tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Min"), "Min"), class="dateFilter", style="display:inline-block")
-    )
-    
-    insertUI(
-      selector="#dateFilters",
-      where="beforeEnd",
-      ui = tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Max"), "Max"), class="dateFilter", style="display:inline-block")
-    )
-    
-    insertUI(
-      selector="#dateFilters",
-      where="beforeEnd",
-      ui = tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Format"), "Format dates are in (see above for example formats).", "%m/%d/%Y"),
-        class="dateFilter", style="display:inline-block")
-    )
-    
-    insertUI(
-      selector="#dateFilters",
-      where="beforeEnd",
-      tags$div(tags$hr(), class="dateFilter")
+      ui = tags$div(selectInput(paste0("dateFilter",vals$dateFilterCount), paste0("Filter ",vals$dateFilterCount), getCols()),
+                    tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Min"), "Min"), style="display:inline-block"),
+                    tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Max"), "Max"), style="display:inline-block"),
+                    tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Format"), "Format dates are in (see above for example formats).", "%m/%d/%Y"), style="display:inline-block"),
+                    tags$div(tags$hr(), class="dateFilter"), class="dateFilter")
     )
     
   })
@@ -341,6 +295,79 @@ shinyServer(function(input, output, session) {
     
     
     vals$datadf <- df
+  })
+  
+  # Add Transformation Button
+  observeEvent(input$addTransformation, {
+    
+    vals$transformationCount <- vals$transformationCount + 1
+    cnt <- vals$transformationCount
+    
+    insertUI(
+      selector="#transformations",
+      where="beforeEnd",
+      ui = tags$div(radioButtons(paste0("transformType", cnt), "Select transformation", choices=list("Difference" = "diff", "% Change" = "perchg")),
+                    numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
+                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
+                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
+                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
+                    tags$hr(), class="transformation")
+    )
+    
+  })
+  
+  # Create Transformations Button
+  observeEvent(input$applyTransformations, {
+    df <- vals$datadf
+    
+    for (cnt in 1:vals$transformationCount) {
+      type <- input[[paste0("transformType", cnt)]]
+      cols <- input[[paste0("transformCols", cnt)]]
+      dateCol <- input[[paste0("transformDateCol", cnt)]]
+      catCols <- input[[paste0("transformCategoryCol", cnt)]]
+      lag <- input[[paste0("transformationLag", cnt)]]
+      
+      if(is.null(catCols)) {
+        df <- df[order(df[, dateCol]), ]
+        switch(type,
+               diff={
+                 for (col in cols){
+                   df[, paste0(col, "_Difference")] <- c(rep(NA, lag), diff(df[, col], lag = lag))
+                 }
+               },
+               perchg={
+                 for (col in cols){
+                   df[, paste0(col, "_PercentChange")] <- as.numeric(Delt(df[, col], k = lag))
+                 }
+               }
+        )
+      } else {
+        df <- df[do.call(order, df[c(dateCol, catCols)]), ]
+        switch(type,
+               diff={
+                 for (col in cols){
+                   df[, paste0(col, "_Difference")] <- c(rep(NA, lag), diff(df[, col], lag = lag))
+                 }
+               },
+               perchg={
+                 for (col in cols){
+                   df[, paste0(col, "_PercentChange")] <- as.numeric(Delt(df[, col], k = lag))
+                 }
+               }
+        )
+      }
+      
+    }
+    
+    vals$datadf <- df
+    
+  })
+  
+  # Clear Transformations Button
+  observeEvent(input$transformationsClear, {
+    removeUI(".transformation", multiple = TRUE)
+    vals$transformationCount <- 0
+    vals$datadf <- vals$datadf[, names(vals$originaldf)]
   })
   
   # Run Analysis Button
@@ -475,15 +502,31 @@ shinyServer(function(input, output, session) {
           layer_histograms(fill := "#f8f5f0") %>%
           bind_shiny("metricHist")
         
-        # QQ Plot
+        
+        # QQ plots #
         xyDF <- df[complete.cases(df[, c(input$xCol, input$yCol)]), c(input$xCol, input$yCol)]
         sortedX <- xyDF[order(xyDF[, input$xCol]), input$xCol]
         sortedY <- xyDF[order(xyDF[, input$yCol]), input$yCol]
-        sortedDF <- data.frame(x = sortedX, y = sortedY)
-
+        xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF$x1, na.rm = TRUE), sd(xyDF$x1, na.rm = TRUE))
+        xNorm <- replace(xNorm, is.infinite(xNorm), NA)
+        sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
+        print(class(sortedDF$y))
+        print(class(sortedDF$xNorm))
+        # Normal Dist
+        ggvis(sortedDF, ~x, ~xNorm) %>%
+          set_options(height = 480, width = 800) %>%
+          layer_points() %>%
+          add_axis("x", title = input$xCol) %>%
+          add_axis("y",  title = "Theoretical Normal Distribution") %>%
+          bind_shiny("metricQQNorm")
+        
+        
+        # Y
         ggvis(sortedDF, ~x, ~y) %>%
           set_options(height = 480, width = 800) %>%
           layer_points() %>%
+          add_axis("x", title = input$xCol) %>%
+          add_axis("y",  title = input$yCol) %>%
           bind_shiny("metricQQy")
           
         # ANOVA Output
