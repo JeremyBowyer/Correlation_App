@@ -61,8 +61,7 @@ shinyUI(navbarPage(
           
           tags$hr(),
           tags$head(
-            tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });')),
-            tags$style(HTML(".shiny-notification {position: fixed; top: 150px; left: 200px;}"))
+            tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });'))
           )
         )
       ),
@@ -80,15 +79,19 @@ shinyUI(navbarPage(
   tabPanel("Metric Dive", value="metric", mainPanel(width = 12,
     column(12, align="center",
       selectInput("xCol", "Select Metric", choices=list()),
-      h3("Metric Plots"),
-      tabsetPanel(
-        tabPanel("Scatter", ggvisOutput("metricScatter")),
-        tabPanel("Histogram", ggvisOutput("metricHist")),
-        tabPanel("QQ - Normal Dist", ggvisOutput("metricQQNorm")),
-        tabPanel("QQ - Y", ggvisOutput("metricQQy"))
-      ),
-      h3('ANOVA Table'),
-      verbatimTextOutput('aovSummary')
+      tags$div(id = "metricAlertDiv"),
+      conditionalPanel(
+        condition = "output.validX",
+        h3("Metric Plots"),
+        tabsetPanel(
+          tabPanel("Scatter", ggvisOutput("metricScatter")),
+          tabPanel("Histogram", ggvisOutput("metricHist")),
+          tabPanel("QQ - Normal Dist", ggvisOutput("metricQQNorm")),
+          tabPanel("QQ - Y", ggvisOutput("metricQQy"))
+        ),
+        h3('ANOVA Table'),
+        verbatimTextOutput('aovSummary')
+      )
       )
     )
   )

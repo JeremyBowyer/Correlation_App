@@ -17,7 +17,7 @@ for(i = 0; i < $('#allCorrelations th').length; i++) {
   colorTable('allCorrelations', i);
 }
 
-for(i = 0; i < $('#dateCorrelations th').length; i++) {
+for(i = 7; i < $('#dateCorrelations th').length; i++) {
   colorTable('dateCorrelations', i);
 }
 
@@ -114,6 +114,13 @@ shinyServer(function(input, output, session) {
     return(input$hierBox)
   })
   outputOptions(output, 'hierarchicalCheck', suspendWhenHidden=FALSE)
+  
+  output$validX <- reactive({
+    df <- vals$datadf
+    df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+    return(sum(!is.na(as.numeric(df[, input$xCol]))) != 0)
+  })
+  outputOptions(output, 'validX', suspendWhenHidden=FALSE)
   
   ##################
   # Event Handlers #
@@ -319,6 +326,7 @@ shinyServer(function(input, output, session) {
   # Create Transformations Button
   observeEvent(input$applyTransformations, {
     df <- vals$datadf
+    df <- df[, names(vals$originaldf)]
     
     for (cnt in 1:vals$transformationCount) {
       type <- input[[paste0("transformType", cnt)]]
@@ -343,15 +351,21 @@ shinyServer(function(input, output, session) {
         )
       } else {
         df <- df[do.call(order, df[c(dateCol, catCols)]), ]
+        
+        groupList <- list()
+        for (col in catCols){
+          groupList[[col]] <- df[, col] 
+        }
+        
         switch(type,
                diff={
                  for (col in cols){
-                   df[, paste0(col, "_Difference")] <- c(rep(NA, lag), diff(df[, col], lag = lag))
+                   df[, paste0(col, "_Difference")] <- unlist(aggregate(df[,col], by=groupList, function(x) c(rep(NA, lag), diff(x, lag = lag)))[["x"]])
                  }
                },
                perchg={
                  for (col in cols){
-                   df[, paste0(col, "_PercentChange")] <- as.numeric(Delt(df[, col], k = lag))
+                   df[, paste0(col, "_PercentChange")] <- unlist(aggregate(df[,col], by=groupList, function(x) Delt(x, k = lag))[["x"]])
                  }
                }
         )
@@ -425,6 +439,9 @@ shinyServer(function(input, output, session) {
       dateCorrelations <- data.frame(Metric = correlCols,
                                      "Total Periods" = integer(length(correlCols)),
                                      "Negative Periods" = integer(length(correlCols)),
+                                     "Positive Periods" = integer(length(correlCols)),
+                                     "% Negative" = numeric(length(correlCols)),
+                                     "% Positive" = numeric(length(correlCols)),
                                      "Avg Correlation" = numeric(length(correlCols)),
                                      check.names = FALSE)
       # Fill in correlations by date
@@ -441,6 +458,9 @@ shinyServer(function(input, output, session) {
         metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
         dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations)
         dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
+        dateCorrelations[dateCorrelations$Metric == col, "Positive Periods"] <- length(metricCorrelations[metricCorrelations > 0])
+        dateCorrelations[dateCorrelations$Metric == col, "% Negative"] <- length(metricCorrelations[metricCorrelations < 0]) / length(metricCorrelations)
+        dateCorrelations[dateCorrelations$Metric == col, "% Positive"] <- length(metricCorrelations[metricCorrelations > 0]) / length(metricCorrelations)
         dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
       }
       
@@ -465,35 +485,55 @@ shinyServer(function(input, output, session) {
       
       if(nrow(df) == 0) {
         showNotification("No Data. Try selecting another column, or removing some filters on the Options page.",
-                         type="warning",
+                         type="error",
                          duration=NULL)
+      } else if(sum(!is.na(as.numeric(df[, input$xCol]))) == 0) {
+        removeUI(".metricAlert", multiple = TRUE)
+        insertUI(
+          selector="#metricAlertDiv",
+          where="beforeEnd",
+          ui = tags$p("Column has no data after being coerced to numeric.", style="color: red;", class="metricAlert")
+        )
+        
       } else {
-      
+        removeUI(".metricAlert", multiple = TRUE)
         # Scatter Plot
         xvar <- prop("x", as.symbol(input$xCol))
         yvar <- prop("y", as.symbol(input$yCol))
-  
+        
         if(input$categoryCol == "") {
           fillvar <- prop("fill", as.symbol(input$xCol))
-          category <- "Data"
+          
+          df %>%
+            ggvis(x = xvar, y = yvar) %>%
+            set_options(height = 480, width = 800) %>%
+            layer_points(fill = fillvar) %>%
+            add_tooltip(function(data){
+              paste0(input$xCol, ": ", data[[input$xCol]], "<br>",
+                     input$yCol, ": ", data[[input$yCol]], "<br>")
+            }, "hover") %>%
+            layer_model_predictions(model = "lm", se = TRUE) %>%
+            hide_legend('fill') %>%
+            bind_shiny("metricScatter")
+          
         } else {
           df[, input$categoryCol] <- as.factor(df[, input$categoryCol])
           fillvar <- prop("fill", as.symbol(input$categoryCol))
           category <- input$categoryCol
+          
+          df %>%
+            ggvis(x = xvar, y = yvar) %>%
+            set_options(height = 480, width = 800) %>%
+            layer_points(fill = fillvar) %>%
+            add_tooltip(function(data){
+              paste0(category, ": ", data[[category]], "<br>",
+                     input$xCol, ": ", data[[input$xCol]], "<br>",
+                     input$yCol, ": ", data[[input$yCol]], "<br>")
+            }, "hover") %>%
+            layer_model_predictions(model = "lm", se = TRUE) %>%
+            hide_legend('fill') %>%
+            bind_shiny("metricScatter")
         }
-        
-        df %>%
-          ggvis(x = xvar, y = yvar) %>%
-          set_options(height = 480, width = 800) %>%
-          layer_points(fill = fillvar) %>%
-          add_tooltip(function(data){
-            paste0(category, ": ", data[[category]], "<br>",
-                   input$xCol, ": ", data[[input$xCol]], "<br>",
-                   input$yCol, ": ", data[[input$yCol]], "<br>")
-          }, "hover") %>%
-          layer_model_predictions(model = "lm", se = TRUE) %>%
-          hide_legend('fill') %>%
-          bind_shiny("metricScatter")
         
         # Histogram of X values
         df %>%
@@ -507,26 +547,24 @@ shinyServer(function(input, output, session) {
         xyDF <- df[complete.cases(df[, c(input$xCol, input$yCol)]), c(input$xCol, input$yCol)]
         sortedX <- xyDF[order(xyDF[, input$xCol]), input$xCol]
         sortedY <- xyDF[order(xyDF[, input$yCol]), input$yCol]
-        xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF$x1, na.rm = TRUE), sd(xyDF$x1, na.rm = TRUE))
+        xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF[,input$xCol], na.rm = TRUE), sd(xyDF[,input$xCol], na.rm = TRUE))
         xNorm <- replace(xNorm, is.infinite(xNorm), NA)
         sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
-        print(class(sortedDF$y))
-        print(class(sortedDF$xNorm))
+
         # Normal Dist
         ggvis(sortedDF, ~x, ~xNorm) %>%
           set_options(height = 480, width = 800) %>%
           layer_points() %>%
-          add_axis("x", title = input$xCol) %>%
-          add_axis("y",  title = "Theoretical Normal Distribution") %>%
+          ggvis::add_axis("x", title = input$xCol) %>%
+          ggvis::add_axis("y", title = "Theoretical Normal Distribution") %>%
           bind_shiny("metricQQNorm")
-        
         
         # Y
         ggvis(sortedDF, ~x, ~y) %>%
           set_options(height = 480, width = 800) %>%
           layer_points() %>%
-          add_axis("x", title = input$xCol) %>%
-          add_axis("y",  title = input$yCol) %>%
+          ggvis::add_axis("x", title = input$xCol) %>%
+          ggvis::add_axis("y",  title = input$yCol) %>%
           bind_shiny("metricQQy")
           
         # ANOVA Output
