@@ -9,6 +9,7 @@ library(shiny)
 library(XLConnect)
 library(ggvis)
 library(dplyr)
+library(quantmod)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 script <- "
@@ -116,9 +117,12 @@ shinyServer(function(input, output, session) {
   outputOptions(output, 'hierarchicalCheck', suspendWhenHidden=FALSE)
   
   output$validX <- reactive({
-    df <- vals$datadf
-    df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
-    return(sum(!is.na(as.numeric(df[, input$xCol]))) != 0)
+    if(input$xCol != "" && input$yCol != "") {
+      df <- vals$datadf
+      df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+      
+      return(sum(!is.na(as.numeric(df[, input$xCol]))) != 0)
+    }
   })
   outputOptions(output, 'validX', suspendWhenHidden=FALSE)
   
@@ -313,7 +317,10 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#transformations",
       where="beforeEnd",
-      ui = tags$div(radioButtons(paste0("transformType", cnt), "Select transformation", choices=list("Difference" = "diff", "% Change" = "perchg")),
+      ui = tags$div(radioButtons(paste0("transformType", cnt), "Select transformation", choices=list("Difference" = "diff",
+                                                                                                     "% Change" = "perchg",
+                                                                                                     "% Change from Median" = "perchgmedian",
+                                                                                                     "% Change from Std" = "perchgstd")),
                     numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                     selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
                     selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
@@ -329,46 +336,62 @@ shinyServer(function(input, output, session) {
     df <- df[, names(vals$originaldf)]
     
     for (cnt in 1:vals$transformationCount) {
+      
+      # Grab values from current transformation request
       type <- input[[paste0("transformType", cnt)]]
       cols <- input[[paste0("transformCols", cnt)]]
       dateCol <- input[[paste0("transformDateCol", cnt)]]
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
       lag <- input[[paste0("transformationLag", cnt)]]
       
-      if(is.null(catCols)) {
-        df <- df[order(df[, dateCol]), ]
-        switch(type,
-               diff={
-                 for (col in cols){
-                   df[, paste0(col, "_Difference")] <- c(rep(NA, lag), diff(df[, col], lag = lag))
-                 }
+      # Assign transformation function based on type selcted
+      switch(type,
+             diff={
+               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) ) }
+               transformName <- "_Difference"
                },
-               perchg={
-                 for (col in cols){
-                   df[, paste0(col, "_PercentChange")] <- as.numeric(Delt(df[, col], k = lag))
-                 }
-               }
-        )
-      } else {
-        df <- df[do.call(order, df[c(dateCol, catCols)]), ]
+             perchg={
+               transformFunc <- function(x, lag) { return( as.numeric(Delt(x, k = lag)) ) }
+               transformName <- "_PercentChange"
+             },
+             perchgmedian={
+               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) / median(x, na.rm = TRUE) ) }
+               transformName <- "_PercentChangeMedian"
+             },
+             perchgstd={
+               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) / sd(x, na.rm = TRUE) ) }
+               transformName <- "_PercentChangeStd"
+             }
+      )
+      
+      # Run transformation based on whether or not category column was selected.
+      if(is.null(catCols)) {
+        # No Category columns#
         
+        # Order DF by date column
+        df <- df[order(df[, dateCol]), ]
+        for (col in cols){
+          df[, paste0(col, transformName)] <- transformFunc(df[, col], lag)
+        }
+        
+      } else {
+        # Category columns #
+        
+        # Order by category cols then date col.
+        # This step is needed to ensure unlisted aggregate data is in proper order
+        df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
         groupList <- list()
         for (col in catCols){
           groupList[[col]] <- df[, col] 
         }
         
-        switch(type,
-               diff={
-                 for (col in cols){
-                   df[, paste0(col, "_Difference")] <- unlist(aggregate(df[,col], by=groupList, function(x) c(rep(NA, lag), diff(x, lag = lag)))[["x"]])
-                 }
-               },
-               perchg={
-                 for (col in cols){
-                   df[, paste0(col, "_PercentChange")] <- unlist(aggregate(df[,col], by=groupList, function(x) Delt(x, k = lag))[["x"]])
-                 }
-               }
-        )
+        for (col in cols){
+          df[, paste0(col, transformName)] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(x, lag))[["x"]])
+        }
+        
+        # reorder DF back to user-selected order
+        df <- df[do.call(order, df[c(catCols,dateCol)]), ]
+        
       }
       
     }
