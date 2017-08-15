@@ -41,19 +41,37 @@ function colorTable(tableid, colindex){
 
   n = max-min;
   
-  // Define the min colour, which is white
-  xr = 255; // Red value
-  xg = 255; // Green value
-  xb = 255; // Blue value
-  
-  // Define the max colour #2ca25f
-  yr = 44; // Red value
-  yg = 162; // Green value
-  yb = 95; // Blue value
-  
   $('#' + tableid + ' tr td:nth-child(' + (colindex + 1) + ')').each(function() {
 
     var val = parseFloat($(this).text());    
+    var xr, xg, xb, yr, yg, yb;
+
+    // Define colors, depending on sign of val
+    if (val >= 0) {
+
+        // Define the min color, which is white
+        xr = 255; // Red value
+        xg = 255; // Green value
+        xb = 255; // Blue value
+        
+        // Define the max color #2ca25f
+        yr = 44; // Red value
+        yg = 162; // Green value
+        yb = 95; // Blue value
+
+    } else {
+
+        // Define the min color, #a12b2b
+        xr = 161; // Red value
+        xg = 43; // Green value
+        xb = 43; // Blue value
+        
+        // Define the max color, white
+        yr = 255; // Red value
+        yg = 255; // Green value
+        yb = 255; // Blue value
+
+    }
 
     // Catch exceptions outside of range
     if (val > max) {
