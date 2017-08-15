@@ -15,17 +15,17 @@ options(stringsAsFactors = FALSE)
 script <- "
 
 for(i = 0; i < $('#allCorrelations th').length; i++) {
-  colorTable('allCorrelations', i);
+  colorTableByCol('allCorrelations', i);
 }
 
 for(i = 7; i < $('#dateCorrelations th').length; i++) {
-  colorTable('dateCorrelations', i);
+  colorTableByCol('dateCorrelations', i);
 }
 
 
-function colorTable(tableid, colindex){
+function colorTableByCol(tableid, colindex){
 
-  var columnarray, max, min, n;
+  var columnarray, maxval, minval, max, min, n;
 
   columnarray = [];
   $('#' + tableid + ' tr:not(:first)').each(function(){
@@ -35,9 +35,17 @@ function colorTable(tableid, colindex){
     }
   })
   
-  max = Math.max(...columnarray);
-  min = Math.min(...columnarray);
-  console.log(columnarray);
+  maxval = Math.max(...columnarray);
+  minval = Math.min(...columnarray);
+
+  min = 0;
+  if (minval > 0) {
+    max = maxval;
+  } else if (maxval < 0) {
+    max = Math.abs(minval);
+  } else {
+    max = Math.max(Math.abs(maxval), Math.abs(minval));
+  }
 
   n = max-min;
   
@@ -46,45 +54,32 @@ function colorTable(tableid, colindex){
     var val = parseFloat($(this).text());    
     var xr, xg, xb, yr, yg, yb;
 
-    // Define colors, depending on sign of val
-    if (val >= 0) {
+    // Define the min color, which is white
+    xr = 255; // Red value
+    xg = 255; // Green value
+    xb = 255; // Blue value
 
-        // Define the min color, which is white
-        xr = 255; // Red value
-        xg = 255; // Green value
-        xb = 255; // Blue value
+    // Define max color, depending on sign of val
+    if (val >= 0) {
         
-        // Define the max color #2ca25f
-        yr = 44; // Red value
-        yg = 162; // Green value
-        yb = 95; // Blue value
+      // Green if val > 0, #2ca25f
+      yr = 44; // Red value
+      yg = 162; // Green value
+      yb = 95; // Blue value
 
     } else {
 
-        // Define the min color, #a12b2b
-        xr = 161; // Red value
-        xg = 43; // Green value
-        xb = 43; // Blue value
-        
-        // Define the max color, white
-        yr = 255; // Red value
-        yg = 255; // Green value
-        yb = 255; // Blue value
-
-    }
-
-    // Catch exceptions outside of range
-    if (val > max) {
-    var val = max;
-    }
+      // Red if val < 0, #a12b2b
+      yr = 161; // Red value
+      yg = 43; // Green value
+      yb = 43; // Blue value
     
-    else if (val < min) {
-    var val = min;
+      val = Math.abs(val);
+
     }
 
     // Find value's position relative to range
-    
-    var pos = ((val-min) / (n));
+    var pos = ((val - min) / (n));
     
     // Generate RGB code
     red = parseInt((xr + (( pos * (yr - xr)))).toFixed(0));
