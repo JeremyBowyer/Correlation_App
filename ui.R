@@ -58,8 +58,16 @@ shinyUI(navbarPage(
                      actionButton("applyTransformations", "Create Transformations", icon("recycle"), style="padding: 5px 10px 5px 10px;"),
                      tags$br(),
                      actionLink("transformationsClear", "Clear All Transformations", style="color: #f12828;"),
+                     tags$hr()),
+            tabPanel("Offsets",
+                     tags$div(actionLink("addOffset", "Add Offset"), id="offsets", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     tags$br(),
+                     actionButton("applyOffsets", "Create Offsets", icon("arrows-v"), style="padding: 5px 10px 5px 10px;"),
+                     tags$br(),
+                     actionLink("offsetClear", "Clear All Offsets", style="color: #f12828;"),
                      tags$hr())),
           actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
+          downloadButton('downloadData', 'Download Customized Data'),
           
           tags$hr(),
           tags$head(

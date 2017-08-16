@@ -105,6 +105,7 @@ shinyServer(function(input, output, session) {
                          percentileFilterCount = 0,
                          dateFilterCount = 0,
                          transformationCount = 0,
+                         offsetCount = 0,
                          datadf = data.frame(),
                          originaldf = data.frame())
   
@@ -346,7 +347,16 @@ shinyServer(function(input, output, session) {
   # Create Transformations Button
   observeEvent(input$applyTransformations, {
     df <- vals$datadf
-    df <- df[, names(vals$originaldf)]
+    dfcols <- names(df)
+    dfcols <- c(grep("_Difference", dfcols, invert = TRUE),
+                grep("_PercentChange", dfcols, invert = TRUE),
+                grep("_PercentChangeMedian", dfcols, invert = TRUE),
+                grep("_PercentChangeStd", dfcols, invert = TRUE))
+    
+    dfcols <- unique(dfcols)
+    dfcols <- dfcols[order(dfcols)]
+    df <- df[, dfcols]
+    
     
     for (cnt in 1:vals$transformationCount) {
       
@@ -361,20 +371,20 @@ shinyServer(function(input, output, session) {
       switch(type,
              diff={
                transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) ) }
-               transformName <- "_Difference"
-               },
+               transformName <- "_T_Difference"
+              },
              perchg={
                transformFunc <- function(x, lag) { return( as.numeric(Delt(x, k = lag)) ) }
-               transformName <- "_PercentChange"
-             },
+               transformName <- "_T_PercentChange"
+              },
              perchgmedian={
                transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) / median(x, na.rm = TRUE) ) }
-               transformName <- "_PercentChangeMedian"
-             },
+               transformName <- "_T_PercentChangeMedian"
+              },
              perchgstd={
                transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) / sd(x, na.rm = TRUE) ) }
-               transformName <- "_PercentChangeStd"
-             }
+               transformName <- "_T_PercentChangeStd"
+              }
       )
       
       # Run transformation based on whether or not category column was selected.
@@ -417,11 +427,112 @@ shinyServer(function(input, output, session) {
   observeEvent(input$transformationsClear, {
     removeUI(".transformation", multiple = TRUE)
     vals$transformationCount <- 0
-    vals$datadf <- vals$datadf[, names(vals$originaldf)]
+    dfcols <- names(vals$datadf)
+    vals$datadf <- vals$datadf[, dfcols[grep("_T_", dfcols, invert = TRUE)]]
   })
+  
+  
+  # Add Offset Button
+  observeEvent(input$addOffset, {
+    
+    vals$offsetCount <- vals$offsetCount + 1
+    cnt <- vals$offsetCount
+    
+    insertUI(
+      selector="#offsets",
+      where="beforeEnd",
+      ui = tags$div(radioButtons(paste0("offsetType", cnt), "Select Direction", choices=list("Forward" = "forward",
+                                                                                             "Backward" = "backward")),
+                    numericInput(paste0("offsetLag", cnt), "Select Lag", value = 1, min = 1), 
+                    selectInput(paste0("offsetCols", cnt), "Select columns to offset", choices=getCols(), multiple = TRUE),
+                    selectInput(paste0("offsetDateCol", cnt), "Select column to offset along (probably a date)", choices=getCols()),
+                    selectInput(paste0("offsetCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
+                    tags$hr(), class="offset")
+    )
+    
+  })
+  
+  # Create Offsets Button
+  observeEvent(input$applyOffsets, {
+    df <- vals$datadf
+    dfcols <- names(df)
+    df <- df[, dfcols[grep("_Lag", dfcols, invert = TRUE)]]
+    
+    for (cnt in 1:vals$offsetCount) {
+      
+      # Grab values from current offset request
+      type <- input[[paste0("offsetType", cnt)]]
+      cols <- input[[paste0("offsetCols", cnt)]]
+      dateCol <- input[[paste0("offsetDateCol", cnt)]]
+      catCols <- input[[paste0("offsetCategoryCol", cnt)]]
+      lag <- input[[paste0("offsetLag", cnt)]]
+      
+      # Assign offset function based on type selcted
+      switch(type,
+             forward={
+               offsetFunc <- function(x, lag) { return( c(rep(NA, lag), x[1:(length(x) - lag)]) ) }
+               offsetName <- paste0("_LagForward", lag)
+             },
+             backward={
+               offsetFunc <- function(x, lag) { return( c(x[(lag + 1):length(x)], rep(NA, lag)) ) }
+               offsetName <- paste0("_LagBackward", lag)
+             }
+      )
+      
+      # Run offset based on whether or not category column was selected.
+      if(is.null(catCols)) {
+        # No Category columns#
+        
+        # Order DF by date column
+        df <- df[order(df[, dateCol]), ]
+        for (col in cols){
+          df[, paste0(col, offsetName)] <- offsetFunc(df[, col], lag)
+        }
+        
+      } else {
+        # Category columns #
+        
+        # Order by category cols then date col.
+        # This step is needed to ensure unlisted aggregate data is in proper order
+        df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
+        groupList <- list()
+        for (col in catCols){
+          groupList[[col]] <- df[, col] 
+        }
+        
+        for (col in cols){
+          df[, paste0(col, offsetName)] <- unlist(aggregate(df[,col], by=groupList, function(x) offsetFunc(x, lag))[["x"]])
+        }
+        
+        # reorder DF back to user-selected order
+        df <- df[do.call(order, df[c(catCols,dateCol)]), ]
+        
+      }
+      
+    }
+    
+    vals$datadf <- df
+    
+  })
+  
+  # Clear Offsets Button
+  observeEvent(input$offsetClear, {
+    removeUI(".offset", multiple = TRUE)
+    vals$offsetCount <- 0
+    dfcols <- names(vals$datadf)
+    vals$datadf <- vals$datadf[, dfcols[grep("_Lag", dfcols, invert = TRUE)]]
+  })
+  
   
   # Run Analysis Button
   observeEvent(input$run, {
+    
+    if(input$yCol == "") {
+      showNotification("Select a Y column.",
+                       type="error",
+                       duration=NULL)
+      return(NULL)
+    }
     
     # Read in user-provided CSV file
     datadf <- vals$datadf
@@ -509,6 +620,19 @@ shinyServer(function(input, output, session) {
     
   })
   
+  output$downloadData <- downloadHandler(
+    filename = function(){"custom_data.xlsx"},
+    content = function(file) {
+      fname <- paste(file,"xlsx",sep=".")
+      wb <- loadWorkbook(fname,create = TRUE)
+      createSheet(wb,"data")
+      writeWorksheet(wb,data = vals$datadf, sheet = "data")
+      saveWorkbook(wb)
+      file.rename(fname,file)
+    },
+    contentType="application/xlsx" 
+    )
+  
   # Upon selection of metric in Metric Dive tab
   observeEvent({
     c(input$xCol,input$run,input$applyFilters,input$filterClear)
@@ -576,6 +700,7 @@ shinyServer(function(input, output, session) {
           ggvis(xvar) %>%
           set_options(height = 480, width = 800) %>%
           layer_histograms(fill := "#f8f5f0") %>%
+          # layer_histograms(fill := "#f8f5f0", width = diff(range(x)) / (2 * IQR(x) / length(x)^(1/3))) %>% # from https://stats.stackexchange.com/questions/798/calculating-optimal-number-of-bins-in-a-histogram
           bind_shiny("metricHist")
         
         
