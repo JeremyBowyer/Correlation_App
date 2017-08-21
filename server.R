@@ -12,6 +12,7 @@ library(dplyr)
 library(quantmod)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
+
 script <- "
 
 for(i = 0; i < $('#allCorrelations th').length; i++) {
