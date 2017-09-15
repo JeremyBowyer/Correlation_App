@@ -379,7 +379,19 @@ shinyServer(function(input, output, session) {
                transformName <- "_T_PercentChange"
               },
              perchgmedian={
-               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) / median(x, na.rm = TRUE) ) }
+               transformFunc <- function(x, lag) {
+                 
+                 d <- c(rep(NA, lag), diff(x, lag = lag))
+                 
+                 m <- numeric()
+                 
+                 for (i in seq_along(d)) {
+                   m[length(m)+1] <- d[i] / median(x[1:i], na.rm = TRUE)
+                 }
+                 
+                 return( m )
+                 
+              }
                transformName <- "_T_PercentChangeMedian"
               },
              perchgstd={
