@@ -12,6 +12,7 @@ library(dplyr)
 library(quantmod)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
+source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
 
 script <- "
 
@@ -23,6 +24,9 @@ for(i = 7; i < $('#dateCorrelations th').length; i++) {
   colorTableByCol('dateCorrelations', i);
 }
 
+for(i = 0; i < $('#datePerformance th').length; i++) {
+  colorTableByCol('datePerformance', i);
+}
 
 function colorTableByCol(tableid, colindex){
 
@@ -674,39 +678,37 @@ shinyServer(function(input, output, session) {
         xvar <- prop("x", as.symbol(input$xCol))
         yvar <- prop("y", as.symbol(input$yCol))
         
+        # Create ggvis properties, depending on if category column is selected
         if(input$categoryCol == "") {
           fillvar <- prop("fill", as.symbol(input$xCol))
           
-          df %>%
-            ggvis(x = xvar, y = yvar) %>%
-            set_options(height = 480, width = 800) %>%
-            layer_points(fill = fillvar) %>%
-            add_tooltip(function(data){
-              paste0(input$xCol, ": ", data[[input$xCol]], "<br>",
-                     input$yCol, ": ", data[[input$yCol]], "<br>")
-            }, "hover") %>%
-            layer_model_predictions(model = "lm", se = TRUE) %>%
-            hide_legend('fill') %>%
-            bind_shiny("metricScatter")
+          toolTipFunc <- function(data){
+            paste0(input$xCol, ": ", data[[input$xCol]], "<br>",
+                   input$yCol, ": ", data[[input$yCol]], "<br>")
+          }
           
         } else {
           df[, input$categoryCol] <- as.factor(df[, input$categoryCol])
           fillvar <- prop("fill", as.symbol(input$categoryCol))
           category <- input$categoryCol
-          
-          df %>%
-            ggvis(x = xvar, y = yvar) %>%
-            set_options(height = 480, width = 800) %>%
-            layer_points(fill = fillvar) %>%
-            add_tooltip(function(data){
+
+          toolTipFunc <- function(data){
               paste0(category, ": ", data[[category]], "<br>",
                      input$xCol, ": ", data[[input$xCol]], "<br>",
                      input$yCol, ": ", data[[input$yCol]], "<br>")
-            }, "hover") %>%
-            layer_model_predictions(model = "lm", se = TRUE) %>%
-            hide_legend('fill') %>%
-            bind_shiny("metricScatter")
+            }
         }
+        
+        # Create scatter object and bind it to UI element
+        df %>%
+          ggvis(x = xvar, y = yvar) %>%
+          set_options(height = 480, width = 800) %>%
+          layer_points(fill = fillvar) %>%
+          add_tooltip(toolTipFunc, "hover") %>%
+          layer_model_predictions(model = "lm", se = TRUE) %>%
+          hide_legend('fill') %>%
+          bind_shiny("metricScatter")
+        
         
         # Histogram of X values
         df %>%
@@ -745,6 +747,26 @@ shinyServer(function(input, output, session) {
         output$aovSummary = reactivePrint(function() {
           form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
           summary(lm(form, data = df))
+        })
+        
+        # Performance Output
+        output$datePerformance = renderTable({
+          
+          df <- vals$datadf
+          df[,"quints"] <- quint(df[,input$xCol])
+          
+          allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
+          
+          allPerformance[,"All"] <- aggregate(df[, input$yCol], by = list(df$quints), function(x) mean(x, na.rm = TRUE))["x"]
+          
+          for(date in unique(df[, input$dateCol])) {
+            datedf <- df[df[,input$dateCol] == date, ]
+            datedf$quints <- quint(datedf[,input$xCol])
+            allPerformance[, date] <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))["x"]
+          }
+          
+          return(allPerformance)
+          
         })
         
       }

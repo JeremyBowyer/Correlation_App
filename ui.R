@@ -99,8 +99,11 @@ shinyUI(navbarPage(
           tabPanel("QQ - Normal Dist", ggvisOutput("metricQQNorm")),
           tabPanel("QQ - Y", ggvisOutput("metricQQy"))
         ),
-        h3('ANOVA Table'),
-        verbatimTextOutput('aovSummary')
+        h3('Details'),
+        tabsetPanel(
+          tabPanel("ANOVA", verbatimTextOutput('aovSummary')),
+          tabPanel("Performance", tableOutput("datePerformance"))
+        )
       )
       )
     )
