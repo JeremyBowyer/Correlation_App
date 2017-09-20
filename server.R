@@ -660,6 +660,7 @@ shinyServer(function(input, output, session) {
       df <- vals$datadf
       df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
       
+      # Check for valid data, otherwise show error notification to user
       if(nrow(df) == 0) {
         showNotification("No Data. Try selecting another column, or removing some filters on the Options page.",
                          type="error",
@@ -744,7 +745,7 @@ shinyServer(function(input, output, session) {
           bind_shiny("metricQQy")
           
         # Turnover Chart
-        metricDF <- tempDF[order(tempDF[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
+        metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
         wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
         rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
         diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
