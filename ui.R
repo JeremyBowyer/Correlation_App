@@ -79,11 +79,11 @@ shinyUI(navbarPage(
     )
   ),
   
-  tabPanel("Correlations",
+  tabPanel("Metric Comparison",
         value="correlations",
         tabsetPanel(
-          tabPanel("All", mainPanel(tableOutput("allCorrelations"))),
-          tabPanel("By Date", mainPanel(tableOutput("dateCorrelations")))
+          tabPanel("Correlations - All Dates", mainPanel(tableOutput("allCorrelations"))),
+          tabPanel("Correlations - By Date", mainPanel(tableOutput("dateCorrelations")))
         )
   ),
   tabPanel("Metric Dive", value="metric", mainPanel(width = 12,
@@ -97,7 +97,8 @@ shinyUI(navbarPage(
           tabPanel("Scatter", ggvisOutput("metricScatter")),
           tabPanel("Histogram", ggvisOutput("metricHist")),
           tabPanel("QQ - Normal Dist", ggvisOutput("metricQQNorm")),
-          tabPanel("QQ - Y", ggvisOutput("metricQQy"))
+          tabPanel("QQ - Y", ggvisOutput("metricQQy")),
+          tabPanel("Turnover", h3("Standard Deviation of Change in Rank Percentile"), ggvisOutput("metricTurnover"))
         ),
         h3('Details'),
         tabsetPanel(

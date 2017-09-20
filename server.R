@@ -743,6 +743,25 @@ shinyServer(function(input, output, session) {
           ggvis::add_axis("y",  title = input$yCol) %>%
           bind_shiny("metricQQy")
           
+        # Turnover Chart
+        metricDF <- tempDF[order(tempDF[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
+        wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
+        rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
+        diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
+        stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
+        dates <- unique(metricDF[,"Date"])
+        stdDF <- data.frame(date = dates, std = stds)
+        
+        stdDF %>%
+          ggvis(~date, ~std) %>%
+          set_options(height = 480, width = 800) %>%
+          layer_lines() %>%
+          ggvis::add_axis("x", title = "", properties = axis_props(labels = list(angle = 90, 
+                                                                                     align = "left", baseline = "middle"))) %>%
+          ggvis::add_axis("y",  title = "Turnover Rate (complete rank reversal = ~0.57)") %>%
+          bind_shiny("metricTurnover")
+        
+        
         # ANOVA Output
         output$aovSummary = reactivePrint(function() {
           form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
