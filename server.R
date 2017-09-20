@@ -16,8 +16,8 @@ source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/
 
 script <- "
 
-for(i = 0; i < $('#allCorrelations th').length; i++) {
-  colorTableByCol('allCorrelations', i);
+for(i = 0; i < $('#summaryTable th').length; i++) {
+  colorTableByCol('summaryTable', i);
 }
 
 for(i = 7; i < $('#dateCorrelations th').length; i++) {
@@ -580,6 +580,7 @@ shinyServer(function(input, output, session) {
     ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table
     summaryDF <- data.frame(Metric = character(),
+                            Turnover = character(),
                             Correlation = numeric(),
                             DoF = integer())
     
@@ -587,6 +588,13 @@ shinyServer(function(input, output, session) {
       rm("fit")
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
       tryCatch({
+        metricDF <- datadf[order(datadf[,input$dateCol]) ,c(input$dateCol, input$categoryCol, col)]
+        wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = col)[, -1]
+        rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
+        diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
+        stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
+        summaryDF[nrow(summaryDF), "Turnover"] <- round(mean(stds, na.rm = TRUE), 2)
+        
         form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
         fit <- lm(form, datadf)
         summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
@@ -594,7 +602,7 @@ shinyServer(function(input, output, session) {
       }, error = function(e) {NULL})
     }
     
-    output$allCorrelations <- renderTable({
+    output$summaryTable <- renderTable({
       summaryDF
     })
     

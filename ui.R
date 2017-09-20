@@ -82,7 +82,7 @@ shinyUI(navbarPage(
   tabPanel("Metric Comparison",
         value="correlations",
         tabsetPanel(
-          tabPanel("Correlations - All Dates", mainPanel(tableOutput("allCorrelations"))),
+          tabPanel("Summary - All Dates", mainPanel(tableOutput("summaryTable"))),
           tabPanel("Correlations - By Date", mainPanel(tableOutput("dateCorrelations")))
         )
   ),
