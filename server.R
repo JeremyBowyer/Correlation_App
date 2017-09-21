@@ -7,8 +7,9 @@
 
 library(shiny)
 library(XLConnect)
-library(ggvis)
+library(plotly)
 library(dplyr)
+library(reshape2)
 library(quantmod)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
@@ -16,7 +17,7 @@ source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/
 
 script <- "
 
-for(i = 0; i < $('#summaryTable th').length; i++) {
+for(i = 2; i < $('#summaryTable th').length; i++) {
   colorTableByCol('summaryTable', i);
 }
 
@@ -112,7 +113,8 @@ shinyServer(function(input, output, session) {
                          transformationCount = 0,
                          offsetCount = 0,
                          datadf = data.frame(),
-                         originaldf = data.frame())
+                         originaldf = data.frame(),
+                         metricdivedf = data.frame())
   
   ###########
   # Methods #
@@ -144,6 +146,11 @@ shinyServer(function(input, output, session) {
     }
   })
   outputOptions(output, 'validX', suspendWhenHidden=FALSE)
+  
+  output$pagefilter <- reactive({
+    return(input$pageFilterCheck)
+  })
+  outputOptions(output, 'pagefilter', suspendWhenHidden=FALSE)
   
   ##################
   # Event Handlers #
@@ -580,21 +587,25 @@ shinyServer(function(input, output, session) {
     ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table
     summaryDF <- data.frame(Metric = character(),
-                            Turnover = character(),
+                            'Turnover (max 0.57)' = character(),
                             Correlation = numeric(),
-                            DoF = integer())
+                            DoF = integer(),
+                            check.names = FALSE)
     
     for(col in correlCols) {
       rm("fit")
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
+      
       tryCatch({
         metricDF <- datadf[order(datadf[,input$dateCol]) ,c(input$dateCol, input$categoryCol, col)]
         wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = col)[, -1]
         rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
         diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
         stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-        summaryDF[nrow(summaryDF), "Turnover"] <- round(mean(stds, na.rm = TRUE), 2)
-        
+        summaryDF[nrow(summaryDF), "Turnover (max 0.57)"] <- round(mean(stds, na.rm = TRUE), 2)
+      }, error = function(e) {NULL})
+      
+      tryCatch({
         form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
         fit <- lm(form, datadf)
         summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
@@ -656,7 +667,53 @@ shinyServer(function(input, output, session) {
       file.rename(fname,file)
     },
     contentType="application/xlsx" 
-    )
+  )
+  
+  
+  # Page Filter
+  observeEvent(input$metricDiveFilterDate, {
+  
+    if(input$pageFilterCheck){
+      
+      df <- vals$originalmetricdivedf
+      
+      df <- df[df[,input$dateCol] == input$metricDiveFilterDate, ]
+      
+      vals$metricdivedf <- df
+      
+    }
+    
+  })
+  
+  observeEvent(input$pageFilterCheck, {
+   
+    if(!input$pageFilterCheck) {
+      vals$metricdivedf <- vals$originalmetricdivedf
+    }
+     
+  })
+  
+  observeEvent(input$pageBack, {
+    
+    df <- vals$originalmetricdivedf
+    metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
+    currentdate <- input$metricDiveFilterDate
+    currentindex <- which(metricDates %in% currentdate)
+    index <- if (currentindex <= 1) currentindex else currentindex - 1
+    updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[index])
+    
+  })
+  
+  observeEvent(input$pageForward, {
+    
+    df <- vals$originalmetricdivedf
+    metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
+    currentdate <- input$metricDiveFilterDate
+    currentindex <- which(metricDates %in% currentdate)
+    index <- if (currentindex >= length(metricDates)) currentindex else currentindex + 1
+    updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[index])
+    
+  })
   
   # Upon selection of metric in Metric Dive tab
   observeEvent({
@@ -667,6 +724,12 @@ shinyServer(function(input, output, session) {
       # Process Data
       df <- vals$datadf
       df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+      
+      vals$metricdivedf <- df
+      vals$originalmetricdivedf <- df
+      
+      metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
+      updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[1])
       
       # Check for valid data, otherwise show error notification to user
       if(nrow(df) == 0) {
@@ -683,99 +746,6 @@ shinyServer(function(input, output, session) {
         
       } else {
         removeUI(".metricAlert", multiple = TRUE)
-        # Scatter Plot
-        xvar <- prop("x", as.symbol(input$xCol))
-        yvar <- prop("y", as.symbol(input$yCol))
-        
-        # Create ggvis properties, depending on if category column is selected
-        if(input$categoryCol == "") {
-          fillvar <- prop("fill", as.symbol(input$xCol))
-          
-          toolTipFunc <- function(data){
-            paste0(input$xCol, ": ", data[[input$xCol]], "<br>",
-                   input$yCol, ": ", data[[input$yCol]], "<br>")
-          }
-          
-        } else {
-          df[, input$categoryCol] <- as.factor(df[, input$categoryCol])
-          fillvar <- prop("fill", as.symbol(input$categoryCol))
-          category <- input$categoryCol
-
-          toolTipFunc <- function(data){
-              paste0(category, ": ", data[[category]], "<br>",
-                     input$xCol, ": ", data[[input$xCol]], "<br>",
-                     input$yCol, ": ", data[[input$yCol]], "<br>")
-            }
-        }
-        
-        # Create scatter object and bind it to UI element
-        df %>%
-          ggvis(x = xvar, y = yvar) %>%
-          set_options(height = 480, width = 800) %>%
-          layer_points(fill = fillvar) %>%
-          add_tooltip(toolTipFunc, "hover") %>%
-          layer_model_predictions(model = "lm", se = TRUE) %>%
-          hide_legend('fill') %>%
-          bind_shiny("metricScatter")
-        
-        
-        # Histogram of X values
-        df %>%
-          ggvis(xvar) %>%
-          set_options(height = 480, width = 800) %>%
-          layer_histograms(fill := "#f8f5f0") %>%
-          # layer_histograms(fill := "#f8f5f0", width = diff(range(x)) / (2 * IQR(x) / length(x)^(1/3))) %>% # from https://stats.stackexchange.com/questions/798/calculating-optimal-number-of-bins-in-a-histogram
-          bind_shiny("metricHist")
-        
-        
-        # QQ plots #
-        xyDF <- df[complete.cases(df[, c(input$xCol, input$yCol)]), c(input$xCol, input$yCol)]
-        sortedX <- xyDF[order(xyDF[, input$xCol]), input$xCol]
-        sortedY <- xyDF[order(xyDF[, input$yCol]), input$yCol]
-        xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF[,input$xCol], na.rm = TRUE), sd(xyDF[,input$xCol], na.rm = TRUE))
-        xNorm <- replace(xNorm, is.infinite(xNorm), NA)
-        sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
-
-        # Normal Dist
-        ggvis(sortedDF, ~x, ~xNorm) %>%
-          set_options(height = 480, width = 800) %>%
-          layer_points() %>%
-          ggvis::add_axis("x", title = input$xCol) %>%
-          ggvis::add_axis("y", title = "Theoretical Normal Distribution") %>%
-          bind_shiny("metricQQNorm")
-        
-        # Y
-        ggvis(sortedDF, ~x, ~y) %>%
-          set_options(height = 480, width = 800) %>%
-          layer_points() %>%
-          ggvis::add_axis("x", title = input$xCol) %>%
-          ggvis::add_axis("y",  title = input$yCol) %>%
-          bind_shiny("metricQQy")
-          
-        # Turnover Chart
-        metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
-        wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
-        rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
-        diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
-        stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-        dates <- unique(metricDF[,"Date"])
-        stdDF <- data.frame(date = dates, std = stds)
-        
-        stdDF %>%
-          ggvis(~date, ~std) %>%
-          set_options(height = 480, width = 800) %>%
-          layer_lines() %>%
-          ggvis::add_axis("x", title = "", properties = axis_props(labels = list(angle = 90, 
-                                                                                     align = "left", baseline = "middle"))) %>%
-          ggvis::add_axis("y",  title = "Turnover Rate (complete rank reversal = ~0.57)") %>%
-          bind_shiny("metricTurnover")
-        
-        
-        # ANOVA Output
-        output$aovSummary = reactivePrint(function() {
-          form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
-          summary(lm(form, data = df))
-        })
         
         # Performance Output
         output$datePerformance = renderTable({
@@ -800,6 +770,86 @@ shinyServer(function(input, output, session) {
       }
     }
   })
+  
+  ##################
+  # Reactive plots #
+  ##################
+  # Metric Scatter
+  output$metricScatter <- renderPlotly({
+    
+    df <- vals$metricdivedf
+    xform <- as.formula(paste0("~",input$xCol))
+    yform <- as.formula(paste0("~",input$yCol))
+    colorcol <- if(input$categoryCol != "") input$categoryCol else input$xCol
+    colorform <- as.formula(paste0("~", colorcol))
+    plot_ly(data = df, x = xform, y = yform, color = colorform)
+    
+  })
+  
+  # Metric Histogram
+  output$metricHist <- renderPlotly({
+    
+    df <- vals$metricdivedf
+    xform <- as.formula(paste0("~",input$xCol))
+    plot_ly(data = df, x = xform, type = "histogram")
+    
+  })
+  
+  # Metric QQ Normal Dist
+  output$metricQQNorm <- renderPlotly({
+    
+    df <- vals$metricdivedf
+    
+    xyDF <- df[complete.cases(df[, c(input$xCol, input$yCol)]), c(input$xCol, input$yCol)]
+    sortedX <- xyDF[order(xyDF[, input$xCol]), input$xCol]
+    sortedY <- xyDF[order(xyDF[, input$yCol]), input$yCol]
+    xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF[,input$xCol], na.rm = TRUE), sd(xyDF[,input$xCol], na.rm = TRUE))
+    xNorm <- replace(xNorm, is.infinite(xNorm), NA)
+    sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
+  
+    plot_ly(data = sortedDF, x = ~x, y = ~xNorm)
+    
+  })
+  
+  # Metric QQ Y
+  output$metricQQy <- renderPlotly({
+    
+    df <- vals$metricdivedf
+    
+    xyDF <- df[complete.cases(df[, c(input$xCol, input$yCol)]), c(input$xCol, input$yCol)]
+    sortedX <- xyDF[order(xyDF[, input$xCol]), input$xCol]
+    sortedY <- xyDF[order(xyDF[, input$yCol]), input$yCol]
+    xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF[,input$xCol], na.rm = TRUE), sd(xyDF[,input$xCol], na.rm = TRUE))
+    xNorm <- replace(xNorm, is.infinite(xNorm), NA)
+    sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
+    
+    plot_ly(data = sortedDF, x = ~x, y = ~y)
+    
+  })
+  
+  # Metric Turnover
+  output$metricTurnover <- renderPlotly({
+
+    df <- vals$metricdivedf
+    
+    metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
+    wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
+    rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
+    diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
+    stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
+    dates <- as.Date(unique(metricDF[,"Date"]))
+    stdDF <- data.frame(date = dates, std = stds)
+    
+    plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
+  })
+  
+  # ANOVA
+  output$aovSummary = reactivePrint(function() {
+    df <- vals$metricdivedf
+    form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
+    summary(lm(form, data = df))
+  })
+  
   
   #######################
   # Data Preview Screen #

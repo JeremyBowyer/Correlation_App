@@ -8,7 +8,7 @@
 library(shiny)
 library(shinythemes)
 library(XLConnect)
-library(ggvis)
+library(plotly)
 library(dplyr)
 
 shinyUI(navbarPage(
@@ -92,22 +92,32 @@ shinyUI(navbarPage(
       tags$div(id = "metricAlertDiv"),
       conditionalPanel(
         condition = "output.validX",
-        h3("Metric Plots"),
         tabsetPanel(
-          tabPanel("Scatter", ggvisOutput("metricScatter")),
-          tabPanel("Histogram", ggvisOutput("metricHist")),
-          tabPanel("QQ - Normal Dist", ggvisOutput("metricQQNorm")),
-          tabPanel("QQ - Y", ggvisOutput("metricQQy")),
-          tabPanel("Turnover", h3("Standard Deviation of Change in Rank Percentile"), ggvisOutput("metricTurnover"))
-        ),
-        h3('Details'),
-        tabsetPanel(
-          tabPanel("ANOVA", verbatimTextOutput('aovSummary')),
-          tabPanel("Performance", tableOutput("datePerformance"))
-        )
+          tabPanel("Metric Plots",
+            tabsetPanel(
+              tabPanel("Scatter", plotlyOutput("metricScatter")
+              ),
+              tabPanel("Histogram", plotlyOutput("metricHist")),
+              tabPanel("QQ - Normal Dist", plotlyOutput("metricQQNorm")),
+              tabPanel("QQ - Y", plotlyOutput("metricQQy")),
+              tabPanel("Turnover", h3("Standard Deviation of Change in Rank Percentile"), plotlyOutput("metricTurnover"))
+            )),
+          tabPanel("Details",
+            tabsetPanel(
+              tabPanel("ANOVA", verbatimTextOutput('aovSummary')),
+              tabPanel("Performance", tableOutput("datePerformance"))
+            )
+          )
+      ),
+      checkboxInput("pageFilterCheck", label = "Date Pages", value = FALSE),
+      conditionalPanel(
+        condition = "output.pagefilter",
+        div(div(actionButton("pageBack", label="", icon("arrow-left")), style = "display:inline-block"),
+            div(selectInput("metricDiveFilterDate", label="", choice = list()), style = "display:inline-block; vertical-align:middle"),
+            div(actionButton("pageForward", label="", icon("arrow-right")), style = "display:inline-block"))
       )
       )
     )
   )
   
-))
+)))
