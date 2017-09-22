@@ -780,9 +780,16 @@ shinyServer(function(input, output, session) {
     df <- vals$metricdivedf
     xform <- as.formula(paste0("~",input$xCol))
     yform <- as.formula(paste0("~",input$yCol))
+    
     colorcol <- if(input$categoryCol != "") input$categoryCol else input$xCol
     colorform <- as.formula(paste0("~", colorcol))
-    plot_ly(data = df, x = xform, y = yform, color = colorform)
+    
+    form <- as.formula(paste0(input$yCol, "~", input$xCol))
+    fit <- lm(form, data = df)
+    df %>%
+      plot_ly(x = xform) %>%
+      add_markers(y = yform, color = colorform)  %>%
+      add_lines(x = xform, y = fitted(fit), fill = "red")
     
   })
   
@@ -830,7 +837,7 @@ shinyServer(function(input, output, session) {
   # Metric Turnover
   output$metricTurnover <- renderPlotly({
 
-    df <- vals$metricdivedf
+    df <- vals$originalmetricdivedf
     
     metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
     wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
