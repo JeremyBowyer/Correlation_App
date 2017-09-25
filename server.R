@@ -152,6 +152,16 @@ shinyServer(function(input, output, session) {
   })
   outputOptions(output, 'pagefilter', suspendWhenHidden=FALSE)
   
+  output$dateColCheck <- reactive({
+    return(input$dateCol != "")
+  })
+  outputOptions(output, 'dateColCheck', suspendWhenHidden=FALSE)
+  
+  output$catColCheck <- reactive({
+    return(input$categoryCol != "")
+  })
+  outputOptions(output, 'catColCheck', suspendWhenHidden=FALSE)
+  
   ##################
   # Event Handlers #
   ##################
@@ -728,8 +738,10 @@ shinyServer(function(input, output, session) {
       vals$metricdivedf <- df
       vals$originalmetricdivedf <- df
       
-      metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
-      updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[1])
+      if(input$dateCol != ""){
+        metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
+        updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[1])
+      }
       
       # Check for valid data, otherwise show error notification to user
       if(nrow(df) == 0) {
@@ -757,10 +769,12 @@ shinyServer(function(input, output, session) {
           
           allPerformance[,"All"] <- aggregate(df[, input$yCol], by = list(df$quints), function(x) mean(x, na.rm = TRUE))["x"]
           
-          for(date in unique(df[, input$dateCol])) {
-            datedf <- df[df[,input$dateCol] == date, ]
-            datedf$quints <- quint(datedf[,input$xCol])
-            allPerformance[, date] <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))["x"]
+          if(input$dateCol != "") {
+            for(date in unique(df[, input$dateCol])) {
+              datedf <- df[df[,input$dateCol] == date, ]
+              datedf$quints <- quint(datedf[,input$xCol])
+              allPerformance[, date] <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))["x"]
+            }
           }
           
           return(allPerformance)
@@ -778,6 +792,11 @@ shinyServer(function(input, output, session) {
   output$metricScatter <- renderPlotly({
     
     df <- vals$metricdivedf
+    if (input$dateCol != ""){
+      df$text <- paste0("date: ", df[,input$dateCol])
+    } else {
+      df$text <- ""
+    }
     xform <- as.formula(paste0("~",input$xCol))
     yform <- as.formula(paste0("~",input$yCol))
     
@@ -788,7 +807,7 @@ shinyServer(function(input, output, session) {
     fit <- lm(form, data = df)
     df %>%
       plot_ly(x = xform) %>%
-      add_markers(y = yform, color = colorform)  %>%
+      add_markers(y = yform, color = colorform, text = ~text)  %>%
       add_lines(x = xform, y = fitted(fit), fill = "red")
     
   })
@@ -837,17 +856,20 @@ shinyServer(function(input, output, session) {
   # Metric Turnover
   output$metricTurnover <- renderPlotly({
 
-    df <- vals$originalmetricdivedf
-    
-    metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
-    wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
-    rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
-    diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
-    stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-    dates <- as.Date(unique(metricDF[,"Date"]))
-    stdDF <- data.frame(date = dates, std = stds)
-    
-    plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
+    if(input$dateCol != "") {
+      df <- vals$originalmetricdivedf
+      
+      metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
+      wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
+      rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
+      diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
+      stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
+      dates <- as.Date(unique(metricDF[,"Date"]))
+      stdDF <- data.frame(date = dates, std = stds)
+      
+      plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
+    }
+
   })
   
   # ANOVA

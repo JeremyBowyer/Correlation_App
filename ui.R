@@ -100,7 +100,15 @@ shinyUI(navbarPage(
               tabPanel("Histogram", plotlyOutput("metricHist")),
               tabPanel("QQ - Normal Dist", plotlyOutput("metricQQNorm")),
               tabPanel("QQ - Y", plotlyOutput("metricQQy")),
-              tabPanel("Turnover", h3("Standard Deviation of Change in Rank Percentile"), plotlyOutput("metricTurnover"))
+              tabPanel("Turnover", conditionalPanel(
+                condition = "output.dateColCheck && output.catColCheck",
+                h3("Standard Deviation of Change in Rank Percentile"), plotlyOutput("metricTurnover")
+                ),
+                conditionalPanel(
+                  condition = "!output.dateColCheck || !output.catColCheck",
+                  h3("Select a date column and category column to see turnover over time.")
+                )
+              )
             )),
           tabPanel("Details",
             tabsetPanel(
@@ -109,7 +117,10 @@ shinyUI(navbarPage(
             )
           )
       ),
-      checkboxInput("pageFilterCheck", label = "Date Pages", value = FALSE),
+      conditionalPanel(
+        condition = "output.dateColCheck",
+        checkboxInput("pageFilterCheck", label = "Date Pages", value = FALSE)
+      ),
       conditionalPanel(
         condition = "output.pagefilter",
         div(div(actionButton("pageBack", label="", icon("arrow-left")), style = "display:inline-block"),

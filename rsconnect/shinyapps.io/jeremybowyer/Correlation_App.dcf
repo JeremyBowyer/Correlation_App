@@ -5,9 +5,9 @@ account: jeremybowyer
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 202046
-bundleId: 993003
+bundleId: 996216
 url: https://jeremybowyer.shinyapps.io/Correlation_App/
-when: 1506099991.71798
+when: 1506350100.07487
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .RData|allmetrics.csv|tempDF.csv
