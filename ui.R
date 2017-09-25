@@ -16,6 +16,9 @@ shinyUI(navbarPage(
   theme = shinytheme("sandstone"),
   fluid = TRUE,
   id = "mainTabset",
+  tabPanel("Instructions",
+           value = "instructions",
+           h2("Coming Soon.")),
   tabPanel("Options",
     value = "options",
     sidebarLayout(
@@ -83,7 +86,15 @@ shinyUI(navbarPage(
         value="correlations",
         tabsetPanel(
           tabPanel("Summary - All Dates", tableOutput("summaryTable")),
-          tabPanel("Correlations - By Date", tableOutput("dateCorrelations"))
+          tabPanel("Correlations - By Date", conditionalPanel(
+            condition = "output.dateColCheck",
+            tableOutput("dateCorrelations")
+            ),
+            conditionalPanel(
+              condition = "!output.dateColCheck",
+              h3("Select a date column to see correlations by date.")
+            )
+          )
         )
   ),
   tabPanel("Metric Dive", value="metric", mainPanel(width = 12,
