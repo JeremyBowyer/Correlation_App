@@ -106,7 +106,8 @@ shinyUI(navbarPage(
         tabsetPanel(
           tabPanel("Metric Plots",
             tabsetPanel(
-              tabPanel("Scatter", actionButton("excludeCheck", "Remove Selection", value = FALSE),
+              tabPanel("Scatter", actionButton("includePoints", "Include Selection", value = FALSE),
+                       actionButton("excludePoints", "Remove Selection", value = FALSE),
                        plotlyOutput("metricScatter"),
                        verbatimTextOutput("selectedPoints")
               ),

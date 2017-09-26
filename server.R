@@ -768,8 +768,8 @@ shinyServer(function(input, output, session) {
         # Performance Output
         output$datePerformance = renderTable({
           
-          df <- vals$datadf
-          
+          df <- vals$datadf[,c(input$yCol, input$xCol, input$dateCol)]
+          df <- df[complete.cases(df), ]
           # Create quintiles by date
           df[,"quints"] <- NA
           aggs <- by(df, INDICES = list(df[, input$dateCol]), function(x) {
@@ -830,21 +830,16 @@ shinyServer(function(input, output, session) {
     
   })
   
-  output$selectedPoints <- reactivePrint(function() {
-    
-    if(input$includeCheck) {
-      mod <- 1
-    } else if(input$excludeCheck) {
-      mod <- -1
-    } else {
-      return(NULL)
-    }
+  
+  observeEvent({input$includePoints}, {
     
     event.data <- event_data("plotly_selected", source = "metricScatter")
     if(is.null(event.data) == TRUE) return(NULL)
     
     df <- vals$metricdivedf
-
+    
+    mod <- 1
+    
     if (input$categoryCol != ""){
       df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
       aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
@@ -857,10 +852,36 @@ shinyServer(function(input, output, session) {
     } else {
       df <- df[(event.data$pointNumber + 1)*mod, ]
     }
+    print(head(df))
+    print(event.data)
+    vals$metricdivedf <- df
     
-    print(df)
-    print(head(vals$metricdivedf))
-    event.data
+  })
+  
+  observeEvent({input$excludePoints}, {
+    
+    event.data <- event_data("plotly_selected", source = "metricScatter")
+    if(is.null(event.data) == TRUE) return(NULL)
+    
+    df <- vals$metricdivedf
+    
+    mod <- -1
+    
+    if (input$categoryCol != ""){
+      df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
+      aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
+        
+        cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
+        x[cat.index*mod, ]
+        
+      })
+      df <- do.call("rbind", aggs)
+    } else {
+      df <- df[(event.data$pointNumber + 1)*mod, ]
+    }
+    print(head(df))
+    print(event.data)
+    vals$metricdivedf <- df
     
   })
   
