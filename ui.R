@@ -106,7 +106,9 @@ shinyUI(navbarPage(
         tabsetPanel(
           tabPanel("Metric Plots",
             tabsetPanel(
-              tabPanel("Scatter", plotlyOutput("metricScatter")
+              tabPanel("Scatter", actionButton("excludeCheck", "Remove Selection", value = FALSE),
+                       plotlyOutput("metricScatter"),
+                       verbatimTextOutput("selectedPoints")
               ),
               tabPanel("Histogram", plotlyOutput("metricHist")),
               tabPanel("QQ - Normal Dist", plotlyOutput("metricQQNorm")),

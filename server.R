@@ -13,7 +13,13 @@ library(reshape2)
 library(quantmod)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
+
+
+# Defin Functions
 source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
+round20 <- function(x) {
+  return(sprintf("%.20f", round(as.numeric(x), 20)))
+}
 
 script <- "
 
@@ -763,12 +769,24 @@ shinyServer(function(input, output, session) {
         output$datePerformance = renderTable({
           
           df <- vals$datadf
-          df[,"quints"] <- quint(df[,input$xCol])
           
+          # Create quintiles by date
+          df[,"quints"] <- NA
+          aggs <- by(df, INDICES = list(df[, input$dateCol]), function(x) {
+
+            x[,"quints"] <- quint(x[,input$xCol])
+            x
+
+          })
+          df <- do.call("rbind", aggs)
+          
+          # Create performance DF
           allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
           
+          # Populate performance by quintile for All dates
           allPerformance[,"All"] <- aggregate(df[, input$yCol], by = list(df$quints), function(x) mean(x, na.rm = TRUE))["x"]
           
+          # Calculate performance by quintile for each date, populate performance df
           if(input$dateCol != "") {
             for(date in unique(df[, input$dateCol])) {
               datedf <- df[df[,input$dateCol] == date, ]
@@ -806,9 +824,43 @@ shinyServer(function(input, output, session) {
     form <- as.formula(paste0(input$yCol, "~", input$xCol))
     fit <- lm(form, data = df)
     df %>%
-      plot_ly(x = xform) %>%
+      plot_ly(x = xform, source = "metricScatter") %>%
       add_markers(y = yform, color = colorform, text = ~text)  %>%
       add_lines(x = xform, y = fitted(fit), fill = "red")
+    
+  })
+  
+  output$selectedPoints <- reactivePrint(function() {
+    
+    if(input$includeCheck) {
+      mod <- 1
+    } else if(input$excludeCheck) {
+      mod <- -1
+    } else {
+      return(NULL)
+    }
+    
+    event.data <- event_data("plotly_selected", source = "metricScatter")
+    if(is.null(event.data) == TRUE) return(NULL)
+    
+    df <- vals$metricdivedf
+
+    if (input$categoryCol != ""){
+      df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
+      aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
+        
+        cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
+        x[cat.index*mod, ]
+        
+      })
+      df <- do.call("rbind", aggs)
+    } else {
+      df <- df[(event.data$pointNumber + 1)*mod, ]
+    }
+    
+    print(df)
+    print(head(vals$metricdivedf))
+    event.data
     
   })
   
