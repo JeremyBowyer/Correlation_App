@@ -736,10 +736,14 @@ shinyServer(function(input, output, session) {
     c(input$xCol,input$run,input$applyFilters,input$filterClear)
     }, {
     if(input$xCol != ""){
-
+      
       # Process Data
       df <- vals$datadf
+      df[,input$xCol] <- as.numeric(df[,input$xCol])
+      df[,input$yCol] <- as.numeric(df[,input$yCol])
       df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+      df <- subset(df, !is.infinite(df[,input$xCol]) & !is.infinite(df[,input$yCol]))
+      df <- subset(df, !is.nan(df[,input$xCol]) & !is.nan(df[,input$yCol]))
       
       vals$metricdivedf <- df
       vals$originalmetricdivedf <- df
@@ -751,9 +755,9 @@ shinyServer(function(input, output, session) {
       
       # Check for valid data, otherwise show error notification to user
       if(nrow(df) == 0) {
-        showNotification("No Data. Try selecting another column, or removing some filters on the Options page.",
-                         type="error",
-                         duration=NULL)
+        # showNotification("No Data. Try selecting another column, or removing some filters on the Options page.",
+        #                  type="error",
+        #                  duration=NULL)
       } else if(sum(!is.na(as.numeric(df[, input$xCol]))) == 0) {
         removeUI(".metricAlert", multiple = TRUE)
         insertUI(
@@ -768,16 +772,21 @@ shinyServer(function(input, output, session) {
         # Performance Output
         output$datePerformance = renderTable({
           
-          df <- vals$datadf[,c(input$yCol, input$xCol, input$dateCol)]
+          df <- vals$metricdivedf[,c(input$yCol, input$xCol, input$dateCol)]
           df <- df[complete.cases(df), ]
+          
           # Create quintiles by date
           df[,"quints"] <- NA
+          
           aggs <- by(df, INDICES = list(df[, input$dateCol]), function(x) {
-
-            x[,"quints"] <- quint(x[,input$xCol])
+            tryCatch({
+              x[,"quints"] <- quint(as.numeric(x[,input$xCol]))
+            }, error = function(e) {
+              x[,"quints"] <- rep(NA, nrow(x))
+            })
             x
-
           })
+          
           df <- do.call("rbind", aggs)
           
           # Create performance DF
@@ -790,8 +799,18 @@ shinyServer(function(input, output, session) {
           if(input$dateCol != "") {
             for(date in unique(df[, input$dateCol])) {
               datedf <- df[df[,input$dateCol] == date, ]
-              datedf$quints <- quint(datedf[,input$xCol])
-              allPerformance[, date] <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))["x"]
+              allPerformance[, date] <- NA
+              
+              tryCatch({
+                datedf$quints <- quint(datedf[,input$xCol])
+                aggs <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))
+                for(row in 1:nrow(aggs)){
+                  allPerformance[aggs[row, 1], date] <- aggs[row, "x"]
+                }
+              }, error = function(e) {
+                allPerformance[, date] <- rep(NA, 5)
+              })
+              
             }
           }
           
@@ -826,7 +845,7 @@ shinyServer(function(input, output, session) {
     df %>%
       plot_ly(x = xform, source = "metricScatter") %>%
       add_markers(y = yform, color = colorform, text = ~text)  %>%
-      add_lines(x = xform, y = fitted(fit), fill = "red")
+      add_lines(x = xform, y = fitted(fit), fill = "red", name = "Regression Line")
     
   })
   

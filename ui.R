@@ -18,7 +18,7 @@ shinyUI(navbarPage(
   id = "mainTabset",
   tabPanel("Instructions",
            value = "instructions",
-           h2("Coming Soon.")),
+           h2("Instructions coming soon.")),
   tabPanel("Options",
     value = "options",
     sidebarLayout(
