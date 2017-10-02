@@ -120,7 +120,8 @@ shinyServer(function(input, output, session) {
                          offsetCount = 0,
                          datadf = data.frame(),
                          originaldf = data.frame(),
-                         metricdivedf = data.frame())
+                         metricdivedf = data.frame(),
+                         dateFormat = "%m/%d/%Y")
   
   ###########
   # Methods #
@@ -167,6 +168,11 @@ shinyServer(function(input, output, session) {
     return(input$categoryCol != "")
   })
   outputOptions(output, 'catColCheck', suspendWhenHidden=FALSE)
+  
+  output$dateColCheck <- reactive({
+    return(input$dateCol != "")
+  })
+  outputOptions(output, 'dateColCheck', suspendWhenHidden=FALSE)
   
   ##################
   # Event Handlers #
@@ -574,6 +580,8 @@ shinyServer(function(input, output, session) {
       return(NULL)
     }
     
+    vals$dateFormat <- input$dateColFormat
+    
     # Read in user-provided CSV file
     datadf <- vals$datadf
     
@@ -777,7 +785,7 @@ shinyServer(function(input, output, session) {
           
           # Create quintiles by date
           df[,"quints"] <- NA
-          
+
           aggs <- by(df, INDICES = list(df[, input$dateCol]), function(x) {
             tryCatch({
               x[,"quints"] <- quint(as.numeric(x[,input$xCol]))
@@ -786,9 +794,8 @@ shinyServer(function(input, output, session) {
             })
             x
           })
-          
+
           df <- do.call("rbind", aggs)
-          
           # Create performance DF
           allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
           
@@ -797,7 +804,7 @@ shinyServer(function(input, output, session) {
           
           # Calculate performance by quintile for each date, populate performance df
           if(input$dateCol != "") {
-            for(date in unique(df[, input$dateCol])) {
+            for(date in unique(as.character(df[, input$dateCol]))) {
               datedf <- df[df[,input$dateCol] == date, ]
               allPerformance[, date] <- NA
               
@@ -950,15 +957,14 @@ shinyServer(function(input, output, session) {
 
     if(input$dateCol != "") {
       df <- vals$originalmetricdivedf
-      
       metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
       wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
       rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
       diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
       stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-      dates <- as.Date(unique(metricDF[,"Date"]))
+      dates <- as.Date(unique(metricDF[,"Date"]), format = vals$dateFormat)
       stdDF <- data.frame(date = dates, std = stds)
-      
+      stdDF <- stdDF[order(stdDF$date), ]
       plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
     }
 

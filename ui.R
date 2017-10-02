@@ -42,6 +42,10 @@ shinyUI(navbarPage(
               ),
               selectInput("yCol", "Select Y column", choices=list()),
               selectInput("dateCol", "Select Date column (optional)", choices=list()),
+              conditionalPanel(
+                condition = "output.dateColCheck",
+                textInput("dateColFormat", "Format dates are in", "%m/%d/%Y")
+              ),
               selectInput("categoryCol", "Select Category column (optional)", choices=list()),
               selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list(), multiple = TRUE),
               tags$hr()),
