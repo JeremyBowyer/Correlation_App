@@ -393,7 +393,6 @@ shinyServer(function(input, output, session) {
     dfcols <- dfcols[order(dfcols)]
     df <- df[, dfcols]
     
-    
     for (cnt in 1:vals$transformationCount) {
       
       # Grab values from current transformation request
@@ -410,13 +409,13 @@ shinyServer(function(input, output, session) {
                transformName <- "_T_Difference"
               },
              submedian={
-               transformFunc <- function(x, lag) { 
-
+               transformFunc <- function(x, lag) {
+                 n <- as.numeric(x)
                  m <- numeric()
                  
-                 for (i in seq_along(x)) {
+                 for (i in seq_along(n)) {
                    if ((i - lag) > 0) {
-                     m[length(m)+1] <- x[i] - median(x[(i - lag):(i - 1)])
+                     m[length(m)+1] <- n[i] - median(n[(i - lag):(i - 1)])
                    } else {
                      m[length(m)+1] <- NA
                    }
@@ -453,6 +452,8 @@ shinyServer(function(input, output, session) {
               }
       )
       
+      df[,dateCol] <- as.Date(df[, dateCol], format = vals$dateFormat)
+      
       # Run transformation based on whether or not category column was selected.
       if(is.null(catCols)) {
         # No Category columns#
@@ -484,7 +485,7 @@ shinyServer(function(input, output, session) {
       }
       
     }
-    
+    df[,dateCol] <- as.character(df[,dateCol])
     vals$datadf <- df
     
   })
