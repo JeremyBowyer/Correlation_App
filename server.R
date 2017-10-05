@@ -366,6 +366,7 @@ shinyServer(function(input, output, session) {
       selector="#transformations",
       where="beforeEnd",
       ui = tags$div(radioButtons(paste0("transformType", cnt), "Select transformation", choices=list("Difference" = "diff",
+                                                                                                     "Subtract Rolling Median" = "submedian",
                                                                                                      "% Change" = "perchg",
                                                                                                      "% Change from Median" = "perchgmedian",
                                                                                                      "% Change from Std" = "perchgstd")),
@@ -383,6 +384,7 @@ shinyServer(function(input, output, session) {
     df <- vals$datadf
     dfcols <- names(df)
     dfcols <- c(grep("_Difference", dfcols, invert = TRUE),
+                grep("_SubtractMedian", dfcols, invert = TRUE),
                 grep("_PercentChange", dfcols, invert = TRUE),
                 grep("_PercentChangeMedian", dfcols, invert = TRUE),
                 grep("_PercentChangeStd", dfcols, invert = TRUE))
@@ -407,6 +409,24 @@ shinyServer(function(input, output, session) {
                transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) ) }
                transformName <- "_T_Difference"
               },
+             submedian={
+               transformFunc <- function(x, lag) { 
+
+                 m <- numeric()
+                 
+                 for (i in seq_along(x)) {
+                   if ((i - lag) > 0) {
+                     m[length(m)+1] <- x[i] - median(x[(i - lag):(i - 1)])
+                   } else {
+                     m[length(m)+1] <- NA
+                   }
+                 }
+
+                 return( m )
+                 
+               }
+               transformName <- "_T_SubtractMedian"
+             },
              perchg={
                transformFunc <- function(x, lag) { return( as.numeric(Delt(x, k = lag)) ) }
                transformName <- "_T_PercentChange"
@@ -782,6 +802,7 @@ shinyServer(function(input, output, session) {
           
           df <- vals$metricdivedf[,c(input$yCol, input$xCol, input$dateCol)]
           df <- df[complete.cases(df), ]
+          df[, input$dateCol] <- as.Date(df[, input$dateCol], format = vals$dateFormat)
           
           # Create quintiles by date
           df[,"quints"] <- NA
