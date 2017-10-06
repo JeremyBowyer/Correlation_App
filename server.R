@@ -117,6 +117,7 @@ shinyServer(function(input, output, session) {
                          percentileFilterCount = 0,
                          dateFilterCount = 0,
                          transformationCount = 0,
+                         transformColIndex = NULL,
                          offsetCount = 0,
                          datadf = data.frame(),
                          originaldf = data.frame(),
@@ -367,9 +368,11 @@ shinyServer(function(input, output, session) {
       where="beforeEnd",
       ui = tags$div(radioButtons(paste0("transformType", cnt), "Select transformation", choices=list("Difference" = "diff",
                                                                                                      "Subtract Rolling Median" = "submedian",
+                                                                                                     "Subtract Historical Median" = "subhistmedian",
                                                                                                      "% Change" = "perchg",
                                                                                                      "% Change from Median" = "perchgmedian",
                                                                                                      "% Change from Std" = "perchgstd")),
+                    textInput(paste0("transformationColName", cnt), "New Column Name", value = ""),
                     numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                     selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
                     selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
@@ -382,17 +385,13 @@ shinyServer(function(input, output, session) {
   # Create Transformations Button
   observeEvent(input$applyTransformations, {
     df <- vals$datadf
-    dfcols <- names(df)
-    dfcols <- c(grep("_Difference", dfcols, invert = TRUE),
-                grep("_SubtractMedian", dfcols, invert = TRUE),
-                grep("_PercentChange", dfcols, invert = TRUE),
-                grep("_PercentChangeMedian", dfcols, invert = TRUE),
-                grep("_PercentChangeStd", dfcols, invert = TRUE))
-    
-    dfcols <- unique(dfcols)
-    dfcols <- dfcols[order(dfcols)]
-    df <- df[, dfcols]
-    
+    tcolIndex <- vals$transformColIndex
+    if(!is.null(tcolIndex)){
+      df <- df[, -tcolIndex]
+    }
+    print(vals$transformColIndex)
+    vals$transformColIndex <- (ncol(df) + 1):(ncol(df) + vals$transformationCount)
+    print(vals$transformColIndex)
     for (cnt in 1:vals$transformationCount) {
       
       # Grab values from current transformation request
@@ -401,12 +400,12 @@ shinyServer(function(input, output, session) {
       dateCol <- input[[paste0("transformDateCol", cnt)]]
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
       lag <- input[[paste0("transformationLag", cnt)]]
+      transformName <- input[[paste0("transformationColName", cnt)]]
       
       # Assign transformation function based on type selcted
       switch(type,
              diff={
                transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) ) }
-               transformName <- "_T_Difference"
               },
              submedian={
                transformFunc <- function(x, lag) {
@@ -420,15 +419,26 @@ shinyServer(function(input, output, session) {
                      m[length(m)+1] <- NA
                    }
                  }
-
+                 
                  return( m )
                  
                }
-               transformName <- "_T_SubtractMedian"
+             },
+             subhistmedian={
+               transformFunc <- function(x, lag) {
+                 n <- as.numeric(x)
+                 m <- numeric()
+                 
+                 for (i in seq_along(n)) {
+                     m[length(m)+1] <- n[i] - median(n[1:i], na.rm = TRUE)
+                 }
+                 
+                 return( m )
+                 
+               }
              },
              perchg={
                transformFunc <- function(x, lag) { return( as.numeric(Delt(x, k = lag)) ) }
-               transformName <- "_T_PercentChange"
               },
              perchgmedian={
                transformFunc <- function(x, lag) {
@@ -443,16 +453,28 @@ shinyServer(function(input, output, session) {
                  
                  return( m )
                  
-              }
-               transformName <- "_T_PercentChangeMedian"
+                }
               },
              perchgstd={
-               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) / sd(x, na.rm = TRUE) ) }
-               transformName <- "_T_PercentChangeStd"
+               transformFunc <- function(x, lag) {
+                 d <- c(rep(NA, lag), diff(x, lag = lag))
+                 
+                 m <- numeric()
+                 
+                 for (i in seq_along(d)) {
+                   m[length(m)+1] <- d[i] / sd(x[1:i], na.rm = TRUE)
+                 }
+                 
+                 return( m )
+                 }
               }
       )
-      
+
       df[,dateCol] <- as.Date(df[, dateCol], format = vals$dateFormat)
+      
+      if(length(names(df)[names(df) == transformName]) > 0) {
+        transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
+      }
       
       # Run transformation based on whether or not category column was selected.
       if(is.null(catCols)) {
@@ -461,7 +483,7 @@ shinyServer(function(input, output, session) {
         # Order DF by date column
         df <- df[order(df[, dateCol]), ]
         for (col in cols){
-          df[, paste0(col, transformName)] <- transformFunc(df[, col], lag)
+          df[, transformName] <- transformFunc(df[, col], lag)
         }
         
       } else {
@@ -476,7 +498,7 @@ shinyServer(function(input, output, session) {
         }
         
         for (col in cols){
-          df[, paste0(col, transformName)] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(x, lag))[["x"]])
+          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(x, lag))[["x"]])
         }
         
         # reorder DF back to user-selected order
@@ -485,7 +507,7 @@ shinyServer(function(input, output, session) {
       }
       
     }
-    df[,dateCol] <- as.character(df[,dateCol])
+    df[,dateCol] <- as.character(format(df[,dateCol], vals$dateFormat))
     vals$datadf <- df
     
   })
@@ -493,9 +515,12 @@ shinyServer(function(input, output, session) {
   # Clear Transformations Button
   observeEvent(input$transformationsClear, {
     removeUI(".transformation", multiple = TRUE)
+    tcolIndex <- vals$transformColIndex
+    if(!is.null(tcolIndex)){
+      vals$datadf <- vals$datadf[, -tcolIndex]
+    }
     vals$transformationCount <- 0
-    dfcols <- names(vals$datadf)
-    vals$datadf <- vals$datadf[, dfcols[grep("_T_", dfcols, invert = TRUE)]]
+    vals$transformColIndex <- NULL
   })
   
   
@@ -546,6 +571,8 @@ shinyServer(function(input, output, session) {
              }
       )
       
+      df[,dateCol] <- as.Date(df[, dateCol], format = vals$dateFormat)
+      
       # Run offset based on whether or not category column was selected.
       if(is.null(catCols)) {
         # No Category columns#
@@ -577,7 +604,7 @@ shinyServer(function(input, output, session) {
       }
       
     }
-    
+    df[,dateCol] <- as.character(format(df[,dateCol], vals$dateFormat))
     vals$datadf <- df
     
   })
@@ -807,7 +834,7 @@ shinyServer(function(input, output, session) {
           
           # Create quintiles by date
           df[,"quints"] <- NA
-
+          
           aggs <- by(df, INDICES = list(df[, input$dateCol]), function(x) {
             tryCatch({
               x[,"quints"] <- quint(as.numeric(x[,input$xCol]))
@@ -818,6 +845,7 @@ shinyServer(function(input, output, session) {
           })
 
           df <- do.call("rbind", aggs)
+          
           # Create performance DF
           allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
           
