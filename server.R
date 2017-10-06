@@ -119,6 +119,7 @@ shinyServer(function(input, output, session) {
                          transformationCount = 0,
                          transformColIndex = NULL,
                          offsetCount = 0,
+                         offsetColIndex = NULL,
                          datadf = data.frame(),
                          originaldf = data.frame(),
                          metricdivedf = data.frame(),
@@ -155,10 +156,10 @@ shinyServer(function(input, output, session) {
   })
   outputOptions(output, 'filtersCheck', suspendWhenHidden=FALSE)
   
-  output$OffsetsCheck <- reactive({
+  output$offsetsCheck <- reactive({
     return(vals$offsetCount > 0)
   })
-  outputOptions(output, 'OffsetsCheck', suspendWhenHidden=FALSE)
+  outputOptions(output, 'offsetsCheck', suspendWhenHidden=FALSE)
   
   output$validX <- reactive({
     if(input$xCol != "" && input$yCol != "") {
@@ -387,7 +388,7 @@ shinyServer(function(input, output, session) {
                                                                                                      "% Change" = "perchg",
                                                                                                      "% Change from Median" = "perchgmedian",
                                                                                                      "% Change from Std" = "perchgstd")),
-                    textInput(paste0("transformationSuffix", cnt), "Transformation Suffix Name", value = ""),
+                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
                     numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                     selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
                     selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
@@ -404,9 +405,7 @@ shinyServer(function(input, output, session) {
     if(!is.null(tcolIndex)){
       df <- df[, -tcolIndex]
     }
-    print(vals$transformColIndex)
     vals$transformColIndex <- (ncol(df) + 1):(ncol(df) + vals$transformationCount)
-    print(vals$transformColIndex)
     for (cnt in 1:vals$transformationCount) {
       
       # Grab values from current transformation request
@@ -415,7 +414,7 @@ shinyServer(function(input, output, session) {
       dateCol <- input[[paste0("transformDateCol", cnt)]]
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
       lag <- input[[paste0("transformationLag", cnt)]]
-      transformSuffix <- input[[paste0("transformationSuffix", cnt)]]
+      transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
       
       # Assign transformation function based on type selcted
       switch(type,
@@ -518,7 +517,6 @@ shinyServer(function(input, output, session) {
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
-          print(transformName)
           df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(as.numeric(x), lag))[["x"]])
         }
         
@@ -556,6 +554,7 @@ shinyServer(function(input, output, session) {
       where="beforeEnd",
       ui = tags$div(radioButtons(paste0("offsetType", cnt), "Select Direction", choices=list("Forward" = "forward",
                                                                                              "Backward" = "backward")),
+                    textInput(paste0("offsetSuffix", cnt), "Column Suffix Name", value = ""),
                     numericInput(paste0("offsetLag", cnt), "Select Lag", value = 1, min = 1), 
                     selectInput(paste0("offsetCols", cnt), "Select columns to offset", choices=getCols(), multiple = TRUE),
                     selectInput(paste0("offsetDateCol", cnt), "Select column to offset along (probably a date)", choices=getCols()),
@@ -568,8 +567,11 @@ shinyServer(function(input, output, session) {
   # Create Offsets Button
   observeEvent(input$applyOffsets, {
     df <- vals$datadf
-    dfcols <- names(df)
-    df <- df[, dfcols[grep("_Lag", dfcols, invert = TRUE)]]
+    ocolIndex <- vals$offsetColIndex
+    if(!is.null(ocolIndex)){
+      df <- df[, -ocolIndex]
+    }
+    vals$offsetColIndex <- (ncol(df) + 1):(ncol(df) + vals$offsetCount)
     
     for (cnt in 1:vals$offsetCount) {
       
@@ -579,16 +581,15 @@ shinyServer(function(input, output, session) {
       dateCol <- input[[paste0("offsetDateCol", cnt)]]
       catCols <- input[[paste0("offsetCategoryCol", cnt)]]
       lag <- input[[paste0("offsetLag", cnt)]]
+      offsetSuffix <- gsub(" ", ".", input[[paste0("offsetSuffix", cnt)]])
       
       # Assign offset function based on type selcted
       switch(type,
              forward={
                offsetFunc <- function(x, lag) { return( c(rep(NA, lag), x[1:(length(x) - lag)]) ) }
-               offsetName <- paste0("_LagForward", lag)
              },
              backward={
                offsetFunc <- function(x, lag) { return( c(x[(lag + 1):length(x)], rep(NA, lag)) ) }
-               offsetName <- paste0("_LagBackward", lag)
              }
       )
       
@@ -601,6 +602,10 @@ shinyServer(function(input, output, session) {
         # Order DF by date column
         df <- df[order(df[, dateCol]), ]
         for (col in cols){
+          offsetName <- paste0(col, "_", offsetSuffix)
+          if(length(names(df)[names(df) == offsetName]) > 0) {
+            offsetName = paste0(offsetName, length(names(df)[names(df) == offsetName]))
+          }
           df[, paste0(col, offsetName)] <- offsetFunc(df[, col], lag)
         }
         
@@ -616,7 +621,11 @@ shinyServer(function(input, output, session) {
         }
         
         for (col in cols){
-          df[, paste0(col, offsetName)] <- unlist(aggregate(df[,col], by=groupList, function(x) offsetFunc(x, lag))[["x"]])
+          offsetName <- paste0(col, "_", offsetSuffix)
+          if(length(names(df)[names(df) == offsetName]) > 0) {
+            offsetName = paste0(offsetName, length(names(df)[names(df) == offsetName]))
+          }
+          df[, offsetName] <- unlist(aggregate(df[,col], by=groupList, function(x) offsetFunc(x, lag))[["x"]])
         }
         
         # reorder DF back to user-selected order
@@ -633,9 +642,12 @@ shinyServer(function(input, output, session) {
   # Clear Offsets Button
   observeEvent(input$offsetClear, {
     removeUI(".offset", multiple = TRUE)
+    ocolIndex <- vals$offsetColIndex
+    if(!is.null(ocolIndex)){
+      vals$datadf <- vals$datadf[, -ocolIndex]
+    }
     vals$offsetCount <- 0
-    dfcols <- names(vals$datadf)
-    vals$datadf <- vals$datadf[, dfcols[grep("_Lag", dfcols, invert = TRUE)]]
+    vals$offsetColIndex <- NULL
   })
   
   
@@ -949,8 +961,6 @@ shinyServer(function(input, output, session) {
     } else {
       df <- df[(event.data$pointNumber + 1)*mod, ]
     }
-    print(head(df))
-    print(event.data)
     vals$metricdivedf <- df
     
   })
@@ -976,8 +986,6 @@ shinyServer(function(input, output, session) {
     } else {
       df <- df[(event.data$pointNumber + 1)*mod, ]
     }
-    print(head(df))
-    print(event.data)
     vals$metricdivedf <- df
     
   })
