@@ -405,7 +405,9 @@ shinyServer(function(input, output, session) {
     if(!is.null(tcolIndex)){
       df <- df[, -tcolIndex]
     }
-    vals$transformColIndex <- (ncol(df) + 1):(ncol(df) + vals$transformationCount)
+    
+    firstCol <- ncol(df) + 1
+    
     for (cnt in 1:vals$transformationCount) {
       
       # Grab values from current transformation request
@@ -526,6 +528,7 @@ shinyServer(function(input, output, session) {
       }
       
     }
+    vals$transformColIndex <- firstCol:ncol(df)
     df[,dateCol] <- as.character(format(df[,dateCol], vals$dateFormat))
     vals$datadf <- df
     
@@ -571,10 +574,11 @@ shinyServer(function(input, output, session) {
     if(!is.null(ocolIndex)){
       df <- df[, -ocolIndex]
     }
-    vals$offsetColIndex <- (ncol(df) + 1):(ncol(df) + vals$offsetCount)
+    
+    # variables used in creating offset column index
+    firstCol <- ncol(df) + 1
     
     for (cnt in 1:vals$offsetCount) {
-      
       # Grab values from current offset request
       type <- input[[paste0("offsetType", cnt)]]
       cols <- input[[paste0("offsetCols", cnt)]]
@@ -634,6 +638,7 @@ shinyServer(function(input, output, session) {
       }
       
     }
+    vals$offsetColIndex <- firstCol:ncol(df)
     df[,dateCol] <- as.character(format(df[,dateCol], vals$dateFormat))
     vals$datadf <- df
     
