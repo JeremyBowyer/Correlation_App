@@ -143,7 +143,22 @@ shinyServer(function(input, output, session) {
   output$hierarchicalCheck <- reactive({
     return(input$hierBox)
   })
-  outputOptions(output, 'hierarchicalCheck', suspendWhenHidden=FALSE)
+  outputOptions(output, 'hierarchicalCheck', suspendWhenHidden=FALSE)  
+  
+  output$transformationsCheck <- reactive({
+    return(vals$transformationCount > 0)
+  })
+  outputOptions(output, 'transformationsCheck', suspendWhenHidden=FALSE)  
+  
+  output$filtersCheck <- reactive({
+    return(vals$valueFilterCount > 0 || vals$percentileFilterCount > 0 || vals$dateFilterCount > 0 )
+  })
+  outputOptions(output, 'filtersCheck', suspendWhenHidden=FALSE)
+  
+  output$OffsetsCheck <- reactive({
+    return(vals$offsetCount > 0)
+  })
+  outputOptions(output, 'OffsetsCheck', suspendWhenHidden=FALSE)
   
   output$validX <- reactive({
     if(input$xCol != "" && input$yCol != "") {
@@ -484,7 +499,7 @@ shinyServer(function(input, output, session) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
           
-          df[, transformName] <- transformFunc(df[, col], lag)
+          df[, transformName] <- transformFunc(as.numeric(df[, col]), lag)
         }
         
       } else {
@@ -499,11 +514,12 @@ shinyServer(function(input, output, session) {
         }
         
         for (col in cols){
-          transformName <- paste(col, "_", transformSuffix)
+          transformName <- paste0(col, "_", transformSuffix)
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
-          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(x, lag))[["x"]])
+          print(transformName)
+          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(as.numeric(x), lag))[["x"]])
         }
         
         # reorder DF back to user-selected order
