@@ -372,7 +372,7 @@ shinyServer(function(input, output, session) {
                                                                                                      "% Change" = "perchg",
                                                                                                      "% Change from Median" = "perchgmedian",
                                                                                                      "% Change from Std" = "perchgstd")),
-                    textInput(paste0("transformationColName", cnt), "New Column Name", value = ""),
+                    textInput(paste0("transformationSuffix", cnt), "Transformation Suffix Name", value = ""),
                     numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                     selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
                     selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
@@ -400,7 +400,7 @@ shinyServer(function(input, output, session) {
       dateCol <- input[[paste0("transformDateCol", cnt)]]
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
       lag <- input[[paste0("transformationLag", cnt)]]
-      transformName <- input[[paste0("transformationColName", cnt)]]
+      transformSuffix <- input[[paste0("transformationSuffix", cnt)]]
       
       # Assign transformation function based on type selcted
       switch(type,
@@ -472,10 +472,6 @@ shinyServer(function(input, output, session) {
 
       df[,dateCol] <- as.Date(df[, dateCol], format = vals$dateFormat)
       
-      if(length(names(df)[names(df) == transformName]) > 0) {
-        transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
-      }
-      
       # Run transformation based on whether or not category column was selected.
       if(is.null(catCols)) {
         # No Category columns#
@@ -483,6 +479,11 @@ shinyServer(function(input, output, session) {
         # Order DF by date column
         df <- df[order(df[, dateCol]), ]
         for (col in cols){
+          transformName <- paste(col, "_", transformSuffix)
+          if(length(names(df)[names(df) == transformName]) > 0) {
+            transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
+          }
+          
           df[, transformName] <- transformFunc(df[, col], lag)
         }
         
@@ -498,6 +499,10 @@ shinyServer(function(input, output, session) {
         }
         
         for (col in cols){
+          transformName <- paste(col, "_", transformSuffix)
+          if(length(names(df)[names(df) == transformName]) > 0) {
+            transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
+          }
           df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(x, lag))[["x"]])
         }
         
