@@ -674,6 +674,7 @@ shinyServer(function(input, output, session) {
     # Y Column
     if(input$hierBox){
       
+      datadf[, hierCol] <- as.numeric(datadf[, hierCol])
       form <- as.formula(paste0(input$yCol, " ~ ", input$hierCol))
       fit <- lm(form, datadf)
       intercept <- fit$coefficients[1]
