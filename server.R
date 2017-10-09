@@ -385,6 +385,7 @@ shinyServer(function(input, output, session) {
       ui = tags$div(radioButtons(paste0("transformType", cnt), "Select transformation", choices=list("Difference" = "diff",
                                                                                                      "Subtract Rolling Median" = "submedian",
                                                                                                      "Subtract Historical Median" = "subhistmedian",
+                                                                                                     "Subtract cross-sectional Median" = "crossmedian",
                                                                                                      "% Change" = "perchg",
                                                                                                      "% Change from Median" = "perchgmedian",
                                                                                                      "% Change from Std" = "perchgstd")),
@@ -451,6 +452,12 @@ shinyServer(function(input, output, session) {
                  
                  return( m )
                  
+               }
+             },
+             crossmedian={
+               transformFunc <- function(x, lag) {
+                 m <- x - median(x, na.rm = TRUE)
+                 return( m )
                }
              },
              perchg={
