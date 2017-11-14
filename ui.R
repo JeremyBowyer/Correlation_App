@@ -11,6 +11,8 @@ library(XLConnect)
 library(plotly)
 library(dplyr)
 
+source("global.R", local=TRUE)
+
 shinyUI(navbarPage(
   title = "Correlation App",
   theme = shinytheme("sandstone"),
@@ -51,9 +53,18 @@ shinyUI(navbarPage(
               tags$hr()),
             tabPanel("Filters",
                      tags$p("Warning: Filtering by one column will be applied to entire dataset, and will affect all subsequent analysis, including Metric Dive tab."),
-                     tags$div(actionLink("addValueFilter", "Add Value Filter"), id="valueFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-                     tags$div(actionLink("addPercentileFilter", "Add Percentile Filter"), id="percentileFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-                     tags$div(actionLink("addDateFilter", "Add Date Filter"), id="dateFilters", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     tags$div(
+                       actionLink("addValueFilter", "Add Value Filter"),
+                       tags$div(id="valueFilters"),
+                       id="valueFilters-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     tags$div(
+                       actionLink("addPercentileFilter", "Add Percentile Filter"),
+                       tags$div(id="percentileFilters"),
+                       id="percentileFilters-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     tags$div(
+                       actionLink("addDateFilter", "Add Date Filter"),
+                       tags$div(id="dateFilters"),
+                       id="dateFilters-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
                      tags$br(),
                      conditionalPanel(
                        condition = "output.filtersCheck",
@@ -63,17 +74,31 @@ shinyUI(navbarPage(
                        tags$hr())
                      ),
             tabPanel("Metric Transformation",
-                     tags$div(actionLink("addTransformation", "Add Transformation"), id="transformations", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-                     tags$br(),
-                     conditionalPanel(
-                       condition = "output.transformationsCheck",
-                       actionButton("applyTransformations", "Create Transformations", icon("recycle"), style="padding: 5px 10px 5px 10px;"),
-                       tags$br(),
-                       actionLink("transformationsClear", "Clear All Transformations", style="color: #f12828;")
-                     ),
+                     tags$div(
+                       h3("Metric Transformations"),
+                       conditionalPanel(
+                         condition = "output.transformationsCheck",
+                         actionButton("applyTransformations", "Create Transformations", icon("recycle"), style="padding: 5px 10px 5px 10px;"),
+                         tags$br(),
+                         actionLink("transformationsClear", "Clear All Transformations", style="color: #f12828;")
+                       ),
+                       tags$div(
+                         selectInput(
+                         "transformationselected",
+                         label = NULL,
+                         width = "275px",
+                         choices = transformationList),
+                         style= "display:inline-block; vertical-align: top;"
+                      ), 
+                     tags$div(actionButton("transformbutton", "Add Transformation", style="padding:4px;font-size: 75%;"),style="display:inline-block; vertical-align: top;"),
+                     tags$div(id="transformations"),
+                     id="transformation-container", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
                      tags$hr()),
             tabPanel("Offsets",
-                     tags$div(actionLink("addOffset", "Add Offset"), id="offsets", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
+                     tags$div(
+                       actionLink("addOffset", "Add Offset"),
+                       tags$div(id="offsets"),
+                       id="offsets-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
                      tags$br(),
                      conditionalPanel(
                        condition = "output.offsetsCheck",

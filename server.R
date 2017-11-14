@@ -14,8 +14,9 @@ library(quantmod)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 
+source("global.R", local=TRUE)
 
-# Defin Functions
+# Define Functions
 source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
 round20 <- function(x) {
   return(sprintf("%.20f", round(as.numeric(x), 20)))
@@ -212,7 +213,7 @@ shinyServer(function(input, output, session) {
     if(vals$valueFilterCount == 0){
 
       insertUI(
-        selector="#valueFilters",
+        selector="#valueFilters-div",
         where="afterBegin",
         ui = h3("Value Filters", class="valueFilter")
       )
@@ -223,7 +224,7 @@ shinyServer(function(input, output, session) {
     
     insertUI(
       selector="#valueFilters",
-      where="beforeEnd",
+      where="afterBegin",
       ui = tags$div(selectInput(paste0("valueFilter",vals$valueFilterCount), paste0("Filter ",vals$valueFilterCount), getCols()),
                     tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Min"), "Min"), style="display:inline-block"),
                     tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Max"), "Max"), style="display:inline-block"),
@@ -238,7 +239,7 @@ shinyServer(function(input, output, session) {
     if(vals$percentileFilterCount == 0){
       
       insertUI(
-        selector="#percentileFilters",
+        selector="#percentileFilters-div",
         where="afterBegin",
         ui = h3("Percentile Filters (example: 0.05 for 5th percentile)", class="percentileFilter")
       )
@@ -249,7 +250,7 @@ shinyServer(function(input, output, session) {
     
     insertUI(
       selector="#percentileFilters",
-      where="beforeEnd",
+      where="afterBegin",
       ui = tags$div(selectInput(paste0("percentileFilter",vals$percentileFilterCount), paste0("Filter ",vals$percentileFilterCount), getCols()),
                     tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Min"), "Min"), style="display:inline-block"),
                     tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Max"), "Max"), style="display:inline-block"),
@@ -264,19 +265,19 @@ shinyServer(function(input, output, session) {
     if(vals$dateFilterCount == 0){
       
       insertUI(
-        selector="#dateFilters",
+        selector="#dateFilters-div",
         where="afterBegin",
         ui = tags$br(class = "dateFilter")
       )
       
       insertUI(
-        selector="#dateFilters",
+        selector="#dateFilters-div",
         where="afterBegin",
         ui = tags$br(class = "dateFilter")
       )
       
       insertUI(
-        selector="#dateFilters",
+        selector="#dateFilters-div",
         where="afterBegin",
         ui =  tags$div(
           h3("Date Filters", class="dateFilter"),
@@ -291,7 +292,7 @@ shinyServer(function(input, output, session) {
     
     insertUI(
       selector="#dateFilters",
-      where="beforeEnd",
+      where="afterBegin",
       ui = tags$div(selectInput(paste0("dateFilter",vals$dateFilterCount), paste0("Filter ",vals$dateFilterCount), getCols()),
                     tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Min"), "Min"), style="display:inline-block"),
                     tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Max"), "Max"), style="display:inline-block"),
@@ -374,28 +375,55 @@ shinyServer(function(input, output, session) {
   })
   
   # Add Transformation Button
-  observeEvent(input$addTransformation, {
-    
+  observeEvent(input$transformbutton, {
+    transformation <- input$transformationselected
+    transformationName <- names(transformationList[transformationList==transformation])
     vals$transformationCount <- vals$transformationCount + 1
     cnt <- vals$transformationCount
-    
-    insertUI(
-      selector="#transformations",
-      where="beforeEnd",
-      ui = tags$div(radioButtons(paste0("transformType", cnt), "Select transformation", choices=list("Difference" = "diff",
-                                                                                                     "Subtract Rolling Median" = "submedian",
-                                                                                                     "Subtract Historical Median" = "subhistmedian",
-                                                                                                     "Subtract cross-sectional Median" = "crossmedian",
-                                                                                                     "% Change" = "perchg",
-                                                                                                     "% Change from Median" = "perchgmedian",
-                                                                                                     "% Change from Std" = "perchgstd")),
-                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                    numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
-                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
-                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
-                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
-                    tags$hr(), class="transformation")
-    )
+
+    switch(transformation,
+           diff = ,
+           submedian = ,
+           perchg = ,
+           perchgmedian = ,
+           perchgstd = {
+             insertUI(selector="#transformations",
+                      where="afterBegin",
+                      ui = tags$div(h3(transformationName),
+                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                                    numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
+                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
+                                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
+                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
+                                    tags$hr(), class="transformation")
+             )
+           },
+           crossmedian = ,
+           zscorecross = {
+             insertUI(selector="#transformations",
+                      where="afterBegin",
+                      ui = tags$div(h3(transformationName),
+                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
+                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
+                                    tags$hr(), class="transformation")
+             )
+           },
+           subhistmedian = , 
+           zscorelong = {
+             insertUI(selector="#transformations",
+                      where="afterBegin",
+                      ui = tags$div(h3(transformationName),
+                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
+                                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
+                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
+                                    tags$hr(), class="transformation")
+             )
+           })
     
   })
   
@@ -412,7 +440,7 @@ shinyServer(function(input, output, session) {
     for (cnt in 1:vals$transformationCount) {
       
       # Grab values from current transformation request
-      type <- input[[paste0("transformType", cnt)]]
+      type <- input[[paste0("transformationType", cnt)]]
       cols <- input[[paste0("transformCols", cnt)]]
       dateCol <- input[[paste0("transformDateCol", cnt)]]
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
@@ -490,17 +518,38 @@ shinyServer(function(input, output, session) {
                  
                  return( m )
                  }
-              }
+              },
+             zscorelong={
+                transformFunc <- function(x, lag) {
+                 n <- as.numeric(x)
+                 
+                 m <- numeric()
+                 for (i in seq_along(n)) {
+                   m[length(m)+1] <- (n[i] - mean(n, na.rm = TRUE)) / sd(x[1:i], na.rm = TRUE)
+                 }
+                 
+                 return( m )
+               }
+             },
+             zscorecross={
+               transformFunc <- function(x, lag) {
+                 n <- as.numeric(x)
+                 m <- (n - mean(n, na.rm = TRUE)) / sd(n, na.rm = TRUE)
+                 return( m )
+               }
+             }
       )
 
-      df[,dateCol] <- as.Date(df[, dateCol], format = vals$dateFormat)
-      
-      # Run transformation based on whether or not category column was selected.
       if(is.null(catCols)) {
+        # Run transformation based on whether or not category column was selected.
         # No Category columns#
         
-        # Order DF by date column
-        df <- df[order(df[, dateCol]), ]
+        # Order DF by date column, if present
+        if (!is.null(dateCol) && dateCol != "") {
+          df[,dateCol] <- as.Date(df[, dateCol], format = input$dateColFormat)
+          df <- df[order(df[, dateCol]), ]
+        }
+        
         for (col in cols){
           transformName <- paste(col, "_", transformSuffix)
           if(length(names(df)[names(df) == transformName]) > 0) {
@@ -512,10 +561,16 @@ shinyServer(function(input, output, session) {
         
       } else {
         # Category columns #
-        
         # Order by category cols then date col.
         # This step is needed to ensure unlisted aggregate data is in proper order
-        df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
+        # Order DF by date column, if present
+        if (!is.null(dateCol) && dateCol != "") {
+          df[,dateCol] <- as.Date(df[, dateCol], format = input$dateColFormat)
+          df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
+        } else {
+          df <- df[do.call(order, df[rev(catCols)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
+        }
+
         groupList <- list()
         for (col in catCols){
           groupList[[col]] <- df[, col] 
@@ -530,13 +585,18 @@ shinyServer(function(input, output, session) {
         }
         
         # reorder DF back to user-selected order
-        df <- df[do.call(order, df[c(catCols,dateCol)]), ]
-        
+        if (!is.null(dateCol) && dateCol != "") {
+          df <- df[do.call(order, df[c(catCols,dateCol)]), ]
+        } else {
+          df <- df[do.call(order, df[catCols]), ]
+        }
       }
       
     }
     vals$transformColIndex <- firstCol:ncol(df)
-    df[,dateCol] <- as.character(format(df[,dateCol], vals$dateFormat))
+    if (!is.null(dateCol) && dateCol != "") {
+      df[,dateCol] <- as.character(format(df[,dateCol], input$dateColFormat))
+    }
     vals$datadf <- df
     
   })
@@ -561,7 +621,7 @@ shinyServer(function(input, output, session) {
     
     insertUI(
       selector="#offsets",
-      where="beforeEnd",
+      where="afterBegin",
       ui = tags$div(radioButtons(paste0("offsetType", cnt), "Select Direction", choices=list("Forward" = "forward",
                                                                                              "Backward" = "backward")),
                     textInput(paste0("offsetSuffix", cnt), "Column Suffix Name", value = ""),
@@ -697,7 +757,7 @@ shinyServer(function(input, output, session) {
     }
     
     # Create vector of metric columns
-    correlCols = names(datadf)[!names(datadf) %in% ignoreCols]
+    correlCols = unique(names(datadf)[!names(datadf) %in% ignoreCols])
     
     # Update Metric Dive Dropdown
     updateSelectInput(session, "xCol", choices=correlCols)
@@ -711,9 +771,10 @@ shinyServer(function(input, output, session) {
                             check.names = FALSE)
     
     for(col in correlCols) {
-      rm("fit")
+      if(exists("fit")) { rm("fit") }
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
       
+      # Turnover
       tryCatch({
         metricDF <- datadf[order(datadf[,input$dateCol]) ,c(input$dateCol, input$categoryCol, col)]
         wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = col)[, -1]
@@ -723,6 +784,7 @@ shinyServer(function(input, output, session) {
         summaryDF[nrow(summaryDF), "Turnover (max 0.57)"] <- round(mean(stds, na.rm = TRUE), 2)
       }, error = function(e) {NULL})
       
+      # Correlation and DoF
       tryCatch({
         form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
         fit <- lm(form, datadf)
@@ -731,30 +793,73 @@ shinyServer(function(input, output, session) {
       }, error = function(e) {NULL})
     }
     
+    # Multi-linear
+    if(exists("fit")) { rm("fit") }
+    summaryDF[nrow(summaryDF) + 1, "Metric"] <- "Multilinear"
+    
+    formstring <- paste0("as.numeric(", yColumn, ") ~ ")
+    for (col in correlCols){
+      if(col == correlCols[length(correlCols)]) {
+        formstring <- paste0(formstring, " as.numeric(", col, ")")
+      } else {
+        formstring <- paste0(formstring, " as.numeric(", col, ") +")
+      }
+    }
+
+    tryCatch({
+      form <- as.formula(formstring)
+      fit <- lm(form, datadf)
+      datadf[names(fit$fitted.values), "fitted"] <- fit$fitted.values
+      summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
+      summaryDF[nrow(summaryDF), "DoF"] <- fit$df
+    }, error = function(e) {NULL})
+
     output$summaryTable <- renderTable({
       summaryDF
     })
     
     ## By Date ##
     if(input$dateCol != "") {
-      dateCorrelations <- data.frame(Metric = correlCols,
-                                     "Total Periods" = integer(length(correlCols)),
-                                     "Negative Periods" = integer(length(correlCols)),
-                                     "Positive Periods" = integer(length(correlCols)),
-                                     "% Negative" = numeric(length(correlCols)),
-                                     "% Positive" = numeric(length(correlCols)),
-                                     "Avg Correlation" = numeric(length(correlCols)),
+      dateCorrelations <- data.frame(Metric = c(correlCols, "Multilinear"),
+                                     "Total Periods" = integer(length(c(correlCols, "Multilinear"))),
+                                     "Negative Periods" = integer(length(c(correlCols, "Multilinear"))),
+                                     "Positive Periods" = integer(length(c(correlCols, "Multilinear"))),
+                                     "% Negative" = numeric(length(c(correlCols, "Multilinear"))),
+                                     "% Positive" = numeric(length(c(correlCols, "Multilinear"))),
+                                     "Avg Correlation" = numeric(length(c(correlCols, "Multilinear"))),
                                      check.names = FALSE)
       # Fill in correlations by date
       for(date in unique(datadf[, input$dateCol])) {
         dateDF <- datadf[datadf[,input$dateCol]==date, ]
+        
+        # single factor regressions
         for(col in correlCols) {
           dateCorrelations[dateCorrelations$Metric == col, date] <- cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")
         }
+        
+        # multi-linear regression
+        if(exists("fit")) { rm("fit") }
+        
+        formstring <- paste0("as.numeric(", yColumn, ") ~ ")
+        for (col in correlCols){
+          if(col == correlCols[length(correlCols)]) {
+            formstring <- paste0(formstring, " as.numeric(", col, ")")
+          } else {
+            formstring <- paste0(formstring, " as.numeric(", col, ") +")
+          }
+        }
+        
+        tryCatch({
+          form <- as.formula(formstring)
+          fit <- lm(form, dateDF)
+          dateDF[names(fit$fitted.values), "fitted"] <- fit$fitted.values
+          dateCorrelations[dateCorrelations$Metric == "Multilinear", date] <- cor(as.numeric(dateDF$fitted), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")
+        }, error = function(e) {NULL})
+        
       }
       
       # Fill in summary stats of date correlations
-      for(col in correlCols) {
+      for(col in c(correlCols,"Multilinear")) {
         metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, unique(datadf[, input$dateCol])])
         metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
         dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations)
