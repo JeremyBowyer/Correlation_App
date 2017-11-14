@@ -446,7 +446,7 @@ shinyServer(function(input, output, session) {
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
       lag <- input[[paste0("transformationLag", cnt)]]
       transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
-      
+
       # Assign transformation function based on type selcted
       switch(type,
              diff={
@@ -459,7 +459,7 @@ shinyServer(function(input, output, session) {
                  
                  for (i in seq_along(n)) {
                    if ((i - lag) > 0) {
-                     m[length(m)+1] <- n[i] - median(n[(i - lag):(i - 1)])
+                     m[length(m)+1] <- n[i] - median(n[(i - lag):(i)])
                    } else {
                      m[length(m)+1] <- NA
                    }
@@ -525,7 +525,7 @@ shinyServer(function(input, output, session) {
                  
                  m <- numeric()
                  for (i in seq_along(n)) {
-                   m[length(m)+1] <- (n[i] - mean(n, na.rm = TRUE)) / sd(x[1:i], na.rm = TRUE)
+                   m[length(m)+1] <- (n[i] - mean(n[1:i], na.rm = TRUE)) / sd(n[1:i], na.rm = TRUE)
                  }
                  
                  return( m )
