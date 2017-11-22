@@ -50,7 +50,9 @@ shinyUI(navbarPage(
               ),
               selectInput("categoryCol", "Select Category column (optional)", choices=list()),
               selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list(), multiple = TRUE),
-              tags$hr()),
+              tags$hr(),
+              actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
+              downloadButton('downloadData', 'Download Customized Data')),
             tabPanel("Filters",
                      tags$p("Warning: Filtering by one column will be applied to entire dataset, and will affect all subsequent analysis, including Metric Dive tab."),
                      tags$div(
@@ -107,9 +109,6 @@ shinyUI(navbarPage(
                        actionLink("offsetClear", "Clear All Offsets", style="color: #f12828;"),
                        tags$hr()))
                      ),
-          actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
-          downloadButton('downloadData', 'Download Customized Data'),
-          
           tags$hr(),
           tags$head(
             tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });'))
@@ -122,6 +121,8 @@ shinyUI(navbarPage(
   
   tabPanel("Metric Comparison",
         value="correlations",
+        textOutput("currentY_comparison"),
+        tags$br(),
         tabsetPanel(
           tabPanel("Summary - All Dates", tableOutput("summaryTable")),
           tabPanel("Correlations - By Date", conditionalPanel(
@@ -137,6 +138,8 @@ shinyUI(navbarPage(
   ),
   tabPanel("Metric Dive", value="metric", mainPanel(width = 12,
     column(12, align="center",
+      textOutput("currentY_dive"),
+      tags$br(),
       selectInput("xCol", "Select Metric", choices=list()),
       tags$div(id = "metricAlertDiv"),
       conditionalPanel(

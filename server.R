@@ -15,6 +15,8 @@ options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 
 source("global.R", local=TRUE)
+source("transformations.R", local=TRUE)
+source("offsets.R", local=TRUE)
 
 # Define Functions
 source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
@@ -129,7 +131,7 @@ shinyServer(function(input, output, session) {
   ###########
   # Methods #
   ###########
-  getCols <- reactive({
+  vals$getCols <- reactive({
     df = vals$datadf
     return(names(df))
   })
@@ -207,6 +209,11 @@ shinyServer(function(input, output, session) {
       vals$originaldf <- datadf
   })
   
+  # Update metric dive Y column indicator on Y change
+  output$currentY_dive <- renderText({ 
+    paste0("Current Y column: ", input$yCol)
+  })
+  
   # Add filter Buttons
   observeEvent(input$addValueFilter, {
     
@@ -225,7 +232,7 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#valueFilters",
       where="afterBegin",
-      ui = tags$div(selectInput(paste0("valueFilter",vals$valueFilterCount), paste0("Filter ",vals$valueFilterCount), getCols()),
+      ui = tags$div(selectInput(paste0("valueFilter",vals$valueFilterCount), paste0("Filter ",vals$valueFilterCount), vals$getCols()),
                     tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Min"), "Min"), style="display:inline-block"),
                     tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Max"), "Max"), style="display:inline-block"),
                     tags$div(tags$hr()), class="valueFilter")
@@ -251,7 +258,7 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#percentileFilters",
       where="afterBegin",
-      ui = tags$div(selectInput(paste0("percentileFilter",vals$percentileFilterCount), paste0("Filter ",vals$percentileFilterCount), getCols()),
+      ui = tags$div(selectInput(paste0("percentileFilter",vals$percentileFilterCount), paste0("Filter ",vals$percentileFilterCount), vals$getCols()),
                     tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Min"), "Min"), style="display:inline-block"),
                     tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Max"), "Max"), style="display:inline-block"),
                     tags$div(tags$hr()), class="percentileFilter")
@@ -293,7 +300,7 @@ shinyServer(function(input, output, session) {
     insertUI(
       selector="#dateFilters",
       where="afterBegin",
-      ui = tags$div(selectInput(paste0("dateFilter",vals$dateFilterCount), paste0("Filter ",vals$dateFilterCount), getCols()),
+      ui = tags$div(selectInput(paste0("dateFilter",vals$dateFilterCount), paste0("Filter ",vals$dateFilterCount), vals$getCols()),
                     tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Min"), "Min"), style="display:inline-block"),
                     tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Max"), "Max"), style="display:inline-block"),
                     tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Format"), "Format dates are in (see above for example formats).", "%m/%d/%Y"), style="display:inline-block"),
@@ -375,352 +382,18 @@ shinyServer(function(input, output, session) {
   })
   
   # Add Transformation Button
-  observeEvent(input$transformbutton, {
-    transformation <- input$transformationselected
-    transformationName <- names(transformationList[transformationList==transformation])
-    vals$transformationCount <- vals$transformationCount + 1
-    cnt <- vals$transformationCount
-
-    switch(transformation,
-           diff = ,
-           submedian = ,
-           perchg = ,
-           perchgmedian = ,
-           perchgstd = {
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
-                                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
-                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
-                                    tags$hr(), class="transformation")
-             )
-           },
-           crossmedian = ,
-           zscorecross = {
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
-                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
-                                    tags$hr(), class="transformation")
-             )
-           },
-           subhistmedian = , 
-           zscorelong = {
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=getCols(), multiple = TRUE),
-                                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=getCols()),
-                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
-                                    tags$hr(), class="transformation")
-             )
-           })
-    
-  })
-  
+  observeAddTransformation(input, output, session, vals)
   # Create Transformations Button
-  observeEvent(input$applyTransformations, {
-    df <- vals$datadf
-    tcolIndex <- vals$transformColIndex
-    if(!is.null(tcolIndex)){
-      df <- df[, -tcolIndex]
-    }
-    
-    firstCol <- ncol(df) + 1
-    
-    for (cnt in 1:vals$transformationCount) {
-      
-      # Grab values from current transformation request
-      type <- input[[paste0("transformationType", cnt)]]
-      cols <- input[[paste0("transformCols", cnt)]]
-      dateCol <- input[[paste0("transformDateCol", cnt)]]
-      catCols <- input[[paste0("transformCategoryCol", cnt)]]
-      lag <- input[[paste0("transformationLag", cnt)]]
-      transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
-
-      # Assign transformation function based on type selcted
-      switch(type,
-             diff={
-               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) ) }
-              },
-             submedian={
-               transformFunc <- function(x, lag) {
-                 n <- as.numeric(x)
-                 m <- numeric()
-                 
-                 for (i in seq_along(n)) {
-                   if ((i - lag) > 0) {
-                     m[length(m)+1] <- n[i] - median(n[(i - lag):(i)])
-                   } else {
-                     m[length(m)+1] <- NA
-                   }
-                 }
-                 
-                 return( m )
-                 
-               }
-             },
-             subhistmedian={
-               transformFunc <- function(x, lag) {
-                 n <- as.numeric(x)
-                 m <- numeric()
-                 
-                 for (i in seq_along(n)) {
-                     m[length(m)+1] <- n[i] - median(n[1:i], na.rm = TRUE)
-                 }
-                 
-                 return( m )
-                 
-               }
-             },
-             crossmedian={
-               transformFunc <- function(x, lag) {
-                 m <- x - median(x, na.rm = TRUE)
-                 return( m )
-               }
-             },
-             perchg={
-               transformFunc <- function(x, lag) { return( as.numeric(Delt(x, k = lag)) ) }
-              },
-             perchgmedian={
-               transformFunc <- function(x, lag) {
-                 
-                 d <- c(rep(NA, lag), diff(x, lag = lag))
-                 
-                 m <- numeric()
-                 
-                 for (i in seq_along(d)) {
-                   m[length(m)+1] <- d[i] / median(x[1:i], na.rm = TRUE)
-                 }
-                 
-                 return( m )
-                 
-                }
-              },
-             perchgstd={
-               transformFunc <- function(x, lag) {
-                 d <- c(rep(NA, lag), diff(x, lag = lag))
-                 
-                 m <- numeric()
-                 
-                 for (i in seq_along(d)) {
-                   m[length(m)+1] <- d[i] / sd(x[1:i], na.rm = TRUE)
-                 }
-                 
-                 return( m )
-                 }
-              },
-             zscorelong={
-                transformFunc <- function(x, lag) {
-                 n <- as.numeric(x)
-                 
-                 m <- numeric()
-                 for (i in seq_along(n)) {
-                   m[length(m)+1] <- (n[i] - mean(n[1:i], na.rm = TRUE)) / sd(n[1:i], na.rm = TRUE)
-                 }
-                 
-                 return( m )
-               }
-             },
-             zscorecross={
-               transformFunc <- function(x, lag) {
-                 n <- as.numeric(x)
-                 m <- (n - mean(n, na.rm = TRUE)) / sd(n, na.rm = TRUE)
-                 return( m )
-               }
-             }
-      )
-
-      if(is.null(catCols)) {
-        # Run transformation based on whether or not category column was selected.
-        # No Category columns#
-        
-        # Order DF by date column, if present
-        if (!is.null(dateCol) && dateCol != "") {
-          df[,dateCol] <- as.Date(df[, dateCol], format = input$dateColFormat)
-          df <- df[order(df[, dateCol]), ]
-        }
-        
-        for (col in cols){
-          transformName <- paste(col, "_", transformSuffix)
-          if(length(names(df)[names(df) == transformName]) > 0) {
-            transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
-          }
-          
-          df[, transformName] <- transformFunc(as.numeric(df[, col]), lag)
-        }
-        
-      } else {
-        # Category columns #
-        # Order by category cols then date col.
-        # This step is needed to ensure unlisted aggregate data is in proper order
-        # Order DF by date column, if present
-        if (!is.null(dateCol) && dateCol != "") {
-          df[,dateCol] <- as.Date(df[, dateCol], format = input$dateColFormat)
-          df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
-        } else {
-          df <- df[do.call(order, df[rev(catCols)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
-        }
-
-        groupList <- list()
-        for (col in catCols){
-          groupList[[col]] <- df[, col] 
-        }
-        
-        for (col in cols){
-          transformName <- paste0(col, "_", transformSuffix)
-          if(length(names(df)[names(df) == transformName]) > 0) {
-            transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
-          }
-          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(as.numeric(x), lag))[["x"]])
-        }
-        
-        # reorder DF back to user-selected order
-        if (!is.null(dateCol) && dateCol != "") {
-          df <- df[do.call(order, df[c(catCols,dateCol)]), ]
-        } else {
-          df <- df[do.call(order, df[catCols]), ]
-        }
-      }
-      
-    }
-    vals$transformColIndex <- firstCol:ncol(df)
-    if (!is.null(dateCol) && dateCol != "") {
-      df[,dateCol] <- as.character(format(df[,dateCol], input$dateColFormat))
-    }
-    vals$datadf <- df
-    
-  })
-  
+  observeCreateTransformations(input, output, session, vals)
   # Clear Transformations Button
-  observeEvent(input$transformationsClear, {
-    removeUI(".transformation", multiple = TRUE)
-    tcolIndex <- vals$transformColIndex
-    if(!is.null(tcolIndex)){
-      vals$datadf <- vals$datadf[, -tcolIndex]
-    }
-    vals$transformationCount <- 0
-    vals$transformColIndex <- NULL
-  })
-  
+  observeClearTransformations(input, output, session, vals)
   
   # Add Offset Button
-  observeEvent(input$addOffset, {
-    
-    vals$offsetCount <- vals$offsetCount + 1
-    cnt <- vals$offsetCount
-    
-    insertUI(
-      selector="#offsets",
-      where="afterBegin",
-      ui = tags$div(radioButtons(paste0("offsetType", cnt), "Select Direction", choices=list("Forward" = "forward",
-                                                                                             "Backward" = "backward")),
-                    textInput(paste0("offsetSuffix", cnt), "Column Suffix Name", value = ""),
-                    numericInput(paste0("offsetLag", cnt), "Select Lag", value = 1, min = 1), 
-                    selectInput(paste0("offsetCols", cnt), "Select columns to offset", choices=getCols(), multiple = TRUE),
-                    selectInput(paste0("offsetDateCol", cnt), "Select column to offset along (probably a date)", choices=getCols()),
-                    selectInput(paste0("offsetCategoryCol", cnt), "Select category columns to group by (optional)", choices=getCols(), multiple = TRUE),
-                    tags$hr(), class="offset")
-    )
-    
-  })
-  
+  observeAddOffset(input, output, session, vals)
   # Create Offsets Button
-  observeEvent(input$applyOffsets, {
-    df <- vals$datadf
-    ocolIndex <- vals$offsetColIndex
-    if(!is.null(ocolIndex)){
-      df <- df[, -ocolIndex]
-    }
-    
-    # variables used in creating offset column index
-    firstCol <- ncol(df) + 1
-    
-    for (cnt in 1:vals$offsetCount) {
-      # Grab values from current offset request
-      type <- input[[paste0("offsetType", cnt)]]
-      cols <- input[[paste0("offsetCols", cnt)]]
-      dateCol <- input[[paste0("offsetDateCol", cnt)]]
-      catCols <- input[[paste0("offsetCategoryCol", cnt)]]
-      lag <- input[[paste0("offsetLag", cnt)]]
-      offsetSuffix <- gsub(" ", ".", input[[paste0("offsetSuffix", cnt)]])
-      
-      # Assign offset function based on type selcted
-      switch(type,
-             forward={
-               offsetFunc <- function(x, lag) { return( c(rep(NA, lag), x[1:(length(x) - lag)]) ) }
-             },
-             backward={
-               offsetFunc <- function(x, lag) { return( c(x[(lag + 1):length(x)], rep(NA, lag)) ) }
-             }
-      )
-      
-      df[,dateCol] <- as.Date(df[, dateCol], format = vals$dateFormat)
-      
-      # Run offset based on whether or not category column was selected.
-      if(is.null(catCols)) {
-        # No Category columns#
-        
-        # Order DF by date column
-        df <- df[order(df[, dateCol]), ]
-        for (col in cols){
-          offsetName <- paste0(col, "_", offsetSuffix)
-          if(length(names(df)[names(df) == offsetName]) > 0) {
-            offsetName = paste0(offsetName, length(names(df)[names(df) == offsetName]))
-          }
-          df[, paste0(col, offsetName)] <- offsetFunc(df[, col], lag)
-        }
-        
-      } else {
-        # Category columns #
-        
-        # Order by category cols then date col.
-        # This step is needed to ensure unlisted aggregate data is in proper order
-        df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
-        groupList <- list()
-        for (col in catCols){
-          groupList[[col]] <- df[, col] 
-        }
-        
-        for (col in cols){
-          offsetName <- paste0(col, "_", offsetSuffix)
-          if(length(names(df)[names(df) == offsetName]) > 0) {
-            offsetName = paste0(offsetName, length(names(df)[names(df) == offsetName]))
-          }
-          df[, offsetName] <- unlist(aggregate(df[,col], by=groupList, function(x) offsetFunc(x, lag))[["x"]])
-        }
-        
-        # reorder DF back to user-selected order
-        df <- df[do.call(order, df[c(catCols,dateCol)]), ]
-        
-      }
-      
-    }
-    vals$offsetColIndex <- firstCol:ncol(df)
-    df[,dateCol] <- as.character(format(df[,dateCol], vals$dateFormat))
-    vals$datadf <- df
-    
-  })
-  
+  observeApplyOffsets(input, output, session, vals)
   # Clear Offsets Button
-  observeEvent(input$offsetClear, {
-    removeUI(".offset", multiple = TRUE)
-    ocolIndex <- vals$offsetColIndex
-    if(!is.null(ocolIndex)){
-      vals$datadf <- vals$datadf[, -ocolIndex]
-    }
-    vals$offsetCount <- 0
-    vals$offsetColIndex <- NULL
-  })
+  observeClearOffsets(input, output, session, vals)
   
   
   # Run Analysis Button
@@ -733,7 +406,13 @@ shinyServer(function(input, output, session) {
       return(NULL)
     }
     
+    # Store date format
     vals$dateFormat <- input$dateColFormat
+    
+    # Update Y column indicator
+    output$currentY_comparison <- renderText( 
+      isolate(paste0("Current Y column: ", input$yCol))
+    )
     
     # Read in user-provided CSV file
     datadf <- vals$datadf
@@ -1181,7 +860,7 @@ shinyServer(function(input, output, session) {
   output$dataPreview <- renderTable({
     
     for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols")) {
-      updateSelectInput(session, col, choices=getCols(), selected=input[[col]])
+      updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
     }
     
     return(vals$datadf)
