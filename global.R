@@ -6,4 +6,6 @@ transformationList = list("Difference" = "diff",
                           "% Change from Median" = "perchgmedian",
                           "% Change from Std" = "perchgstd",
                           "Z-Score Cross Sectional" = "zscorecross",
-                          "Z-Score Longitudinal" = "zscorelong")
+                          "Z-Score Longitudinal" = "zscorelong",
+                          "Binary (String)" = "binarystring",
+                          "Binary (Value)" = "binaryvalue")

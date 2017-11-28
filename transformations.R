@@ -48,6 +48,28 @@ observeAddTransformation <- function(input, output, session, vals) {
                                     selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                                     tags$hr(), class="transformation")
              )
+           },
+           binarystring = {
+             insertUI(selector="#transformations",
+                      where="afterBegin",
+                      ui = tags$div(h3(transformationName),
+                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
+                                    textInput(paste0("transformBinaryString", cnt), "Value to be flagged as 1", value = ""),
+                                    tags$hr(), class="transformation")
+             )
+           },
+           binaryvalue = {
+             insertUI(selector="#transformations",
+                      where="afterBegin",
+                      ui = tags$div(h3(transformationName),
+                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
+                                    textInput(paste0("transformBinaryValue", cnt), "Value, data points equal to or above to be flagged as 1", value = ""),
+                                    tags$hr(), class="transformation")
+             )
            })
     
   })
@@ -75,11 +97,13 @@ observeCreateTransformations <- function(input, output, session, vals) {
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
       lag <- input[[paste0("transformationLag", cnt)]]
       transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
+      transformBinaryString <- input[[paste0("transformBinaryString", cnt)]]
+      transformBinaryValue <- input[[paste0("transformBinaryValue", cnt)]]
       
       # Assign transformation function based on type selcted
       switch(type,
              diff={
-               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(x, lag = lag)) ) }
+               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(as.numeric(x), lag = lag)) ) }
              },
              submedian={
                transformFunc <- function(x, lag) {
@@ -113,17 +137,17 @@ observeCreateTransformations <- function(input, output, session, vals) {
              },
              crossmedian={
                transformFunc <- function(x, lag) {
-                 m <- x - median(x, na.rm = TRUE)
+                 m <- as.numeric(x) - median(as.numeric(x), na.rm = TRUE)
                  return( m )
                }
              },
              perchg={
-               transformFunc <- function(x, lag) { return( as.numeric(Delt(x, k = lag)) ) }
+               transformFunc <- function(x, lag) { return( as.numeric(Delt(as.numeric(x), k = lag)) ) }
              },
              perchgmedian={
                transformFunc <- function(x, lag) {
                  
-                 d <- c(rep(NA, lag), diff(x, lag = lag))
+                 d <- c(rep(NA, lag), diff(as.numeric(x), lag = lag))
                  
                  m <- numeric()
                  
@@ -137,7 +161,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
              },
              perchgstd={
                transformFunc <- function(x, lag) {
-                 d <- c(rep(NA, lag), diff(x, lag = lag))
+                 d <- c(rep(NA, lag), diff(as.numeric(x), lag = lag))
                  
                  m <- numeric()
                  
@@ -166,6 +190,23 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  m <- (n - mean(n, na.rm = TRUE)) / sd(n, na.rm = TRUE)
                  return( m )
                }
+             },
+             binarystring={
+               transformFunc <- function(x, lag) {
+                 lowerX <- tolower(as.character(x))
+                 m <- rep(0, length(x))
+                 print(tolower(transformBinaryString))
+                 m[lowerX == tolower(transformBinaryString)] <- 1
+                 return( m )
+               }
+             },
+             binaryvalue={
+               transformFunc <- function(x, lag) {
+                 n <- as.numeric(x)
+                 m <- rep(0, length(x))
+                 m[n >= as.numeric(transformBinaryValue)] <- 1
+                 return( m )
+               }
              }
       )
       
@@ -185,7 +226,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
           
-          df[, transformName] <- transformFunc(as.numeric(df[, col]), lag)
+          df[, transformName] <- transformFunc(df[, col], lag)
         }
         
       } else {
