@@ -221,7 +221,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
         }
         
         for (col in cols){
-          transformName <- paste(col, "_", transformSuffix)
+          transformName <- paste0(col, "_", transformSuffix)
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
