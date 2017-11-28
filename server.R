@@ -732,12 +732,24 @@ shinyServer(function(input, output, session) {
     df %>%
       plot_ly(x = xform, source = "metricScatter") %>%
       add_markers(y = yform, color = colorform, text = ~text)  %>%
-      add_lines(x = xform, y = fitted(fit), fill = "red", name = "Regression Line")
+      add_lines(x = xform, y = fitted(fit), fill = "red", name = "Regression Line") %>%
+      layout(dragmode = "lasso")
     
   })
   
+  observeEvent({input$clearPoints}, {
+    # Process Data
+    df <- vals$datadf
+    df[,input$xCol] <- as.numeric(df[,input$xCol])
+    df[,input$yCol] <- as.numeric(df[,input$yCol])
+    df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+    df <- subset(df, !is.infinite(df[,input$xCol]) & !is.infinite(df[,input$yCol]))
+    df <- subset(df, !is.nan(df[,input$xCol]) & !is.nan(df[,input$yCol]))
+    
+    vals$metricdivedf <- df  
+  })
   
-  observeEvent({input$includePoints}, {
+  observeEvent({input$keepPoints}, {
     
     event.data <- event_data("plotly_selected", source = "metricScatter")
     if(is.null(event.data) == TRUE) return(NULL)
@@ -762,7 +774,7 @@ shinyServer(function(input, output, session) {
     
   })
   
-  observeEvent({input$excludePoints}, {
+  observeEvent({input$removePoints}, {
     
     event.data <- event_data("plotly_selected", source = "metricScatter")
     if(is.null(event.data) == TRUE) return(NULL)
@@ -776,7 +788,11 @@ shinyServer(function(input, output, session) {
       aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
         
         cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
-        x[cat.index*mod, ]
+        if(length(cat.index) > 0){
+          x[cat.index*mod, ]
+        } else {
+          x
+        }
         
       })
       df <- do.call("rbind", aggs)

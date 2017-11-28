@@ -20,6 +20,9 @@ shinyUI(navbarPage(
   id = "mainTabset",
   tabPanel("Instructions",
            value = "instructions",
+           tags$head(
+             tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+           ),
            h2("Instructions coming soon.")),
   tabPanel("Options",
     value = "options",
@@ -147,10 +150,11 @@ shinyUI(navbarPage(
         tabsetPanel(
           tabPanel("Metric Plots",
             tabsetPanel(
-              tabPanel("Scatter", actionButton("includePoints", "Include Selection", value = FALSE),
-                       actionButton("excludePoints", "Remove Selection", value = FALSE),
-                       plotlyOutput("metricScatter"),
-                       verbatimTextOutput("selectedPoints")
+              tabPanel("Scatter",
+                       #actionButton("clearPoints", "Clear Selection Filter", value = FALSE),
+                       actionButton("keepPoints", "Keep Selection", value = FALSE),
+                       actionButton("removePoints", "Remove Selection", value = FALSE),
+                       plotlyOutput("metricScatter")
               ),
               tabPanel("Histogram", plotlyOutput("metricHist")),
               tabPanel("QQ - Normal Dist", plotlyOutput("metricQQNorm")),

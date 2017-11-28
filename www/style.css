@@ -1,0 +1,9 @@
+a[data-title="Zoom"],
+a[data-title="Download plot as a png"],
+a[data-title="Box Select"],
+a[data-title="Autoscale"],
+a[data-title="Toggle Spike Lines"],
+a[data-title="Collaborate"],
+a[data-title="Produced with Plotly"]{
+	display: none;
+}
