@@ -8,10 +8,12 @@ observeAddTransformation <- function(input, output, session, vals) {
     
     switch(transformation,
            diff = ,
+           rollingsum = ,
            submedian = ,
            perchg = ,
            perchgmedian = ,
-           perchgstd = {
+           perchgstd =
+          {
              insertUI(selector="#transformations",
                       where="afterBegin",
                       ui = tags$div(h3(transformationName),
@@ -25,7 +27,7 @@ observeAddTransformation <- function(input, output, session, vals) {
              )
            },
            crossmedian = ,
-           zscorecross = {
+           zscorecross = { 
              insertUI(selector="#transformations",
                       where="afterBegin",
                       ui = tags$div(h3(transformationName),
@@ -70,7 +72,19 @@ observeAddTransformation <- function(input, output, session, vals) {
                                     textInput(paste0("transformBinaryValue", cnt), "Value, data points equal to or above to be flagged as 1", value = ""),
                                     tags$hr(), class="transformation")
              )
-           })
+           },
+          residual = {
+            insertUI(selector="#transformations",
+                     where="afterBegin",
+                     ui = tags$div(h3(transformationName),
+                                   tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                                   textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                                   selectInput(paste0("transformCols", cnt), "Select x columns", choices=vals$getCols(), multiple = TRUE),
+                                   selectInput(paste0("transformationY", cnt), "Select y column", choices=vals$getCols()),
+                                   tags$hr(), class="transformation")
+            )
+          }
+        )
     
   })
   
@@ -99,14 +113,44 @@ observeCreateTransformations <- function(input, output, session, vals) {
       transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
       transformBinaryString <- input[[paste0("transformBinaryString", cnt)]]
       transformBinaryValue <- input[[paste0("transformBinaryValue", cnt)]]
+      regressiony <- input[[paste0("transformationY", cnt)]]
       
-      # Assign transformation function based on type selcted
+      
+print(cols)      
+      # Assign transformation function based on type selected
       switch(type,
+             residual = {
+               transformFunc <- function(x, lag = 0, y) { 
+                 x <- as.numeric(x)
+                 y <- as.numeric(y)
+                 residual <- (y - coef(lm(y ~ x))["x"]*x - coef(lm(y ~ x))["(Intercept)"])
+                 return(residual)
+               }
+             },
              diff={
-               transformFunc <- function(x, lag) { return( c(rep(NA, lag), diff(as.numeric(x), lag = lag)) ) }
+               transformFunc <- function(x, lag,y = 0) { return( c(rep(NA, lag), diff(as.numeric(x), lag = lag)) ) }
+             },
+             rollingsum={   
+               transformFunc <- function(x, lag,y = 0) {
+                  d <- as.numeric(x)
+                  m <- numeric()
+               
+                  for (i in seq_along(d)) {
+                    
+                    if (i <= lag) {
+                      m[i] <- NA
+                    } else {
+                      m[i] <- sum(d[(i - lag):(i)])  
+                    }
+                    
+                  }
+               
+                  return( m )
+               
+              }
              },
              submedian={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  n <- as.numeric(x)
                  m <- numeric()
                  
@@ -123,7 +167,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              subhistmedian={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  n <- as.numeric(x)
                  m <- numeric()
                  
@@ -136,16 +180,16 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              crossmedian={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  m <- as.numeric(x) - median(as.numeric(x), na.rm = TRUE)
                  return( m )
                }
              },
              perchg={
-               transformFunc <- function(x, lag) { return( as.numeric(Delt(as.numeric(x), k = lag)) ) }
+               transformFunc <- function(x, lag,y = 0) { return( as.numeric(Delt(as.numeric(x), k = lag)) ) }
              },
              perchgmedian={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  
                  d <- c(rep(NA, lag), diff(as.numeric(x), lag = lag))
                  
@@ -160,7 +204,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              perchgstd={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  d <- c(rep(NA, lag), diff(as.numeric(x), lag = lag))
                  
                  m <- numeric()
@@ -173,7 +217,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              zscorelong={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  n <- as.numeric(x)
                  
                  m <- numeric()
@@ -185,14 +229,14 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              zscorecross={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  n <- as.numeric(x)
                  m <- (n - mean(n, na.rm = TRUE)) / sd(n, na.rm = TRUE)
                  return( m )
                }
              },
              binarystring={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  lowerX <- tolower(as.character(x))
                  m <- rep(0, length(x))
                  print(tolower(transformBinaryString))
@@ -201,7 +245,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              binaryvalue={
-               transformFunc <- function(x, lag) {
+               transformFunc <- function(x, lag,y = 0) {
                  n <- as.numeric(x)
                  m <- rep(0, length(x))
                  m[n >= as.numeric(transformBinaryValue)] <- 1
@@ -225,8 +269,9 @@ observeCreateTransformations <- function(input, output, session, vals) {
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
+        
           
-          df[, transformName] <- transformFunc(df[, col], lag)
+          df[, transformName] <- transformFunc(df[,col],lag, df[,regressiony])
         }
         
       } else {
@@ -235,7 +280,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
         # This step is needed to ensure unlisted aggregate data is in proper order
         # Order DF by date column, if present
         if (!is.null(dateCol) && dateCol != "") {
-          df[,dateCol] <- as.Date(df[, dateCol], format = input$dateColFormat)
+          df[,dateCol] <- as.Date(df[, dateCol],format = input$dateColFormat)
           df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
         } else {
           df <- df[do.call(order, df[rev(catCols)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out

@@ -1,4 +1,5 @@
 transformationList = list("Difference" = "diff",
+                          "Rolling Sum" = "rollingsum",
                           "Subtract Rolling Median" = "submedian",
                           "Subtract Historical Median" = "subhistmedian",
                           "Subtract cross-sectional Median" = "crossmedian",
@@ -8,4 +9,5 @@ transformationList = list("Difference" = "diff",
                           "Z-Score Cross Sectional" = "zscorecross",
                           "Z-Score Longitudinal" = "zscorelong",
                           "Binary (String)" = "binarystring",
-                          "Binary (Value)" = "binaryvalue")
+                          "Binary (Value)" = "binaryvalue",
+                          "Linear Residual" = "residual")
