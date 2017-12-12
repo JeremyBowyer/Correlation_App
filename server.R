@@ -27,87 +27,87 @@ round20 <- function(x) {
 script <- "
 
 for(i = 2; i < $('#summaryTable th').length; i++) {
-  colorTableByCol('summaryTable', i);
+colorTableByCol('summaryTable', i);
 }
 
 for(i = 7; i < $('#dateCorrelations th').length; i++) {
-  colorTableByCol('dateCorrelations', i);
+colorTableByCol('dateCorrelations', i);
 }
 
 for(i = 0; i < $('#datePerformance th').length; i++) {
-  colorTableByCol('datePerformance', i);
+colorTableByCol('datePerformance', i);
 }
 
 function colorTableByCol(tableid, colindex){
 
-  var columnarray, maxval, minval, max, min, n;
+var columnarray, maxval, minval, max, min, n;
 
-  columnarray = [];
-  $('#' + tableid + ' tr:not(:first)').each(function(){
-    var val = parseFloat($(this).find('td').eq(colindex).text());
-    if(val === val) {
-      columnarray.push(val);
-    }
-  })
-  
-  maxval = Math.max(...columnarray);
-  minval = Math.min(...columnarray);
+columnarray = [];
+$('#' + tableid + ' tr:not(:first)').each(function(){
+var val = parseFloat($(this).find('td').eq(colindex).text());
+if(val === val) {
+columnarray.push(val);
+}
+})
 
-  min = 0;
-  if (minval > 0) {
-    max = maxval;
-  } else if (maxval < 0) {
-    max = Math.abs(minval);
-  } else {
-    max = Math.max(Math.abs(maxval), Math.abs(minval));
-  }
+maxval = Math.max(...columnarray);
+minval = Math.min(...columnarray);
 
-  n = max-min;
-  
-  $('#' + tableid + ' tr td:nth-child(' + (colindex + 1) + ')').each(function() {
+min = 0;
+if (minval > 0) {
+max = maxval;
+} else if (maxval < 0) {
+max = Math.abs(minval);
+} else {
+max = Math.max(Math.abs(maxval), Math.abs(minval));
+}
 
-    var val = parseFloat($(this).text());    
-    var xr, xg, xb, yr, yg, yb;
+n = max-min;
 
-    // Define the min color, which is white
-    xr = 255; // Red value
-    xg = 255; // Green value
-    xb = 255; // Blue value
+$('#' + tableid + ' tr td:nth-child(' + (colindex + 1) + ')').each(function() {
 
-    // Define max color, depending on sign of val
-    if (val >= 0) {
-        
-      // Green if val > 0, #2ca25f
-      yr = 44; // Red value
-      yg = 162; // Green value
-      yb = 95; // Blue value
+var val = parseFloat($(this).text());    
+var xr, xg, xb, yr, yg, yb;
 
-    } else {
+// Define the min color, which is white
+xr = 255; // Red value
+xg = 255; // Green value
+xb = 255; // Blue value
 
-      // Red if val < 0, #a12b2b
-      yr = 161; // Red value
-      yg = 43; // Green value
-      yb = 43; // Blue value
-    
-      val = Math.abs(val);
+// Define max color, depending on sign of val
+if (val >= 0) {
 
-    }
+// Green if val > 0, #2ca25f
+yr = 44; // Red value
+yg = 162; // Green value
+yb = 95; // Blue value
 
-    // Find value's position relative to range
-    var pos = ((val - min) / (n));
-    
-    // Generate RGB code
-    red = parseInt((xr + (( pos * (yr - xr)))).toFixed(0));
-    green = parseInt((xg + (( pos * (yg - xg)))).toFixed(0));
-    blue = parseInt((xb + (( pos * (yb - xb)))).toFixed(0));
-    
-    clr = 'rgb('+red+','+green+','+blue+')';
-  
-    // Apply to cell
-    
-    $(this).css('background-color', clr);
-  
-  })
+} else {
+
+// Red if val < 0, #a12b2b
+yr = 161; // Red value
+yg = 43; // Green value
+yb = 43; // Blue value
+
+val = Math.abs(val);
+
+}
+
+// Find value's position relative to range
+var pos = ((val - min) / (n));
+
+// Generate RGB code
+red = parseInt((xr + (( pos * (yr - xr)))).toFixed(0));
+green = parseInt((xg + (( pos * (yg - xg)))).toFixed(0));
+blue = parseInt((xb + (( pos * (yb - xb)))).toFixed(0));
+
+clr = 'rgb('+red+','+green+','+blue+')';
+
+// Apply to cell
+
+$(this).css('background-color', clr);
+
+})
 }
 "
 
@@ -199,14 +199,14 @@ shinyServer(function(input, output, session) {
   ##################
   # File Uploaded
   observeEvent(input$csvfile, {
-      inFile <- input$csvfile
-
-      if (is.null(inFile))
-        return(NULL)
-
-      datadf = read.csv(inFile$datapath)
-      vals$datadf <- datadf
-      vals$originaldf <- datadf
+    inFile <- input$csvfile
+    
+    if (is.null(inFile))
+      return(NULL)
+    
+    datadf = read.csv(inFile$datapath)
+    vals$datadf <- datadf
+    vals$originaldf <- datadf
   })
   
   # Update metric dive Y column indicator on Y change
@@ -218,7 +218,7 @@ shinyServer(function(input, output, session) {
   observeEvent(input$addValueFilter, {
     
     if(vals$valueFilterCount == 0){
-
+      
       insertUI(
         selector="#valueFilters-div",
         where="afterBegin",
@@ -292,7 +292,7 @@ shinyServer(function(input, output, session) {
           class="dateFilter", style="display:inline-block"
         )
       )
-    
+      
     }
     
     vals$dateFilterCount <- vals$dateFilterCount + 1
@@ -333,7 +333,7 @@ shinyServer(function(input, output, session) {
         filterMin <- as.numeric(filterMin)
         filterMax <- as.numeric(filterMax)
         df[, filterCol] <- as.numeric(df[, filterCol])
-
+        
         if(is.na(filterMax)) filterMax <- Inf
         if(is.na(filterMin)) filterMin <- -Inf
         
@@ -438,6 +438,9 @@ shinyServer(function(input, output, session) {
     # Create vector of metric columns
     correlCols = unique(names(datadf)[!names(datadf) %in% ignoreCols])
     
+    # Create vector of multi-linear columns
+    multiCols = input$multiCols
+    
     # Update Metric Dive Dropdown
     updateSelectInput(session, "xCol", choices=correlCols)
     
@@ -477,14 +480,14 @@ shinyServer(function(input, output, session) {
     summaryDF[nrow(summaryDF) + 1, "Metric"] <- "Multilinear"
     
     formstring <- paste0("as.numeric(", yColumn, ") ~ ")
-    for (col in correlCols){
-      if(col == correlCols[length(correlCols)]) {
+    for (col in multiCols){
+      if(col == multiCols[length(multiCols)]) {
         formstring <- paste0(formstring, " as.numeric(", col, ")")
       } else {
         formstring <- paste0(formstring, " as.numeric(", col, ") +")
       }
     }
-
+    
     tryCatch({
       form <- as.formula(formstring)
       fit <- lm(form, datadf)
@@ -492,7 +495,7 @@ shinyServer(function(input, output, session) {
       summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
       summaryDF[nrow(summaryDF), "DoF"] <- fit$df
     }, error = function(e) {NULL})
-
+    
     output$summaryTable <- renderTable({
       summaryDF
     })
@@ -520,8 +523,8 @@ shinyServer(function(input, output, session) {
         if(exists("fit")) { rm("fit") }
         
         formstring <- paste0("as.numeric(", yColumn, ") ~ ")
-        for (col in correlCols){
-          if(col == correlCols[length(correlCols)]) {
+        for (col in multiCols){
+          if(col == multiCols[length(multiCols)]) {
             formstring <- paste0(formstring, " as.numeric(", col, ")")
           } else {
             formstring <- paste0(formstring, " as.numeric(", col, ") +")
@@ -574,7 +577,7 @@ shinyServer(function(input, output, session) {
   
   # Page Filter
   observeEvent(input$metricDiveFilterDate, {
-  
+    
     if(input$pageFilterCheck){
       
       df <- vals$originalmetricdivedf
@@ -588,11 +591,11 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$pageFilterCheck, {
-   
+    
     if(!input$pageFilterCheck) {
       vals$metricdivedf <- vals$originalmetricdivedf
     }
-     
+    
   })
   
   observeEvent(input$pageBack, {
@@ -620,7 +623,7 @@ shinyServer(function(input, output, session) {
   # Upon selection of metric in Metric Dive tab
   observeEvent({
     c(input$xCol,input$run,input$applyFilters,input$filterClear)
-    }, {
+  }, {
     if(input$xCol != ""){
       
       # Process Data
@@ -673,7 +676,7 @@ shinyServer(function(input, output, session) {
             })
             x
           })
-
+          
           df <- do.call("rbind", aggs)
           
           # Create performance DF
@@ -823,7 +826,7 @@ shinyServer(function(input, output, session) {
     xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF[,input$xCol], na.rm = TRUE), sd(xyDF[,input$xCol], na.rm = TRUE))
     xNorm <- replace(xNorm, is.infinite(xNorm), NA)
     sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
-  
+    
     plot_ly(data = sortedDF, x = ~x, y = ~xNorm)
     
   })
@@ -846,7 +849,7 @@ shinyServer(function(input, output, session) {
   
   # Metric Turnover
   output$metricTurnover <- renderPlotly({
-
+    
     if(input$dateCol != "") {
       df <- vals$originalmetricdivedf
       metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
@@ -859,7 +862,7 @@ shinyServer(function(input, output, session) {
       stdDF <- stdDF[order(stdDF$date), ]
       plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
     }
-
+    
   })
   
   # ANOVA
@@ -875,7 +878,7 @@ shinyServer(function(input, output, session) {
   #######################
   output$dataPreview <- renderTable({
     
-    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols")) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols")) {
       updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
     }
     

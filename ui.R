@@ -53,6 +53,7 @@ shinyUI(navbarPage(
               ),
               selectInput("categoryCol", "Select Category column (optional)", choices=list()),
               selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list(), multiple = TRUE),
+              selectInput("multiCols", "Select Columns to be included in the multilinear (optional)", choices=list(), multiple = TRUE),
               tags$hr(),
               actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
               downloadButton('downloadData', 'Download Customized Data')),
