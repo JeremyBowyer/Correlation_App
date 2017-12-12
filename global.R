@@ -11,3 +11,7 @@ transformationList = list("Difference" = "diff",
                           "Binary (String)" = "binarystring",
                           "Binary (Value)" = "binaryvalue",
                           "Linear Residual" = "residual")
+
+filterList = list("Value Filter" = "valueFilter",
+                  "Percentile Filter" = "percentileFilter",
+                  "Date Filter" = "dateFilter")

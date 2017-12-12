@@ -15,6 +15,7 @@ options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 
 source("global.R", local=TRUE)
+source("filters.R", local=TRUE)
 source("transformations.R", local=TRUE)
 source("offsets.R", local=TRUE)
 
@@ -214,173 +215,20 @@ shinyServer(function(input, output, session) {
     paste0("Current Y column: ", input$yCol)
   })
   
+  
+  ##################
+  # Filter Section #
+  ##################
   # Add filter Buttons
-  observeEvent(input$addValueFilter, {
-    
-    if(vals$valueFilterCount == 0){
-      
-      insertUI(
-        selector="#valueFilters-div",
-        where="afterBegin",
-        ui = h3("Value Filters", class="valueFilter")
-      )
-      
-    }
-    
-    vals$valueFilterCount <- vals$valueFilterCount + 1
-    
-    insertUI(
-      selector="#valueFilters",
-      where="afterBegin",
-      ui = tags$div(selectInput(paste0("valueFilter",vals$valueFilterCount), paste0("Filter ",vals$valueFilterCount), vals$getCols()),
-                    tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Min"), "Min"), style="display:inline-block"),
-                    tags$div(textInput(paste0("valueFilter",vals$valueFilterCount, "Max"), "Max"), style="display:inline-block"),
-                    tags$div(tags$hr()), class="valueFilter")
-    )
-    
-  })
-  
-  # Percentile Filter
-  observeEvent(input$addPercentileFilter, {
-    
-    if(vals$percentileFilterCount == 0){
-      
-      insertUI(
-        selector="#percentileFilters-div",
-        where="afterBegin",
-        ui = h3("Percentile Filters (example: 0.05 for 5th percentile)", class="percentileFilter")
-      )
-      
-    }
-    
-    vals$percentileFilterCount <- vals$percentileFilterCount + 1
-    
-    insertUI(
-      selector="#percentileFilters",
-      where="afterBegin",
-      ui = tags$div(selectInput(paste0("percentileFilter",vals$percentileFilterCount), paste0("Filter ",vals$percentileFilterCount), vals$getCols()),
-                    tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Min"), "Min"), style="display:inline-block"),
-                    tags$div(textInput(paste0("percentileFilter",vals$percentileFilterCount, "Max"), "Max"), style="display:inline-block"),
-                    tags$div(tags$hr()), class="percentileFilter")
-    )
-    
-  })
-  
-  # Date Filter
-  observeEvent(input$addDateFilter, {
-    
-    if(vals$dateFilterCount == 0){
-      
-      insertUI(
-        selector="#dateFilters-div",
-        where="afterBegin",
-        ui = tags$br(class = "dateFilter")
-      )
-      
-      insertUI(
-        selector="#dateFilters-div",
-        where="afterBegin",
-        ui = tags$br(class = "dateFilter")
-      )
-      
-      insertUI(
-        selector="#dateFilters-div",
-        where="afterBegin",
-        ui =  tags$div(
-          h3("Date Filters", class="dateFilter"),
-          a("Example Formats", href="http://www.statmethods.net/input/dates.html", target="_blank"),
-          class="dateFilter", style="display:inline-block"
-        )
-      )
-      
-    }
-    
-    vals$dateFilterCount <- vals$dateFilterCount + 1
-    
-    insertUI(
-      selector="#dateFilters",
-      where="afterBegin",
-      ui = tags$div(selectInput(paste0("dateFilter",vals$dateFilterCount), paste0("Filter ",vals$dateFilterCount), vals$getCols()),
-                    tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Min"), "Min"), style="display:inline-block"),
-                    tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Max"), "Max"), style="display:inline-block"),
-                    tags$div(textInput(paste0("dateFilter",vals$dateFilterCount, "Format"), "Format dates are in (see above for example formats).", "%m/%d/%Y"), style="display:inline-block"),
-                    tags$div(tags$hr(), class="dateFilter"), class="dateFilter")
-    )
-    
-  })
-  
+  observeAddFilter(input, output, session, vals)
   # Clear Filters Button
-  observeEvent(input$filterClear, {
-    removeUI(".valueFilter", multiple = TRUE)
-    removeUI(".percentileFilter", multiple = TRUE)
-    removeUI(".dateFilter", multiple = TRUE)
-    vals$valueFilterCount <- 0
-    vals$percentileFilterCount <- 0
-    vals$dateFilterCount <- 0
-    vals$datadf <- vals$originaldf
-  })
-  
+  observeApplyFilters(input, output, session, vals)
   # Apply Filters Button
-  observeEvent(input$applyFilters, {
-    df <- vals$originaldf
-    # Value Filters
-    if(vals$valueFilterCount > 0) {
-      for(filter in 1:vals$valueFilterCount){
-        filterCol <- input[[paste0("valueFilter",filter)]]
-        filterMin <- input[[paste0("valueFilter",filter, "Min")]]
-        filterMax <- input[[paste0("valueFilter",filter, "Max")]]
-        
-        filterMin <- as.numeric(filterMin)
-        filterMax <- as.numeric(filterMax)
-        df[, filterCol] <- as.numeric(df[, filterCol])
-        
-        if(is.na(filterMax)) filterMax <- Inf
-        if(is.na(filterMin)) filterMin <- -Inf
-        
-        df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
-      }
-    }
-    
-    # Percentile Filters
-    if(vals$percentileFilterCount > 0) {
-      for(filter in 1:vals$percentileFilterCount){
-        filterCol <- input[[paste0("percentileFilter",filter)]]
-        filterMin <- input[[paste0("percentileFilter",filter, "Min")]]
-        filterMax <- input[[paste0("percentileFilter",filter, "Max")]]
-        
-        df[, filterCol] <- as.numeric(df[, filterCol])
-        
-        if(filterMax == "") filterMax <- Inf else filterMax <- quantile(df[, filterCol], as.numeric(filterMax), na.rm = TRUE)
-        if(filterMin == "") filterMin <- Inf else filterMin <- quantile(df[, filterCol], as.numeric(filterMin), na.rm = TRUE)
-        
-        df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
-      }
-    }
-    
-    # Date Filters
-    if(vals$dateFilterCount > 0) {
-      for(filter in 1:vals$dateFilterCount){
-        filterCol <- input[[paste0("dateFilter",filter)]]
-        filterMin <- input[[paste0("dateFilter",filter, "Min")]]
-        filterMax <- input[[paste0("dateFilter",filter, "Max")]]
-        filterDateFormat <- input[[paste0("dateFilter",filter,"Format")]]
-        
-        filterMin <- as.Date(filterMin, format= filterDateFormat)
-        filterMax <- as.Date(filterMax, format= filterDateFormat)
-        
-        if(is.na(filterMax)) filterMax <- Inf
-        if(is.na(filterMin)) filterMin <- -Inf
-        
-        df[, filterCol] <- as.Date(as.character(df[, filterCol]), format= filterDateFormat)
-        df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
-        df[, filterCol] <- as.character(df[, filterCol])
-      }
-    }
-    
-    
-    vals$datadf <- df
-  })
+  observeClearFilters(input, output, session, vals)
   
+  ##########################
+  # Transformation Section #
+  ##########################
   # Add Transformation Button
   observeAddTransformation(input, output, session, vals)
   # Create Transformations Button
@@ -388,6 +236,9 @@ shinyServer(function(input, output, session) {
   # Clear Transformations Button
   observeClearTransformations(input, output, session, vals)
   
+  ##################
+  # Offset Section #
+  ##################
   # Add Offset Button
   observeAddOffset(input, output, session, vals)
   # Create Offsets Button

@@ -58,27 +58,29 @@ shinyUI(navbarPage(
               actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
               downloadButton('downloadData', 'Download Customized Data')),
             tabPanel("Filters",
-                     tags$p("Warning: Filtering by one column will be applied to entire dataset, and will affect all subsequent analysis, including Metric Dive tab."),
                      tags$div(
-                       actionLink("addValueFilter", "Add Value Filter"),
-                       tags$div(id="valueFilters"),
-                       id="valueFilters-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-                     tags$div(
-                       actionLink("addPercentileFilter", "Add Percentile Filter"),
-                       tags$div(id="percentileFilters"),
-                       id="percentileFilters-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-                     tags$div(
-                       actionLink("addDateFilter", "Add Date Filter"),
-                       tags$div(id="dateFilters"),
-                       id="dateFilters-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-                     tags$br(),
-                     conditionalPanel(
-                       condition = "output.filtersCheck",
-                       actionButton("applyFilters", "Apply Filters", icon("filter"), style="padding: 5px 10px 5px 10px;"),
-                       tags$br(),
-                       actionLink("filterClear", "Clear All Filters and Transformations", style="color: #f12828;"),
-                       tags$hr())
+                       h3("Filters"),
+                       tags$p("Warning: Filtering by one column will be applied to entire dataset, and will affect all subsequent analysis, including Metric Dive tab."),
+                       conditionalPanel(
+                         condition = "output.filtersCheck",
+                         actionButton("applyFilters", "Apply Filters", icon("filter"), style="padding: 5px 10px 5px 10px;"),
+                         tags$br(),
+                         actionLink("filterClear", "Clear All Filters and Transformations", style="color: #f12828;"),
+                         tags$hr()
+                       ),
+                       tags$div(
+                         selectInput(
+                           "filterSelected",
+                           label = NULL,
+                           width = "275px",
+                           choices = filterList),
+                         style= "display:inline-block; vertical-align: top;"
+                       ), 
+                       tags$div(actionButton("addFilter", "Add Filter", style="padding:4px;font-size: 75%;"),style="display:inline-block; vertical-align: top;"),
+                       tags$div(id="filters"),
+                       id="filter-container", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"
                      ),
+                     tags$hr()),
             tabPanel("Metric Transformation",
                      tags$div(
                        h3("Metric Transformations"),
@@ -96,7 +98,7 @@ shinyUI(navbarPage(
                          choices = transformationList),
                          style= "display:inline-block; vertical-align: top;"
                       ), 
-                     tags$div(actionButton("transformbutton", "Add Transformation", style="padding:4px;font-size: 75%;"),style="display:inline-block; vertical-align: top;"),
+                     tags$div(actionButton("addTransformation", "Add Transformation", style="padding:4px;font-size: 75%;"),style="display:inline-block; vertical-align: top;"),
                      tags$div(id="transformations"),
                      id="transformation-container", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
                      tags$hr()),

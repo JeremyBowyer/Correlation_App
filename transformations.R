@@ -1,6 +1,6 @@
 observeAddTransformation <- function(input, output, session, vals) {
   
-  observeEvent(input$transformbutton, {
+  observeEvent(input$addTransformation, {
     transformation <- input$transformationselected
     transformationName <- names(transformationList[transformationList==transformation])
     vals$transformationCount <- vals$transformationCount + 1
