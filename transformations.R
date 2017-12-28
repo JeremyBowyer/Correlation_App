@@ -150,13 +150,13 @@ print(cols)
               }
              },
              submedian={
-               transformFunc <- function(x, lag,y = 0) {
+               transformFunc <- function(x, lag, y = 0) {
                  n <- as.numeric(x)
                  m <- numeric()
                  
                  for (i in seq_along(n)) {
                    if ((i - lag) > 0) {
-                     m[length(m)+1] <- n[i] - median(n[(i - lag):(i)])
+                     m[length(m)+1] <- n[i] - median(n[(i - lag):(i)], na.rm = TRUE)
                    } else {
                      m[length(m)+1] <- NA
                    }
@@ -167,12 +167,18 @@ print(cols)
                }
              },
              subhistmedian={
-               transformFunc <- function(x, lag,y = 0) {
+               transformFunc <- function(x, lag, y = 0) {
                  n <- as.numeric(x)
                  m <- numeric()
                  
                  for (i in seq_along(n)) {
-                   m[length(m)+1] <- n[i] - median(n[1:i], na.rm = TRUE)
+                   if (i == 1){
+                     m[length(m)+1] <- NA
+                   }
+                   else {
+                     m[length(m)+1] <- n[i] - median(n[1:i], na.rm = TRUE)
+                   }
+                   
                  }
                  
                  return( m )
@@ -186,7 +192,7 @@ print(cols)
                }
              },
              perchg={
-               transformFunc <- function(x, lag,y = 0) { return( as.numeric(Delt(as.numeric(x), k = lag)) ) }
+               transformFunc <- function(x, lag,y = 0) { return( (as.numeric(Delt(as.numeric(x), k = lag)))) }
              },
              perchgmedian={
                transformFunc <- function(x, lag,y = 0) {

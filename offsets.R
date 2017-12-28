@@ -66,7 +66,7 @@ observeApplyOffsets <- function(input, output, session, vals) {
           if(length(names(df)[names(df) == offsetName]) > 0) {
             offsetName = paste0(offsetName, length(names(df)[names(df) == offsetName]))
           }
-          df[, paste0(col, offsetName)] <- offsetFunc(df[, col], lag)
+          df[,offsetName] <- offsetFunc(df[, col], lag)
         }
         
       } else {
