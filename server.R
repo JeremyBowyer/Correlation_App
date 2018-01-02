@@ -44,10 +44,10 @@ shinyServer(function(input, output, session) {
   ###########
   # Methods #
   ###########
-  vals$getCols <- reactive({
+  vals$getCols <- function(){
     df = vals$datadf
     return(names(df))
-  })
+  }
   
   ###########################
   # Option Panel Conditions #
@@ -87,10 +87,10 @@ shinyServer(function(input, output, session) {
   })
   outputOptions(output, 'validX', suspendWhenHidden=FALSE)
   
-  output$pagefilter <- reactive({
+  output$pageFilterCheck <- reactive({
     return(input$pageFilterCheck)
   })
-  outputOptions(output, 'pagefilter', suspendWhenHidden=FALSE)
+  outputOptions(output, 'pageFilterCheck', suspendWhenHidden=FALSE)
   
   output$dateColCheck <- reactive({
     return(input$dateCol != "")
@@ -106,6 +106,11 @@ shinyServer(function(input, output, session) {
     return(input$dateCol != "")
   })
   outputOptions(output, 'dateColCheck', suspendWhenHidden=FALSE)
+  
+  output$pointFilterCheck <- reactive({
+    return(input$pointFilterCheck)
+  })
+  outputOptions(output,'pointFilterCheck', suspendWhenHidden=FALSE)
   
   ##################
   # Event Handlers #
@@ -210,7 +215,7 @@ shinyServer(function(input, output, session) {
     ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table
     summaryDF <- data.frame(Metric = character(),
-                            'Turnover (max 0.57)' = character(),
+                            'Rank Volatility (max 0.57)' = character(),
                             Correlation = numeric(),
                             DoF = integer(),
                             check.names = FALSE)
@@ -219,14 +224,14 @@ shinyServer(function(input, output, session) {
       if(exists("fit")) { rm("fit") }
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
       
-      # Turnover
+      # Rank Volatility
       tryCatch({
         metricDF <- datadf[order(datadf[,input$dateCol]) ,c(input$dateCol, input$categoryCol, col)]
         wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = col)[, -1]
         rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
         diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
         stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-        summaryDF[nrow(summaryDF), "Turnover (max 0.57)"] <- round(mean(stds, na.rm = TRUE), 2)
+        summaryDF[nrow(summaryDF), "Rank Volatility (max 0.57)"] <- round(mean(stds, na.rm = TRUE), 2)
       }, error = function(e) {NULL})
       
       # Correlation and DoF
@@ -261,7 +266,7 @@ shinyServer(function(input, output, session) {
     
     output$summaryTable <- renderTable({
       summaryDF
-    })
+    }, hover = TRUE, bordered = TRUE)
     
     ## By Date ##
     if(input$dateCol != "") {
@@ -317,7 +322,7 @@ shinyServer(function(input, output, session) {
       
       output$dateCorrelations <- renderTable({
         dateCorrelations
-      })
+      }, hover = TRUE, bordered = TRUE)
     }
     
     updateTabsetPanel(session, "mainTabset", selected="correlations")
@@ -356,6 +361,14 @@ shinyServer(function(input, output, session) {
   observeEvent(input$pageFilterCheck, {
     
     if(!input$pageFilterCheck) {
+      vals$metricdivedf <- vals$originalmetricdivedf
+    }
+    
+  })
+  
+  observeEvent(input$pointFilterCheck, {
+    
+    if(!input$pointFilterCheck) {
       vals$metricdivedf <- vals$originalmetricdivedf
     }
     
@@ -610,8 +623,8 @@ shinyServer(function(input, output, session) {
     
   })
   
-  # Metric Turnover
-  output$metricTurnover <- renderPlotly({
+  # Metric Rank Volatility
+  output$metricRankVolatility <- renderPlotly({
     
     if(input$dateCol != "") {
       df <- vals$originalmetricdivedf
@@ -620,7 +633,7 @@ shinyServer(function(input, output, session) {
       rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
       diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
       stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-      dates <- as.Date(unique(metricDF[,"Date"]), format = vals$dateFormat)
+      dates <- as.Date(unique(metricDF[,"Date"]))
       stdDF <- data.frame(date = dates, std = stds)
       stdDF <- stdDF[order(stdDF$date), ]
       plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
@@ -647,7 +660,7 @@ shinyServer(function(input, output, session) {
     
     return(vals$datadf)
     
-  })
+  }, hover = TRUE, bordered = TRUE)
   
   #####################################
   # JavaScript Conditional Formatting #

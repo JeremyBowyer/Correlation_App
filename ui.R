@@ -104,16 +104,22 @@ shinyUI(navbarPage(
                      tags$hr()),
             tabPanel("Offsets",
                      tags$div(
-                       actionLink("addOffset", "Add Offset"),
+                       h3("Offsets"),
+                       conditionalPanel(
+                         condition = "output.offsetsCheck",
+                         actionButton("applyOffsets", "Create Offsets", icon("arrows-v"), style="padding: 5px 10px 5px 10px;"),
+                         tags$br(),
+                         actionLink("offsetClear", "Clear All Offsets", style="color: #f12828;")
+                       ),
+                       actionButton("addOffset", "Add Offset", style="padding:4px;font-size: 75%;"),
+                       tags$br(),
+                       conditionalPanel(
+                         condition = "output.offsetsCheck",
+                         tags$hr()
+                       ),
                        tags$div(id="offsets"),
                        id="offsets-div", style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"),
-                     tags$br(),
-                     conditionalPanel(
-                       condition = "output.offsetsCheck",
-                       actionButton("applyOffsets", "Create Offsets", icon("arrows-v"), style="padding: 5px 10px 5px 10px;"),
-                       tags$br(),
-                       actionLink("offsetClear", "Clear All Offsets", style="color: #f12828;"),
-                       tags$hr()))
+                     tags$br())
                      ),
           tags$hr(),
           tags$head(
@@ -150,25 +156,42 @@ shinyUI(navbarPage(
       tags$div(id = "metricAlertDiv"),
       conditionalPanel(
         condition = "output.validX",
+        conditionalPanel(
+          condition = "output.dateColCheck",
+          tags$div(
+            tags$div(checkboxInput("pageFilterCheck", label = "Date Pages", value = FALSE), style = "display:inline-block"),
+            tags$div(checkboxInput("pointFilterCheck", label = "Filter Using Scatter", value = FALSE), style = "display:inline-block")
+          )
+        ),
+        conditionalPanel(
+          condition = "output.pageFilterCheck",
+          div(div(actionButton("pageBack", label="", icon("arrow-left")), style = "display:inline-block"),
+              div(selectInput("metricDiveFilterDate", label="", choice = list()), style = "display:inline-block; vertical-align:middle"),
+              div(actionButton("pageForward", label="", icon("arrow-right")), style = "display:inline-block"))
+        ),
         tabsetPanel(
           tabPanel("Metric Plots",
             tabsetPanel(
               tabPanel("Scatter",
-                       #actionButton("clearPoints", "Clear Selection Filter", value = FALSE),
-                       actionButton("keepPoints", "Keep Selection", value = FALSE),
-                       actionButton("removePoints", "Remove Selection", value = FALSE),
-                       plotlyOutput("metricScatter")
+                       plotlyOutput("metricScatter"),
+                       tags$br(),
+                       tags$br(),
+                       conditionalPanel(
+                         condition = "output.pointFilterCheck",
+                         actionButton("keepPoints", "Keep Selection", value = FALSE),
+                         actionButton("removePoints", "Remove Selection", value = FALSE)
+                       )
               ),
               tabPanel("Histogram", plotlyOutput("metricHist")),
               tabPanel("QQ - Normal Dist", plotlyOutput("metricQQNorm")),
               tabPanel("QQ - Y", plotlyOutput("metricQQy")),
-              tabPanel("Turnover", conditionalPanel(
+              tabPanel("Rank Volatility", conditionalPanel(
                 condition = "output.dateColCheck && output.catColCheck",
-                h3("Standard Deviation of Change in Rank Percentile"), plotlyOutput("metricTurnover")
+                h3("Standard Deviation of Change in Percentile"), plotlyOutput("metricRankVolatility")
                 ),
                 conditionalPanel(
                   condition = "!output.dateColCheck || !output.catColCheck",
-                  h3("Select a date column and category column to see turnover over time.")
+                  h3("Select a date column and category column to see rank volatility over time.")
                 )
               )
             )),
@@ -178,16 +201,6 @@ shinyUI(navbarPage(
               tabPanel("Performance", tableOutput("datePerformance"))
             )
           )
-      ),
-      conditionalPanel(
-        condition = "output.dateColCheck",
-        checkboxInput("pageFilterCheck", label = "Date Pages", value = FALSE)
-      ),
-      conditionalPanel(
-        condition = "output.pagefilter",
-        div(div(actionButton("pageBack", label="", icon("arrow-left")), style = "display:inline-block"),
-            div(selectInput("metricDiveFilterDate", label="", choice = list()), style = "display:inline-block; vertical-align:middle"),
-            div(actionButton("pageForward", label="", icon("arrow-right")), style = "display:inline-block"))
       )
       )
     )

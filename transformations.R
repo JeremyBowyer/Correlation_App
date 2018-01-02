@@ -115,8 +115,6 @@ observeCreateTransformations <- function(input, output, session, vals) {
       transformBinaryValue <- input[[paste0("transformBinaryValue", cnt)]]
       regressiony <- input[[paste0("transformationY", cnt)]]
       
-      
-print(cols)      
       # Assign transformation function based on type selected
       switch(type,
              residual = {
