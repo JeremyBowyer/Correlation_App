@@ -417,7 +417,7 @@ shinyServer(function(input, output, session) {
         metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
         updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[1])
       }
-      
+     
       # Check for valid data, otherwise show error notification to user
       if(nrow(df) == 0) {
         # showNotification("No Data. Try selecting another column, or removing some filters on the Options page.",
@@ -439,12 +439,32 @@ shinyServer(function(input, output, session) {
           
           df <- vals$metricdivedf[,c(input$yCol, input$xCol, input$dateCol)]
           df <- df[complete.cases(df), ]
-          df[, input$dateCol] <- as.Date(df[, input$dateCol], format = vals$dateFormat)
+
+          # df[, input$dateCol] <- as.Date(df[, input$dateCol], format = vals$dateFormat)
+
+
           
           # Create quintiles by date
           df[,"quints"] <- NA
           
-          aggs <- by(df, INDICES = list(df[, input$dateCol]), function(x) {
+          # df <- aggregate(df,list(df[, input$dateCol]),function(x) {
+          #  tryCatch({
+          #     df[,"quints"] <-  quint(as.numeric(x[,input$xCol]))
+          #    }, error = function(e) {
+          #     df[,"quints"] <-  rep(NA, nrow(x[,input$xCol]))
+          #    })
+          #     df
+          #    
+          #  }) 
+
+          # allPerformancetemporary[1,"All"] <- aggregate(allPerformancetemporary[, "All"], allPerformancetemporary[,"Quintile"] =="Q1 (Highest)" | allPerformancetemporary[,"Quintile"] =="Q2",mean(x, na.rm = TRUE))
+          # allPerformancetemporary[2,"All"] <- mean(allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q1 (Highest)" | allPerformancetemporary[,"Quintile"] =="Q2","All"],na.rm=TRUE)
+          # allPerformancetemporary[3,"All"] <- allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q3","All"]
+          # allPerformancetemporary[4,"All"] <- mean(allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q4" | allPerformancetemporary[,"Quintile"] =="Q5 (Lowest)","All"],na.rm=TRUE)
+          # allPerformancetemporary[5,"All"] <- mean(allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q4" | allPerformancetemporary[,"Quintile"] =="Q5 (Lowest)","All"],na.rm=TRUE)
+   
+          
+          aggs <- by(df, INDICES = df[, input$dateCol], function(x) {
             tryCatch({
               x[,"quints"] <- quint(as.numeric(x[,input$xCol]))
             }, error = function(e) {
@@ -453,33 +473,42 @@ shinyServer(function(input, output, session) {
             x
           })
           
-          df <- do.call("rbind", aggs)
-          
+
+
+           dfmean <- do.call("rbind", aggs)
+
+
           # Create performance DF
           allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
-          
-          # Populate performance by quintile for All dates
-          allPerformance[,"All"] <- aggregate(df[, input$yCol], by = list(df$quints), function(x) mean(x, na.rm = TRUE))["x"]
+          allPerformance[,"All"] <- aggregate(df[, input$yCol], by = list(dfmean$quints), function(x) mean(x, na.rm = TRUE))["x"]
+          performanceDifferential <- ((allPerformance[1, "All"] * 2 + allPerformance[2, "All"]) / 3) - ((allPerformance[5, "All"] * 2 + allPerformance[4, "All"]) / 3)
+          allPerformance[6, "All"] <- performanceDifferential
           
           # Calculate performance by quintile for each date, populate performance df
           if(input$dateCol != "") {
             for(date in unique(as.character(df[, input$dateCol]))) {
               datedf <- df[df[,input$dateCol] == date, ]
+
               allPerformance[, date] <- NA
-              
+               
               tryCatch({
-                datedf$quints <- quint(datedf[,input$xCol])
+                datedf[, "quints"] <- quint(datedf[,input$xCol])
                 aggs <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))
+
                 for(row in 1:nrow(aggs)){
                   allPerformance[aggs[row, 1], date] <- aggs[row, "x"]
                 }
+
               }, error = function(e) {
-                allPerformance[, date] <- rep(NA, 5)
+                allPerformance[, date] <- rep(NA, nrow(datedf))
               })
-              
+
+              performanceDifferential <- ((aggs[1, "x"] * 2 + aggs[2, "x"]) / 3) - ((aggs[5, "x"] * 2 + aggs[4, "x"]) / 3)
+              allPerformance[6, date] <- performanceDifferential
             }
           }
           
+          allPerformance[6, "Quintile"] <- "Performance Differential"
           return(allPerformance)
           
         })

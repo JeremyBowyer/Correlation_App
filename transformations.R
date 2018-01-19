@@ -289,6 +289,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
         } else {
           df <- df[do.call(order, df[rev(catCols)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
         }
+            
         
         groupList <- list()
         for (col in catCols){
@@ -300,7 +301,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
-          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(as.numeric(x), lag))[["x"]])
+          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(as.numeric(x), lag), simplify=FALSE)[["x"]])
         }
         
         # reorder DF back to user-selected order
