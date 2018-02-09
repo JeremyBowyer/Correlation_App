@@ -7,9 +7,9 @@
 
 library(shiny)
 library(shinythemes)
-library(XLConnect)
 library(plotly)
 library(dplyr)
+library(XLConnect)
 
 source("global.R", local=TRUE)
 

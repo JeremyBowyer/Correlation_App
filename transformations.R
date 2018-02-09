@@ -190,7 +190,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              perchg={
-               transformFunc <- function(x, lag,y = 0) { return( (as.numeric(Delt(as.numeric(x), k = lag)))) }
+               transformFunc <- function(x, lag,y = 0) { return(  as.numeric(Delt(as.numeric(x), k = lag))) }
              },
              perchgmedian={
                transformFunc <- function(x, lag,y = 0) {
@@ -264,7 +264,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
         
         # Order DF by date column, if present
         if (!is.null(dateCol) && dateCol != "") {
-          df[,dateCol] <- as.Date(df[, dateCol], format = input$dateColFormat)
+          df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = input$dateColFormat),input$dateColFormat)
           df <- df[order(df[, dateCol]), ]
         }
         
@@ -275,7 +275,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
           }
         
           
-          df[, transformName] <- transformFunc(df[,col],lag, df[,regressiony])
+          df[, transformName] <-  unlist(aggregate(df[,col], by=list(rep(1,nrow(df))), function(x) transformFunc(as.numeric(x), lag), simplify=FALSE)[["x"]])
         }
         
       } else {
@@ -283,13 +283,26 @@ observeCreateTransformations <- function(input, output, session, vals) {
         # Order by category cols then date col.
         # This step is needed to ensure unlisted aggregate data is in proper order
         # Order DF by date column, if present
+        if(length(catCols) == 1){
+        for(i in rownames(df[is.na(df[,catCols]),])){
+          if(df[i-1,catCols] == df[i+1,catCols]){df[i,catCols] <- df[i+1,catCols]}
+          else { if((max(as.numeric(row.names(df[grep(df[i+1,catCols],df[,catCols]),catCols]))) -  min(as.numeric(row.names(df[grep(df[i+1,catCols],df[,catCols]),catCols])))) > (max(as.numeric(row.names(df[grep(df[i-1,catCols],df[,catCols]),catCols]))) - min(as.numeric(row.names(df[grep(df[i+1,catCols],df[,catCols]),catCols])))))
+            {
+            df[i,catCols] <- df[i-1,catCols]
+          } else { df[i,catCols] <- df[i+1,catCols]}
+            
+            }
+        }  
+          
+        }
+        
         if (!is.null(dateCol) && dateCol != "") {
-          df[,dateCol] <- as.Date(df[, dateCol],format = input$dateColFormat)
+          df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = input$dateColFormat),input$dateColFormat)
           df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
         } else {
           df <- df[do.call(order, df[rev(catCols)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
         }
-            
+           
         
         groupList <- list()
         for (col in catCols){
@@ -300,7 +313,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
           transformName <- paste0(col, "_", transformSuffix)
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
-          }
+          } 
           df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(as.numeric(x), lag), simplify=FALSE)[["x"]])
         }
         
@@ -315,7 +328,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
     }
     vals$transformColIndex <- firstCol:ncol(df)
     if (!is.null(dateCol) && dateCol != "") {
-      df[,dateCol] <- as.character(format(df[,dateCol], input$dateColFormat))
+      df[,dateCol] <- as.character(df[,dateCol])
     }
     vals$datadf <- df
     

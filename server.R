@@ -6,11 +6,11 @@
 #
 
 library(shiny)
-library(XLConnect)
 library(plotly)
 library(dplyr)
 library(reshape2)
 library(quantmod)
+library(XLConnect)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 
@@ -284,7 +284,7 @@ shinyServer(function(input, output, session) {
         
         # single factor regressions
         for(col in correlCols) {
-          dateCorrelations[dateCorrelations$Metric == col, date] <- cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")
+          dateCorrelations[dateCorrelations$Metric == col, as.character(date)] <- cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")
         }
         
         # multi-linear regression
@@ -310,7 +310,7 @@ shinyServer(function(input, output, session) {
       
       # Fill in summary stats of date correlations
       for(col in c(correlCols,"Multilinear")) {
-        metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, unique(datadf[, input$dateCol])])
+        metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, as.character(unique(datadf[, input$dateCol]))])
         metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
         dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations)
         dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
@@ -442,27 +442,8 @@ shinyServer(function(input, output, session) {
 
           # df[, input$dateCol] <- as.Date(df[, input$dateCol], format = vals$dateFormat)
 
-
-          
           # Create quintiles by date
           df[,"quints"] <- NA
-          
-          # df <- aggregate(df,list(df[, input$dateCol]),function(x) {
-          #  tryCatch({
-          #     df[,"quints"] <-  quint(as.numeric(x[,input$xCol]))
-          #    }, error = function(e) {
-          #     df[,"quints"] <-  rep(NA, nrow(x[,input$xCol]))
-          #    })
-          #     df
-          #    
-          #  }) 
-
-          # allPerformancetemporary[1,"All"] <- aggregate(allPerformancetemporary[, "All"], allPerformancetemporary[,"Quintile"] =="Q1 (Highest)" | allPerformancetemporary[,"Quintile"] =="Q2",mean(x, na.rm = TRUE))
-          # allPerformancetemporary[2,"All"] <- mean(allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q1 (Highest)" | allPerformancetemporary[,"Quintile"] =="Q2","All"],na.rm=TRUE)
-          # allPerformancetemporary[3,"All"] <- allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q3","All"]
-          # allPerformancetemporary[4,"All"] <- mean(allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q4" | allPerformancetemporary[,"Quintile"] =="Q5 (Lowest)","All"],na.rm=TRUE)
-          # allPerformancetemporary[5,"All"] <- mean(allPerformancetemporary[allPerformancetemporary[,"Quintile"] =="Q4" | allPerformancetemporary[,"Quintile"] =="Q5 (Lowest)","All"],na.rm=TRUE)
-   
           
           aggs <- by(df, INDICES = df[, input$dateCol], function(x) {
             tryCatch({
@@ -472,11 +453,8 @@ shinyServer(function(input, output, session) {
             })
             x
           })
-          
 
-
-           dfmean <- do.call("rbind", aggs)
-
+          dfmean <- do.call("rbind", aggs)
 
           # Create performance DF
           allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
@@ -489,22 +467,19 @@ shinyServer(function(input, output, session) {
             for(date in unique(as.character(df[, input$dateCol]))) {
               datedf <- df[df[,input$dateCol] == date, ]
 
-              allPerformance[, date] <- NA
-               
+              allPerformance[, as.character(date)] <- NA
               tryCatch({
                 datedf[, "quints"] <- quint(datedf[,input$xCol])
                 aggs <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))
-
+                performanceDifferential <- ((aggs[1, "x"] * 2 + aggs[2, "x"]) / 3) - ((aggs[5, "x"] * 2 + aggs[4, "x"]) / 3)
                 for(row in 1:nrow(aggs)){
-                  allPerformance[aggs[row, 1], date] <- aggs[row, "x"]
+                  allPerformance[aggs[row, 1], as.character(date)] <- aggs[row, "x"]
                 }
+                allPerformance[6, as.character(date)] <- performanceDifferential
 
               }, error = function(e) {
-                allPerformance[, date] <- rep(NA, nrow(datedf))
+                allPerformance[, as.character(date)] <- rep(NA,nrow(allPerformance))
               })
-
-              performanceDifferential <- ((aggs[1, "x"] * 2 + aggs[2, "x"]) / 3) - ((aggs[5, "x"] * 2 + aggs[4, "x"]) / 3)
-              allPerformance[6, date] <- performanceDifferential
             }
           }
           
@@ -662,7 +637,7 @@ shinyServer(function(input, output, session) {
       rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
       diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
       stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-      dates <- as.Date(unique(metricDF[,"Date"]))
+      dates <- as.Date(unique(metricDF[,input$dateCol]))
       stdDF <- data.frame(date = dates, std = stds)
       stdDF <- stdDF[order(stdDF$date), ]
       plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')

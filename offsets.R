@@ -30,7 +30,7 @@ observeApplyOffsets <- function(input, output, session, vals) {
     if(!is.null(ocolIndex)){
       df <- df[, -ocolIndex]
     }
-    
+
     # variables used in creating offset column index
     firstCol <- ncol(df) + 1
     
@@ -43,6 +43,9 @@ observeApplyOffsets <- function(input, output, session, vals) {
       lag <- input[[paste0("offsetLag", cnt)]]
       offsetSuffix <- gsub(" ", ".", input[[paste0("offsetSuffix", cnt)]])
       
+      # transform date column as date
+      df[,dateCol] <- format(as.Date(as.character(df[,dateCol]),format=input$dateColFormat), input$dateColFormat)
+
       # Assign offset function based on type selcted
       switch(type,
              forward={
@@ -52,8 +55,6 @@ observeApplyOffsets <- function(input, output, session, vals) {
                offsetFunc <- function(x, lag) { return( c(x[(lag + 1):length(x)], rep(NA, lag)) ) }
              }
       )
-      
-      df[,dateCol] <- as.Date(df[, dateCol], format = vals$dateFormat)
       
       # Run offset based on whether or not category column was selected.
       if(is.null(catCols)) {
@@ -85,17 +86,18 @@ observeApplyOffsets <- function(input, output, session, vals) {
           if(length(names(df)[names(df) == offsetName]) > 0) {
             offsetName = paste0(offsetName, length(names(df)[names(df) == offsetName]))
           }
-          df[, offsetName] <- unlist(aggregate(df[,col], by=groupList, function(x) offsetFunc(x, lag))[["x"]])
+          df[, offsetName] <- unlist(aggregate(df[,col], by=groupList, function(x) offsetFunc(x, lag), simplify=FALSE)[["x"]])
         }
         
         # reorder DF back to user-selected order
         df <- df[do.call(order, df[c(catCols,dateCol)]), ]
         
       }
+      # Revert date column to character
+      df[,dateCol] <- as.character(df[,dateCol])
       
     }
     vals$offsetColIndex <- firstCol:ncol(df)
-    df[,dateCol] <- as.character(format(df[,dateCol], vals$dateFormat))
     vals$datadf <- df
   })
 }
