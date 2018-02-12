@@ -283,18 +283,6 @@ observeCreateTransformations <- function(input, output, session, vals) {
         # Order by category cols then date col.
         # This step is needed to ensure unlisted aggregate data is in proper order
         # Order DF by date column, if present
-        if(length(catCols) == 1){
-        for(i in rownames(df[is.na(df[,catCols]),])){
-          if(df[i-1,catCols] == df[i+1,catCols]){df[i,catCols] <- df[i+1,catCols]}
-          else { if((max(as.numeric(row.names(df[grep(df[i+1,catCols],df[,catCols]),catCols]))) -  min(as.numeric(row.names(df[grep(df[i+1,catCols],df[,catCols]),catCols])))) > (max(as.numeric(row.names(df[grep(df[i-1,catCols],df[,catCols]),catCols]))) - min(as.numeric(row.names(df[grep(df[i+1,catCols],df[,catCols]),catCols])))))
-            {
-            df[i,catCols] <- df[i-1,catCols]
-          } else { df[i,catCols] <- df[i+1,catCols]}
-            
-            }
-        }  
-          
-        }
         
         if (!is.null(dateCol) && dateCol != "") {
           df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = input$dateColFormat),input$dateColFormat)
@@ -331,7 +319,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
       df[,dateCol] <- as.character(df[,dateCol])
     }
     vals$datadf <- df
-    
+    vals$refreshInputs(session, input, vals)
   })
 }
 
@@ -346,5 +334,6 @@ observeClearTransformations <- function(input, output, session, vals) {
     }
     vals$transformationCount <- 0
     vals$transformColIndex <- NULL
+    vals$refreshInputs(session, input, vals)
   })
 }

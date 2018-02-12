@@ -7,3 +7,11 @@ a[data-title="Collaborate"],
 a[data-title="Produced with Plotly"]{
 	display: none;
 }
+
+.report_btn {
+    padding: 8px;
+    font-size: 20px;
+    width: 40px;
+    position: absolute;
+    right: 0;
+}

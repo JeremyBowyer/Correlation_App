@@ -5,9 +5,9 @@ account: jeremybowyer
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 202046
-bundleId: 1215501
+bundleId: 1219483
 url: https://jeremybowyer.shinyapps.io/Correlation_App/
-when: 1518196807.95099
+when: 1518454473.51305
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: allmetrics.csv|base metric 12-26-2017.csv|base metric 12-26-2017.xlsx|base metric 12-28-2017.csv|base metric 12-28-2017.xlsx|base metrics with transformations.csv|base metrics with transformations.xlsx|basemetrics.csv|Bond Yield 01.03.2017 and Total Prices - semiannual.csv|df|gooddf|goodgroupList|groupList|tempDF.csv|total prices.csv
+ignoredFiles: data files/allmetrics.csv|data files/base metric 12-26-2017.csv|data files/base metric 12-26-2017.xlsx|data files/base metric 12-28-2017.csv|data files/base metric 12-28-2017.xlsx|data files/base metrics with transformations.csv|data files/base metrics with transformations.xlsx|data files/basemetrics.csv|data files/Bond Yield 01.03.2017 and Total Prices - semiannual.csv|data files/tempDF.csv|data files/total prices.csv

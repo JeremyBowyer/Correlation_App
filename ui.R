@@ -18,12 +18,6 @@ shinyUI(navbarPage(
   theme = shinytheme("sandstone"),
   fluid = TRUE,
   id = "mainTabset",
-  tabPanel("Instructions",
-           value = "instructions",
-           tags$head(
-             tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
-           ),
-           h2("Instructions coming soon.")),
   tabPanel("Options",
     value = "options",
     sidebarLayout(
@@ -123,14 +117,18 @@ shinyUI(navbarPage(
                      ),
           tags$hr(),
           tags$head(
-            tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });'))
+            tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });')),
+            tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
           )
         )
       ),
-      mainPanel(tableOutput("dataPreview"))
+      mainPanel(h2("Instructions coming soon."))
     )
   ),
-  
+  tabPanel("Data Preview",
+         value="correlations",
+         tableOutput("dataPreview")
+  ),
   tabPanel("Metric Comparison",
         value="correlations",
         textOutput("currentY_comparison"),
@@ -169,6 +167,7 @@ shinyUI(navbarPage(
               div(selectInput("metricDiveFilterDate", label="", choice = list()), style = "display:inline-block; vertical-align:middle"),
               div(actionButton("pageForward", label="", icon("arrow-right")), style = "display:inline-block"))
         ),
+        downloadButton('downloadReport', '', class="report_btn"),
         tabsetPanel(
           tabPanel("Metric Plots",
             tabsetPanel(
@@ -201,9 +200,8 @@ shinyUI(navbarPage(
               tabPanel("Performance", tableOutput("datePerformance"))
             )
           )
-      )
+        )
       )
     )
-  )
-  
-)))
+  ))
+))

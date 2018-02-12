@@ -99,6 +99,7 @@ observeApplyOffsets <- function(input, output, session, vals) {
     }
     vals$offsetColIndex <- firstCol:ncol(df)
     vals$datadf <- df
+    vals$refreshInputs(session, input, vals)
   })
 }
 
@@ -111,5 +112,6 @@ observeClearOffsets <- function(input, output, session, vals) {
     }
     vals$offsetCount <- 0
     vals$offsetColIndex <- NULL
+    vals$refreshInputs(session, input, vals)
   })
 }

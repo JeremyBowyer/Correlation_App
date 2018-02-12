@@ -18,6 +18,7 @@ source("global.R", local=TRUE)
 source("filters.R", local=TRUE)
 source("transformations.R", local=TRUE)
 source("offsets.R", local=TRUE)
+source("performance.R",local=TRUE)
 
 # Define Functions
 source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
@@ -39,6 +40,7 @@ shinyServer(function(input, output, session) {
                          datadf = data.frame(),
                          originaldf = data.frame(),
                          metricdivedf = data.frame(),
+                         perfdf = data.frame(),
                          dateFormat = "%m/%d/%Y")
   
   ###########
@@ -47,6 +49,12 @@ shinyServer(function(input, output, session) {
   vals$getCols <- function(){
     df = vals$datadf
     return(names(df))
+  }
+  
+  vals$refreshInputs <- function(session, input, vals) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols")) {
+        updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
+    }
   }
   
   ###########################
@@ -125,6 +133,7 @@ shinyServer(function(input, output, session) {
     datadf = read.csv(inFile$datapath)
     vals$datadf <- datadf
     vals$originaldf <- datadf
+    vals$refreshInputs(session, input, vals)
   })
   
   # Update metric dive Y column indicator on Y change
@@ -211,6 +220,9 @@ shinyServer(function(input, output, session) {
     
     # Update Metric Dive Dropdown
     updateSelectInput(session, "xCol", choices=correlCols)
+    
+    # Update report columns dropdown
+    updateSelectInput(session, "reportCols", choices=correlCols)
     
     ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table
@@ -342,6 +354,41 @@ shinyServer(function(input, output, session) {
     contentType="application/xlsx" 
   )
   
+  # output$downloadReport <- downloadHandler(
+  #   filename = function(){"custom_report.xlsx"},
+  #   content = function(file) {
+  #     wb <- loadWorkbook("template.xlsx")
+  #     createSheet(wb,"data")
+  #     writeWorksheet(wb,data = vals$datadf, sheet = "data")
+  #     saveWorkbook(wb, file)
+  #   },
+  #   contentType="application/xlsx" 
+  # )
+  
+  output$downloadReport <- downloadHandler(
+    # For PDF output, change this to "report.pdf"
+    filename = "report.html",
+    content = function(file) {
+      # Copy the report file to a temporary directory before processing it, in
+      # case we don't have write permissions to the current working dir (which
+      # can happen when deployed).
+      tempReport <- file.path(tempdir(), "report.Rmd")
+      file.copy("report.Rmd", tempReport, overwrite = TRUE)
+      
+      # Set up parameters to pass to Rmd document
+      params <- list(df = vals$datadf,
+                     perf = vals$perfdf)
+      
+      # Knit the document, passing in the `params` list, and eval it in a
+      # child of the global environment (this isolates the code in the document
+      # from the code in this app).
+      rmarkdown::render(tempReport,
+                        output_file = file,
+                        params = params,
+                        envir = new.env(parent = globalenv())
+      )
+    }
+  )
   
   # Page Filter
   observeEvent(input$metricDiveFilterDate, {
@@ -433,59 +480,13 @@ shinyServer(function(input, output, session) {
         
       } else {
         removeUI(".metricAlert", multiple = TRUE)
+
+        # Create quintiles by date and more processing
+        vals$perfdf <- calculatePerformance(df,input)
         
         # Performance Output
         output$datePerformance = renderTable({
-          
-          df <- vals$metricdivedf[,c(input$yCol, input$xCol, input$dateCol)]
-          df <- df[complete.cases(df), ]
-
-          # df[, input$dateCol] <- as.Date(df[, input$dateCol], format = vals$dateFormat)
-
-          # Create quintiles by date
-          df[,"quints"] <- NA
-          
-          aggs <- by(df, INDICES = df[, input$dateCol], function(x) {
-            tryCatch({
-              x[,"quints"] <- quint(as.numeric(x[,input$xCol]))
-            }, error = function(e) {
-              x[,"quints"] <- rep(NA, nrow(x))
-            })
-            x
-          })
-
-          dfmean <- do.call("rbind", aggs)
-
-          # Create performance DF
-          allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
-          allPerformance[,"All"] <- aggregate(df[, input$yCol], by = list(dfmean$quints), function(x) mean(x, na.rm = TRUE))["x"]
-          performanceDifferential <- ((allPerformance[1, "All"] * 2 + allPerformance[2, "All"]) / 3) - ((allPerformance[5, "All"] * 2 + allPerformance[4, "All"]) / 3)
-          allPerformance[6, "All"] <- performanceDifferential
-          
-          # Calculate performance by quintile for each date, populate performance df
-          if(input$dateCol != "") {
-            for(date in unique(as.character(df[, input$dateCol]))) {
-              datedf <- df[df[,input$dateCol] == date, ]
-
-              allPerformance[, as.character(date)] <- NA
-              tryCatch({
-                datedf[, "quints"] <- quint(datedf[,input$xCol])
-                aggs <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))
-                performanceDifferential <- ((aggs[1, "x"] * 2 + aggs[2, "x"]) / 3) - ((aggs[5, "x"] * 2 + aggs[4, "x"]) / 3)
-                for(row in 1:nrow(aggs)){
-                  allPerformance[aggs[row, 1], as.character(date)] <- aggs[row, "x"]
-                }
-                allPerformance[6, as.character(date)] <- performanceDifferential
-
-              }, error = function(e) {
-                allPerformance[, as.character(date)] <- rep(NA,nrow(allPerformance))
-              })
-            }
-          }
-          
-          allPerformance[6, "Quintile"] <- "Performance Differential"
-          return(allPerformance)
-          
+          return(vals$perfdf)
         })
         
       }
@@ -518,18 +519,6 @@ shinyServer(function(input, output, session) {
       add_lines(x = xform, y = fitted(fit), fill = "red", name = "Regression Line") %>%
       layout(dragmode = "lasso")
     
-  })
-  
-  observeEvent({input$clearPoints}, {
-    # Process Data
-    df <- vals$datadf
-    df[,input$xCol] <- as.numeric(df[,input$xCol])
-    df[,input$yCol] <- as.numeric(df[,input$yCol])
-    df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
-    df <- subset(df, !is.infinite(df[,input$xCol]) & !is.infinite(df[,input$yCol]))
-    df <- subset(df, !is.nan(df[,input$xCol]) & !is.nan(df[,input$yCol]))
-    
-    vals$metricdivedf <- df  
   })
   
   observeEvent({input$keepPoints}, {
@@ -657,13 +646,7 @@ shinyServer(function(input, output, session) {
   # Data Preview Screen #
   #######################
   output$dataPreview <- renderTable({
-    
-    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols")) {
-      updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
-    }
-    
     return(vals$datadf)
-    
   }, hover = TRUE, bordered = TRUE)
   
   #####################################
