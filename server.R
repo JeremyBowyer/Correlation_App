@@ -354,17 +354,6 @@ shinyServer(function(input, output, session) {
     contentType="application/xlsx" 
   )
   
-  # output$downloadReport <- downloadHandler(
-  #   filename = function(){"custom_report.xlsx"},
-  #   content = function(file) {
-  #     wb <- loadWorkbook("template.xlsx")
-  #     createSheet(wb,"data")
-  #     writeWorksheet(wb,data = vals$datadf, sheet = "data")
-  #     saveWorkbook(wb, file)
-  #   },
-  #   contentType="application/xlsx" 
-  # )
-  
   output$downloadReport <- downloadHandler(
     # For PDF output, change this to "report.pdf"
     filename = "report.html",
