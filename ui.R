@@ -126,7 +126,7 @@ shinyUI(navbarPage(
     )
   ),
   tabPanel("Data Preview",
-         value="correlations",
+         value="dataPreview",
          tableOutput("dataPreview")
   ),
   tabPanel("Metric Comparison",

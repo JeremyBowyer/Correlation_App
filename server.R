@@ -365,7 +365,8 @@ shinyServer(function(input, output, session) {
       file.copy("report.Rmd", tempReport, overwrite = TRUE)
       
       # Set up parameters to pass to Rmd document
-      params <- list(df = vals$datadf,
+      params <- list(metric = input$xCol,
+                     df = vals$metricdivedf,
                      perf = vals$perfdf)
       
       # Knit the document, passing in the `params` list, and eval it in a
@@ -380,7 +381,7 @@ shinyServer(function(input, output, session) {
   )
   
   # Page Filter
-  observeEvent(input$metricDiveFilterDate, {
+  observeEvent({c(input$metricDiveFilterDate, input$pageFilterCheck)}, {
     
     if(input$pageFilterCheck){
       

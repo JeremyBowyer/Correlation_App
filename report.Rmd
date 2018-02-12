@@ -1,12 +1,17 @@
 ---
-title: "Dynamic report"
 output: 
   flexdashboard::flex_dashboard:
     theme: simplex
 params:
   df: NA
   perf: NA
+  metric: NA
 ---
+
+---
+title: `r params$metric`
+---
+
 
 ```{r}
 # The `params` object is available in the document.
