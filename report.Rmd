@@ -1,24 +1,260 @@
 ---
 output: 
   flexdashboard::flex_dashboard:
-    theme: simplex
+    orientation: rows
+    theme: sandstone
+    source: embed
 params:
   df: NA
   perf: NA
   metric: NA
+  yCol: NA
+  dateCol: NA
+  dateFormat: NA
 ---
 
 ---
-title: `r params$metric`
+title: `r paste0(params$metric, " ~ ", params$yCol)`
 ---
 
+<style>
+.navbar-fixed-top {
+	background-color: #3e3f3a;
+  border-color: #3e3f3a;
+}
 
-```{r}
-# The `params` object is available in the document.
-params$df
+.navbar-inverse .navbar-nav>.active>a, .navbar-inverse .navbar-nav>.active>a:hover, .navbar-inverse .navbar-nav>.active>a:focus {
+    color: #ffffff;
+    background-color: #393a35;
+}
+
+.navbar-default .navbar-nav>li>a {
+    color: #98978b;
+}
+
+.navbar-inverse .navbar-nav>li>a {
+    color: #98978b;
+}
+
+.section.sidebar {
+    top: 61px;
+    background-color: #f8f5f0;
+}
+
+.nav-tabs-custom > .nav-tabs > li.active {
+    border-top-color: rgb(138, 138, 138);
+}
+
+</style>
+
+```{r, echo=FALSE}
+# Grab parameters and store them in variables
+df <- params$df
+perf <- params$perf
+metric <- params$metric
+yCol <- params$yCol
+dateCol <- params$dateCol
+dateFormat <- params$dateFormat
 ```
 
-```{r}
-# The `params` object is available in the document.
-params$perf
+
+```{r, echo=FALSE}
+# Correlations by date, calculations
+correlSummaryDF <- data.frame(Metric = metric,
+                               "Total Periods" = integer(1),
+                               "Negative Periods" = integer(1),
+                               "Positive Periods" = integer(1),
+                               "% Negative" = numeric(1),
+                               "% Positive" = numeric(1),
+                               "Avg Correlation" = numeric(1),
+                               check.names = FALSE)
+
+correlSummaryDF <- data.frame(Statistic = NA,
+                              Value = NA)
+
+correlDF <- data.frame(Date = NA,
+                       Correlation = NA)
+
+# Fill in correlations by date
+for(date in unique(df[, dateCol])) {
+
+  dateDF <- df[df[,dateCol]==date, ]
+  correlDF[nrow(correlDF) + 1, "Date"] <- date
+  correlDF[nrow(correlDF), "Correlation"] <- cor(as.numeric(dateDF[, metric]), as.numeric(dateDF[, yCol]), use = "pairwise.complete.obs")
+
+}
+
+metricCorrelations <- as.numeric(correlDF$Correlation)
+metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
+correlSummaryDF[1, "Statistic"] <- "Total Periods"
+correlSummaryDF[1, "Value"] <- as.character(length(metricCorrelations))
+
+correlSummaryDF[2, "Statistic"] <- "Negative Periods"
+correlSummaryDF[2, "Value"] <- as.character(length(metricCorrelations[metricCorrelations < 0]))
+
+correlSummaryDF[3, "Statistic"] <- "Positive Periods"
+correlSummaryDF[3, "Value"] <- as.character(length(metricCorrelations[metricCorrelations > 0]))
+
+correlSummaryDF[4, "Statistic"] <- "% Negative"
+correlSummaryDF[4, "Value"] <- paste0(round((length(metricCorrelations[metricCorrelations < 0]) / length(metricCorrelations))*100, 2),"%")
+
+correlSummaryDF[5, "Statistic"] <- "% Positive"
+correlSummaryDF[5, "Value"] <- paste0(round((length(metricCorrelations[metricCorrelations > 0]) / length(metricCorrelations))*100, 2),"%")
+
+correlSummaryDF[6, "Statistic"] <- "Avg Correlation"
+correlSummaryDF[6, "Value"] <- as.character(round(mean(metricCorrelations, na.rm = TRUE), 2))
 ```
+
+Sidebar {.sidebar}
+=======================================================================
+
+### Y Column: `r yCol`
+
+
+
+#### Correlation Summary
+```{r, results='asis'}
+# Correlation by date summary
+knitr::kable(correlSummaryDF)
+```
+
+#### Performance by metric quintile
+```{r, results='asis'}
+# Performance by metric quintile
+knitr::kable(perf[, 1:2], table.attr = "id=\"perfTable\"")
+```
+
+#### Fit Summary
+```{r, results='asis'}
+form <- as.formula(paste0("as.numeric(", yCol, ") ~ as.numeric(", metric,")"))
+fit <- lm(form, data = df)
+rsq <- summary(fit)$r.squared
+pval <- anova(fit)[,5][1]
+dof <- anova(fit)[,1][2]
+
+fitsummaryDF <- data.frame(Statistic = c("R-Squared", "P-Value", "Degrees of Freedom"),
+                           Value = c(rsq, pval, dof))
+# Correlation by date summary
+knitr::kable(fitsummaryDF)
+```
+
+Plots
+=======================================================================
+
+Row {.tabset}
+-----------------------------------------------------------------------
+
+### Correlation by date
+
+```{r}
+# Correlation by date plot
+correlDF$Date <- as.Date(correlDF$Date, format=dateFormat)
+plot_ly(data = correlDF, x = ~Date, y = ~Correlation, type = 'scatter', mode = 'lines')
+```
+
+### Histogram of X Values
+
+```{r}
+# Histogram of X Values
+xform <- as.formula(paste0("~",metric))
+plot_ly(data = df, x = xform, type = "histogram")
+```
+
+### QQ: Metric ~ Y
+
+```{r}
+# QQ - Y
+xyDF <- df[complete.cases(df[, c(metric, yCol)]), c(metric, yCol)]
+sortedX <- xyDF[order(xyDF[, metric]), metric]
+sortedY <- xyDF[order(xyDF[, yCol]), yCol]
+xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF[,metric], na.rm = TRUE), sd(xyDF[,metric], na.rm = TRUE))
+xNorm <- replace(xNorm, is.infinite(xNorm), NA)
+sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
+
+plot_ly(data = sortedDF, x = ~x, y = ~y)
+```
+
+Data
+=======================================================================
+```{r, results='asis'}
+knitr::kable(df)
+```
+
+<script>
+for(i = 0; i < $('#perfTable th').length; i++) {
+  colorTableByCol('perfTable', i);
+}
+
+function colorTableByCol(tableid, colindex){
+
+var columnarray, maxval, minval, max, min, n;
+
+columnarray = [];
+$('#' + tableid + ' tr:not(:first)').each(function(){
+	
+	var val = parseFloat($(this).find('td').eq(colindex).text());
+	if(val === val) {
+	columnarray.push(val);
+	}
+	})
+
+	maxval = Math.max(...columnarray);
+	minval = Math.min(...columnarray);
+
+	min = 0;
+	if (minval > 0) {
+	max = maxval;
+	} else if (maxval < 0) {
+	max = Math.abs(minval);
+	} else {
+	max = Math.max(Math.abs(maxval), Math.abs(minval));
+	}
+
+	n = max-min;
+
+	$('#' + tableid + ' tr td:nth-child(' + (colindex + 1) + ')').each(function() {
+
+		var val = parseFloat($(this).text());    
+		var xr, xg, xb, yr, yg, yb;
+
+		// Define the min color, which is white
+		xr = 255; // Red value
+		xg = 255; // Green value
+		xb = 255; // Blue value
+
+		// Define max color, depending on sign of val
+		if (val >= 0) {
+
+		// Green if val > 0, #2ca25f
+		yr = 44; // Red value
+		yg = 162; // Green value
+		yb = 95; // Blue value
+
+		} else {
+
+		// Red if val < 0, #a12b2b
+		yr = 161; // Red value
+		yg = 43; // Green value
+		yb = 43; // Blue value
+
+		val = Math.abs(val);
+
+		}
+
+		// Find value's position relative to range
+		var pos = ((val - min) / (n));
+
+		// Generate RGB code
+		red = parseInt((xr + (( pos * (yr - xr)))).toFixed(0));
+		green = parseInt((xg + (( pos * (yg - xg)))).toFixed(0));
+		blue = parseInt((xb + (( pos * (yb - xb)))).toFixed(0));
+
+		clr = 'rgb('+red+','+green+','+blue+')';
+
+		// Apply to cell
+
+		$(this).css('background-color', clr);
+
+	})
+}
+</script>

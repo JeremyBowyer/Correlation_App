@@ -41,6 +41,8 @@ shinyServer(function(input, output, session) {
                          originaldf = data.frame(),
                          metricdivedf = data.frame(),
                          perfdf = data.frame(),
+                         yCol = "",
+                         dateCol = "",
                          dateFormat = "%m/%d/%Y")
   
   ###########
@@ -185,6 +187,12 @@ shinyServer(function(input, output, session) {
     
     # Store date format
     vals$dateFormat <- input$dateColFormat
+    
+    # Store current Y column
+    vals$yCol <- input$yCol
+    
+    # Store current date column
+    vals$dateCol <- input$dateCol
     
     # Update Y column indicator
     output$currentY_comparison <- renderText( 
@@ -356,7 +364,11 @@ shinyServer(function(input, output, session) {
   
   output$downloadReport <- downloadHandler(
     # For PDF output, change this to "report.pdf"
-    filename = "report.html",
+    filename = function(){
+      xname <- input$xCol
+      xname <- gsub("[\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\-\\=\\+\\.]", '',xname)
+      paste0(xname, " report.html")
+    },
     content = function(file) {
       # Copy the report file to a temporary directory before processing it, in
       # case we don't have write permissions to the current working dir (which
@@ -364,10 +376,20 @@ shinyServer(function(input, output, session) {
       tempReport <- file.path(tempdir(), "report.Rmd")
       file.copy("report.Rmd", tempReport, overwrite = TRUE)
       
+      # Subset DF to only include appropriate columns
+      cols <- c(input$xCol, vals$yCol)
+      if(input$categoryCol != "") cols <- c(input$categoryCol, cols)
+      if(vals$dateCol != "") cols <- c(vals$dateCol, cols)
+      df <- vals$metricdivedf[,cols]
+      row.names(df) <- 1:nrow(df)
+      
       # Set up parameters to pass to Rmd document
       params <- list(metric = input$xCol,
-                     df = vals$metricdivedf,
-                     perf = vals$perfdf)
+                     df = df,
+                     perf = vals$perfdf,
+                     dateCol = vals$dateCol,
+                     dateFormat = vals$dateFormat,
+                     yCol = vals$yCol)
       
       # Knit the document, passing in the `params` list, and eval it in a
       # child of the global environment (this isolates the code in the document
