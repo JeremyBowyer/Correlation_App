@@ -84,6 +84,9 @@ for(date in unique(df[, dateCol])) {
 
 }
 
+correlDF$Date <- as.Date(correlDF$Date, format=dateFormat)
+correlDF <- correlDF[order(correlDF$Date), ]
+
 metricCorrelations <- as.numeric(correlDF$Correlation)
 metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
 correlSummaryDF[1, "Statistic"] <- "Total Periods"
@@ -108,9 +111,13 @@ correlSummaryDF[6, "Value"] <- as.character(round(mean(metricCorrelations, na.rm
 Sidebar {.sidebar}
 =======================================================================
 
-### Y Column: `r yCol`
+### X Column: 
+`r metric`
 
+### Y Column: 
+`r yCol`
 
+<br/>
 
 #### Correlation Summary
 ```{r, results='asis'}
@@ -148,7 +155,6 @@ Row {.tabset}
 
 ```{r}
 # Correlation by date plot
-correlDF$Date <- as.Date(correlDF$Date, format=dateFormat)
 plot_ly(data = correlDF, x = ~Date, y = ~Correlation, type = 'scatter', mode = 'lines')
 ```
 

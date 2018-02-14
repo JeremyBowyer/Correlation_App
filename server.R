@@ -6,6 +6,7 @@
 #
 
 library(shiny)
+library(shinyalert)
 library(plotly)
 library(dplyr)
 library(reshape2)
@@ -179,9 +180,23 @@ shinyServer(function(input, output, session) {
   observeEvent(input$run, {
     
     if(input$yCol == "") {
-      showNotification("Select a Y column.",
-                       type="error",
-                       duration=NULL)
+      
+      shinyalert(
+        title = "",
+        text = "Select a Y column",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "error",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+      
       return(NULL)
     }
     
@@ -479,9 +494,7 @@ shinyServer(function(input, output, session) {
      
       # Check for valid data, otherwise show error notification to user
       if(nrow(df) == 0) {
-        # showNotification("No Data. Try selecting another column, or removing some filters on the Options page.",
-        #                  type="error",
-        #                  duration=NULL)
+        
       } else if(sum(!is.na(as.numeric(df[, input$xCol]))) == 0) {
         removeUI(".metricAlert", multiple = TRUE)
         insertUI(
@@ -494,7 +507,8 @@ shinyServer(function(input, output, session) {
         removeUI(".metricAlert", multiple = TRUE)
 
         # Create quintiles by date and more processing
-        vals$perfdf <- calculatePerformance(df,input)
+        vals$perfdf <- calculatePerformance(df,input) 
+        
         
         # Performance Output
         output$datePerformance = renderTable({

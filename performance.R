@@ -4,6 +4,7 @@ calculatePerformance <- function(df, input){
   df[,"quints"] <- NA
   aggs <- by(df, INDICES = df[, input$dateCol], function(x) {
     tryCatch({
+      #if(length((x[,input$xCol])) >= 5)
       x[,"quints"] <- quint(as.numeric(x[,input$xCol]))
     }, error = function(e) {
       x[,"quints"] <- rep(NA, nrow(x))
@@ -12,10 +13,13 @@ calculatePerformance <- function(df, input){
   })
 
   dfmean <- do.call("rbind", aggs)
-
   # Create performance DF
   allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
-  allPerformance[,"All"] <- aggregate(df[, input$yCol], by = list(dfmean$quints), function(x) mean(x, na.rm = TRUE))["x"]
+  allPerformance[,"All"] <- NA
+  aggbyquint <- aggregate(df[, input$yCol], by = list(dfmean$quints), function(x) mean(x, na.rm = TRUE))
+  for(quint in aggbyquint[,"Group.1"]){
+    allPerformance[quint,"All"] <- aggbyquint[grep(quint,aggbyquint[,"Group.1"]),"x"]
+  }
   performanceDifferential <- ((allPerformance[1, "All"] * 2 + allPerformance[2, "All"]) / 3) - ((allPerformance[5, "All"] * 2 + allPerformance[4, "All"]) / 3)
   allPerformance[6, "All"] <- performanceDifferential
   
