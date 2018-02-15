@@ -20,6 +20,7 @@ source("filters.R", local=TRUE)
 source("transformations.R", local=TRUE)
 source("offsets.R", local=TRUE)
 source("performance.R",local=TRUE)
+source("conditions.R",local=TRUE)
 
 # Define Functions
 source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
@@ -55,73 +56,19 @@ shinyServer(function(input, output, session) {
   }
   
   vals$refreshInputs <- function(session, input, vals) {
-    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols")) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol")) {
         updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
     }
   }
   
-  ###########################
-  # Option Panel Conditions #
-  ###########################
-  output$fileUploaded <- reactive({
-    return(nrow(vals$originaldf) > 0)
-  })
-  outputOptions(output, 'fileUploaded', suspendWhenHidden=FALSE)
-  
-  output$hierarchicalCheck <- reactive({
-    return(input$hierBox)
-  })
-  outputOptions(output, 'hierarchicalCheck', suspendWhenHidden=FALSE)  
-  
-  output$transformationsCheck <- reactive({
-    return(vals$transformationCount > 0)
-  })
-  outputOptions(output, 'transformationsCheck', suspendWhenHidden=FALSE)  
-  
-  output$filtersCheck <- reactive({
-    return(vals$valueFilterCount > 0 || vals$percentileFilterCount > 0 || vals$dateFilterCount > 0 )
-  })
-  outputOptions(output, 'filtersCheck', suspendWhenHidden=FALSE)
-  
-  output$offsetsCheck <- reactive({
-    return(vals$offsetCount > 0)
-  })
-  outputOptions(output, 'offsetsCheck', suspendWhenHidden=FALSE)
-  
-  output$validX <- reactive({
-    if(input$xCol != "" && input$yCol != "") {
-      df <- vals$datadf
-      df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
-      
-      return(sum(!is.na(as.numeric(df[, input$xCol]))) != 0)
+  vals$unloadData <- function(session, input, output, vals) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol")) {
+        updateSelectInput(session, col, choices=list(), selected=NULL)
     }
-  })
-  outputOptions(output, 'validX', suspendWhenHidden=FALSE)
-  
-  output$pageFilterCheck <- reactive({
-    return(input$pageFilterCheck)
-  })
-  outputOptions(output, 'pageFilterCheck', suspendWhenHidden=FALSE)
-  
-  output$dateColCheck <- reactive({
-    return(input$dateCol != "")
-  })
-  outputOptions(output, 'dateColCheck', suspendWhenHidden=FALSE)
-  
-  output$catColCheck <- reactive({
-    return(input$categoryCol != "")
-  })
-  outputOptions(output, 'catColCheck', suspendWhenHidden=FALSE)
-  
-  output$dateColCheck <- reactive({
-    return(input$dateCol != "")
-  })
-  outputOptions(output, 'dateColCheck', suspendWhenHidden=FALSE)
-  
-  output$pointFilterCheck <- reactive({
-    return(input$pointFilterCheck)
-  })
-  outputOptions(output,'pointFilterCheck', suspendWhenHidden=FALSE)
+    
+    vals$datadf <- NULL
+    vals$originaldf <- NULL
+  }
   
   ##################
   # Event Handlers #
@@ -132,6 +79,8 @@ shinyServer(function(input, output, session) {
     
     if (is.null(inFile))
       return(NULL)
+    
+    vals$unloadData(session, input, output, vals)
     
     datadf = read.csv(inFile$datapath)
     vals$datadf <- datadf
@@ -144,6 +93,10 @@ shinyServer(function(input, output, session) {
     paste0("Current Y column: ", input$yCol)
   })
   
+  ###########################
+  # Option Panel Conditions #
+  ###########################
+  loadConditions(input, output, session, vals)
   
   ##################
   # Filter Section #
@@ -256,7 +209,7 @@ shinyServer(function(input, output, session) {
                             check.names = FALSE)
     
     for(col in correlCols) {
-      if(exists("fit")) { rm("fit") }
+      if(exists("fit")) { suppressWarnings(rm("fit")) }
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
       
       # Rank Volatility
@@ -279,7 +232,7 @@ shinyServer(function(input, output, session) {
     }
     
     # Multi-linear
-    if(exists("fit")) { rm("fit") }
+    if(exists("fit")) { suppressWarnings(rm("fit")) }
     summaryDF[nrow(summaryDF) + 1, "Metric"] <- "Multilinear"
     
     formstring <- paste0("as.numeric(", yColumn, ") ~ ")
@@ -323,7 +276,7 @@ shinyServer(function(input, output, session) {
         }
         
         # multi-linear regression
-        if(exists("fit")) { rm("fit") }
+        if(exists("fit")) { suppressWarnings(rm("fit")) }
         
         formstring <- paste0("as.numeric(", yColumn, ") ~ ")
         for (col in multiCols){
