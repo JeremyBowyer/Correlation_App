@@ -132,6 +132,26 @@ shinyServer(function(input, output, session) {
   # Run Analysis Button
   observeEvent(input$run, {
     
+    if(!nrow(vals$originaldf) > 0) {
+      shinyalert(
+        title = "",
+        text = "Please upload a valid data set first.",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "error",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+      
+      return(NULL)
+    }
+    
     if(input$yCol == "") {
       
       shinyalert(
