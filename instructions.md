@@ -47,42 +47,42 @@ The selected column will be excluded from the list of exogenous factors.
 #### Select Columns to Ignore (optional)
 The columns you selected in the above sections will be automatically excluded from the list of exogenous factors. For instance, the app will know not to display a correlation between your date column and your y column. However, if there are some additional columns that you want to ignore, you can add them here.
 
-### Filters
+## Filters
 This section allows you to filter your data in various ways. You will select a column, then provide the criteria by which to filter the data. Note that this will be applied to all of the rows in your dataset. For example, if you filter out any dates before 1/1/2001, that will remove all rows where your date column is earlier than that date.
 
 For an explanation of each type of filter (Value, Percentile, Date), see the Glossary.
 
-### Metric Transformations
+## Metric Transformations
 
 This section allows you to create transformations of columns in your dataset. For example if you have a column of prices that you want to be turned into performance, you can use the "% Change" transformation to do that.
 
 Each transformation you make will ask you to fill out a number of fields. An explanation of each can be found below:
 
-##### Column Suffix Name
+### Column Suffix Name
 When you create a metric transformation, an additional column will be appended to the end of your dataset. The *Column Suffix Name* field lets you designate a suffix for that new column. For example, if you have a column called `Price` and you want to turn it into performance, you might want to add the suffix "Pct_Chg." Doing so will result in a new column named `Price_Pct_Chg`.
 
-#### Lag
+### Lag
 Many of the transformations allow you to set the timeframe over which the transformation is applied. For example, if you want to transform a column by subtracting the rolling median, you are given the opportunity to define what the window is for the rolling median. Should the rolling median include the last 10 data points? The last 100? If your data is daily and you want to subtract out the rolling 30 day median, you should set the *Lag* field to 30. This field will be used in different ways for different types of transformations. Check the Glossary for how it will be applied specifically to the transformation you're interested in.
 
-#### Select columns to transform
+### Select columns to transform
 This is self explanatory. Select the columns that you are interested in transforming. Multiple column selections are allowed.
 
-#### Select column to transform along (probably a date)
+### Select column to transform along (probably a date)
 This is the column that will determine what order your data is in when the transformation is applied. This will typically be a date column. For instance, if you want to take a % Change of a given column, the app needs to know what order the data should be in when creating that transformation.
 
-#### Select category columns to group by (optional)
+### Select category columns to group by (optional)
 If you have a category column in your dataset (eg country, company, level of development, etc). Since the data is in long form, you might have multiple categories stacked on top of each other (see the example table above). If this is the case, the app needs to know how to slice up your data to apply these transformations. If you want to subtract out the rolling median price for a handful of companies, you wouldn't want the prices for one company to be included in the median price for another company.
 
-#### Value to be flagged as 1
+### Value to be flagged as 1
 There are a couple transformations that allow you to transform a column into a binary metric. If you want to flag a certain string as 1 (and the rest of the values in the column as 0), this field is where you could set that value.
 
-#### Value, data points equal to or above to be flagged as 1
+### Value, data points equal to or above to be flagged as 1
 Similar to above, except instead of a string to flag, it's a minimum value where everything above said value will be flagged as 1.
 
-#### Select x columns & Select y column
+### Select x columns & Select y column
 These are used when creating a residual column. You are asked to give x columns (one or more) and a y column. The resulting column will be the difference between a given y value and the corresponding expected value from a linear regression.
 
-### Offsets
+## Offsets
 This section allows you to shift a column up or down by a given amount. If you provide category column(s), the app will take that into account and it will shift the data up/down for each category in the category columns. So if you have price data that you've turned into performance using the % change metric transformation, you can use an offset to shift those performance numbers forward so they become subsequent performance.
 
 For an explanation of each type of transformation, see the Glossary.
