@@ -2,7 +2,7 @@
 
 ## Instructions
 ### Overview
-Upload a csv file with data, indicate which columns are fulfilling which role (Date, Category, Endogenous Metric, etc), then click "Run Analysis." The app will assume every column in your dataset that isn't fulfilling some other role to be an exogenous metric. Once the app is done processing your data, it will generate a number of analytical outputs. Among these are correlations for the entire dataset, correlations by date (if applicable), scatter plot, histogram, QQ plots, and more.
+Upload a csv file with data, input the appropriate columns to each field (Date, Category, Endogenous Metric, etc), then click "Run Analysis." The app will assume every column in your dataset not included in at least on field to be exogenous metric. Once the app is done processing your data, it will generate a number of analytical outputs. Among these are correlations for the entire dataset, correlations by date (if applicable), scatter plot, histogram, QQ plots, and more.
 
 ### File Upload
 
@@ -24,6 +24,8 @@ Your data should be in a "long form" format. This means your table of data shoul
 | 12/31/2003 |    Germany    |     DM      | 0.99 | 0.82 | 0.81 | 
 | 12/31/2004 |    Germany    |     DM      | 0.06 | 0.26 | 0.99 | 
 | 12/31/2005 |    Germany    |     DM      | 0.57 | 0.38 | 0.37 | 
+<br/>
+An illlustration of long vs wide form can be found <a href="https://www.theanalysisfactor.com/wide-and-long-data/" target="_blank">here</a>. 
 
 ### Column Selection Options
 #### Select Y column
@@ -56,7 +58,7 @@ For an explanation of each type of filter (Value, Percentile, Date), see the Glo
 
 This section allows you to create transformations of columns in your dataset. For example if you have a column of prices that you want to be turned into performance, you can use the "% Change" transformation to do that.
 
-Each transformation you make will ask you to fill out a number of fields. An explanation of each can be found below:
+Each transformation require you to fill out a number of fields. An outline of each can be found below:
 
 ### Column Suffix Name
 When you create a metric transformation, an additional column will be appended to the end of your dataset. The *Column Suffix Name* field lets you designate a suffix for that new column. For example, if you have a column called `Price` and you want to turn it into performance, you might want to add the suffix "Pct_Chg." Doing so will result in a new column named `Price_Pct_Chg`.
@@ -73,11 +75,12 @@ This is the column that will determine what order your data is in when the trans
 ### Select category columns to group by (optional)
 If you have a category column in your dataset (eg country, company, level of development, etc). Since the data is in long form, you might have multiple categories stacked on top of each other (see the example table above). If this is the case, the app needs to know how to slice up your data to apply these transformations. If you want to subtract out the rolling median price for a handful of companies, you wouldn't want the prices for one company to be included in the median price for another company.
 
+
 ### Value to be flagged as 1
-There are a couple transformations that allow you to transform a column into a binary metric. If you want to flag a certain string as 1 (and the rest of the values in the column as 0), this field is where you could set that value.
+There are a couple transformations that allow you to convert a column with binary <a href="http://www.statmethods.net/input/dates.html" target="_blank">string</a> data (as opposed to numeric) into binary numeric data. If you want to flag a certain string as 1 (and the rest of the values in the column as 0), this field is where you could set that value.
 
 ### Value, data points equal to or above to be flagged as 1
-Similar to above, except instead of a string to flag, it's a minimum value where everything above said value will be flagged as 1.
+Similar to above, except instead of a string to flag, you designate a minimum value above which all values will be flagged as 1.
 
 ### Select x columns & Select y column
 These are used when creating a residual column. You are asked to give x columns (one or more) and a y column. The resulting column will be the difference between a given y value and the corresponding expected value from a linear regression.
@@ -85,4 +88,4 @@ These are used when creating a residual column. You are asked to give x columns 
 ## Offsets
 This section allows you to shift a column up or down by a given amount. If you provide category column(s), the app will take that into account and it will shift the data up/down for each category in the category columns. So if you have price data that you've turned into performance using the % change metric transformation, you can use an offset to shift those performance numbers forward so they become subsequent performance.
 
-For an explanation of each type of transformation, see the Glossary.
+For an explanation of each type of transformation along with their requisite inputs, see the Glossary.
