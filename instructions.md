@@ -12,7 +12,7 @@ Upload a csv file with data, input the appropriate columns to each field (Date, 
 Uploaded data needs to be in .csv file format. 
 
 #### Data Format
-Your data should be in a "long form" format as opposed to wide form. This means your table of data should have columns for an endogenous metric, each exogenous metric, a date (optional), and categories (optional), and a row for each unique combination of date and category. Below is an example table:
+Your data should be in a "long form" format as opposed to wide form. An explanation of the difference can be found <a href="https://www.theanalysisfactor.com/wide-and-long-data/" target="_blank">here</a>. To put it simply, it means your table of data should have columns for an endogenous metric, each exogenous metric, a date (optional), and categories (optional), and a row for each unique combination of date and category. Below is an example table:
 <br/>
 
 |    Date    |    Country    | Development |  X1  |  X2  |  Y   |
@@ -27,7 +27,6 @@ Your data should be in a "long form" format as opposed to wide form. This means 
 | 12/31/2004 |    Germany    |     DM      | 0.06 | 0.26 | 0.99 | 
 | 12/31/2005 |    Germany    |     DM      | 0.57 | 0.38 | 0.37 | 
 <br/>
-An illlustration of long vs wide form can be found <a href="https://www.theanalysisfactor.com/wide-and-long-data/" target="_blank">here</a>. 
 
 ### Column Selection Options
 ---
