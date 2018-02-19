@@ -5,7 +5,6 @@
 
 ### Overview
 Upload a csv file with data, input the appropriate columns to each field (Date, Category, Endogenous Metric, etc), then click "Run Analysis." The app will assume every column in your dataset not included in at least on field to be exogenous metric. Once the app is done processing your data, it will generate a number of analytical outputs. Among these are correlations for the entire dataset, correlations by date (if applicable), scatter plot, histogram, QQ plots, and more.
->>>>>>> 2431528b477056caf2f56f9a41661f5958dcadda
 
 ### File Upload
 ---
