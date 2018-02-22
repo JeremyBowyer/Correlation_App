@@ -117,6 +117,23 @@ observeApplyFilters <- function(input, output, session, vals) {
     }
     
     vals$datadf <- df
+    
+    shinyalert(
+        title = "",
+        text = "Your data has been filtered according to your specifics. You can find the updated dataset in the 'Data Preview' tab.",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "success",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+    
   })
 }
 

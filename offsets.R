@@ -100,6 +100,23 @@ observeApplyOffsets <- function(input, output, session, vals) {
     vals$offsetColIndex <- firstCol:ncol(df)
     vals$datadf <- df
     vals$refreshInputs(session, input, vals)
+    
+    shinyalert(
+        title = "",
+        text = "Your column offset has been added. You can find it at the end of the table in the 'Data Preview' tab.",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "success",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+    
   })
 }
 
