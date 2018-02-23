@@ -112,7 +112,7 @@ observeApplyFilters <- function(input, output, session, vals) {
         
         df[, filterCol] <- as.Date(as.character(df[, filterCol]), format= filterDateFormat)
         df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
-        df[, filterCol] <- as.character(df[, filterCol])
+        df[, filterCol] <- as.character(format(df[, filterCol], filterDateFormat))
       }
     }
     
@@ -120,7 +120,7 @@ observeApplyFilters <- function(input, output, session, vals) {
     
     shinyalert(
         title = "",
-        text = "Your data has been filtered according to your specifics. You can find the updated dataset in the 'Data Preview' tab.",
+        text = "Your data has been filtered according to your specifications. You can find the updated dataset in the 'Data Preview' tab.",
         closeOnEsc = TRUE,
         closeOnClickOutside = TRUE,
         html = FALSE,
@@ -148,5 +148,23 @@ observeClearFilters <- function(input, output, session, vals) {
     vals$percentileFilterCount <- 0
     vals$dateFilterCount <- 0
     vals$datadf <- vals$originaldf
+    
+    shinyalert(
+      title = "",
+      text = "Your filter(s) have been removed. Any transformations and offsets you've created have been re-created using the unfiltered data. You can find them at te end of the table in the 'Data Preview' tab.",
+      closeOnEsc = TRUE,
+      closeOnClickOutside = TRUE,
+      html = FALSE,
+      type = "success",
+      showConfirmButton = TRUE,
+      showCancelButton = FALSE,
+      confirmButtonText = "OK",
+      confirmButtonCol = "#3E3F3A",
+      timer = 0,
+      imageUrl = "",
+      animation = TRUE
+    )
+    
   })
+  
 }

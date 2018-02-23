@@ -14,6 +14,7 @@ observeAddOffset <- function(input, output, session, vals) {
                     numericInput(paste0("offsetLag", cnt), "Select Lag", value = 1, min = 1), 
                     selectInput(paste0("offsetCols", cnt), "Select columns to offset", choices=vals$getCols(), multiple = TRUE),
                     selectInput(paste0("offsetDateCol", cnt), "Select column to offset along (probably a date)", choices=vals$getCols()),
+                    textInput(paste0("offsetDateColFormat", cnt), "Format dates are in", "%m/%d/%Y"),
                     selectInput(paste0("offsetCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                     tags$hr(), class="offset")
     )
@@ -24,7 +25,12 @@ observeAddOffset <- function(input, output, session, vals) {
 
 observeApplyOffsets <- function(input, output, session, vals) {
   
-  observeEvent(input$applyOffsets, {
+  observeEvent({c(input$applyOffsets, input$filterClear)}, {
+    
+    if(vals$offsetCount < 1){
+      return(NULL)
+    }
+    
     df <- vals$datadf
     ocolIndex <- vals$offsetColIndex
     if(!is.null(ocolIndex)){
@@ -39,12 +45,13 @@ observeApplyOffsets <- function(input, output, session, vals) {
       type <- input[[paste0("offsetType", cnt)]]
       cols <- input[[paste0("offsetCols", cnt)]]
       dateCol <- input[[paste0("offsetDateCol", cnt)]]
+      dateColFormat <- input[[paste0("offsetDateColFormat", cnt)]]
       catCols <- input[[paste0("offsetCategoryCol", cnt)]]
       lag <- input[[paste0("offsetLag", cnt)]]
       offsetSuffix <- gsub(" ", ".", input[[paste0("offsetSuffix", cnt)]])
       
       # transform date column as date
-      df[,dateCol] <- format(as.Date(as.character(df[,dateCol]),format=input$dateColFormat), input$dateColFormat)
+      df[,dateCol] <- format(as.Date(as.character(df[,dateCol]),format=dateColFormat), dateColFormat)
 
       # Assign offset function based on type selcted
       switch(type,

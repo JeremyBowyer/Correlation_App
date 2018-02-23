@@ -59,7 +59,7 @@ shinyUI(
                          condition = "output.filtersCheck",
                          actionButton("applyFilters", "Apply Filters", icon("filter"), style="padding: 5px 10px 5px 10px;"),
                          tags$br(),
-                         actionLink("filterClear", "Clear All Filters and Transformations", style="color: #f12828;"),
+                         actionLink("filterClear", "Clear All Filters", style="color: #f12828;"),
                          tags$hr()
                        ),
                        tags$div(
