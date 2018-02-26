@@ -1,7 +1,30 @@
 calculatePerformance <- function(df, input){
+
+  if(input$dateCol == "") {
+    
+    df <- df[,c(input$xCol,input$yCol)]
+    df <- df[complete.cases(df), ]
+    df[,"quints"] <- NA
+    
+    df$quints <- quint(as.numeric(df[,input$xCol]))
+    
+    # Create performance DF
+    allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
+    allPerformance[,"All"] <- NA
+    quintMeans <- aggregate(df[, input$yCol], by = list(df$quints), function(x) mean(x, na.rm = TRUE))
+    for(quint in quintMeans[,"Group.1"]){
+      allPerformance[quint,"All"] <- quintMeans[grep(quint,quintMeans[,"Group.1"]),"x"]
+    }
+    performanceDifferential <- ((allPerformance[1, "All"] * 2 + allPerformance[2, "All"]) / 3) - ((allPerformance[5, "All"] * 2 + allPerformance[4, "All"]) / 3)
+    allPerformance[6, "All"] <- performanceDifferential
+    
+    return(allPerformance)
+  }
+  
   df <- df[,c(input$xCol,input$yCol,input$dateCol)]
   df <- df[complete.cases(df), ]
   df[,"quints"] <- NA
+    
   aggs <- by(df, INDICES = df[, input$dateCol], function(x) {
     tryCatch({
       #if(length((x[,input$xCol])) >= 5)
@@ -12,13 +35,13 @@ calculatePerformance <- function(df, input){
     x
   })
 
-  dfmean <- do.call("rbind", aggs)
+  dfquints <- do.call("rbind", aggs)
   # Create performance DF
   allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"))
   allPerformance[,"All"] <- NA
-  aggbyquint <- aggregate(df[, input$yCol], by = list(dfmean$quints), function(x) mean(x, na.rm = TRUE))
-  for(quint in aggbyquint[,"Group.1"]){
-    allPerformance[quint,"All"] <- aggbyquint[grep(quint,aggbyquint[,"Group.1"]),"x"]
+  quintMeans <- aggregate(dfquints[, input$yCol], by = list(dfquints$quints), function(x) mean(x, na.rm = TRUE))
+  for(quint in quintMeans[,"Group.1"]){
+    allPerformance[quint,"All"] <- quintMeans[grep(quint,quintMeans[,"Group.1"]),"x"]
   }
   performanceDifferential <- ((allPerformance[1, "All"] * 2 + allPerformance[2, "All"]) / 3) - ((allPerformance[5, "All"] * 2 + allPerformance[4, "All"]) / 3)
   allPerformance[6, "All"] <- performanceDifferential
