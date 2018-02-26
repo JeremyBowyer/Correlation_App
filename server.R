@@ -12,6 +12,7 @@ library(dplyr)
 library(reshape2)
 library(quantmod)
 library(XLConnect)
+library(DT)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 
@@ -45,7 +46,8 @@ shinyServer(function(input, output, session) {
                          perfdf = data.frame(),
                          yCol = "",
                          dateCol = "",
-                         dateFormat = "%m/%d/%Y")
+                         dateFormat = "%m/%d/%Y",
+                         loadingPreviews = FALSE)
   
   ###########
   # Methods #
@@ -644,9 +646,12 @@ shinyServer(function(input, output, session) {
   #######################
   # Data Preview Screen #
   #######################
-  output$dataPreview <- renderTable({
-    return(vals$datadf)
-  }, hover = TRUE, bordered = TRUE)
+  output$dataPreview <- renderDT(vals$datadf,
+                                 options = list(
+                                   pageLength = 100
+                                 ),
+                                 rownames = FALSE,
+                                 selection = "none")
   
   #####################################
   # JavaScript Conditional Formatting #

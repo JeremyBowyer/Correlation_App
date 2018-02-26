@@ -2,6 +2,7 @@
 # Option Panel Conditions #
 ###########################
 loadConditions <- function(input, output, session, vals) {
+  
 	output$fileUploaded <- reactive({
 	  return(nrow(vals$originaldf) > 0)
 	})
