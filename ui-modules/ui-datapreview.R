@@ -2,6 +2,6 @@ dataPreviewPage <- function() {
   tabPanel(
     "Data Preview",
     value="dataPreview",
-    DTOutput("dataPreview")
+    DTOutput("dataPreview", height = "auto")
     )
 }

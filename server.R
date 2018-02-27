@@ -44,6 +44,7 @@ shinyServer(function(input, output, session) {
     datadf = data.frame(),
     originaldf = data.frame(),
     metricdivedf = data.frame(),
+    dateFilterdf = data.frame(),
     perfdf = data.frame(),
     yCol = "",
     dateCol = "",
@@ -282,14 +283,17 @@ shinyServer(function(input, output, session) {
     
     ## By Date ##
     if(input$dateCol != "") {
-      dateCorrelations <- data.frame(Metric = c(correlCols, "Multilinear"),
-                                     "Total Periods" = integer(length(c(correlCols, "Multilinear"))),
-                                     "Negative Periods" = integer(length(c(correlCols, "Multilinear"))),
-                                     "Positive Periods" = integer(length(c(correlCols, "Multilinear"))),
-                                     "% Negative" = numeric(length(c(correlCols, "Multilinear"))),
-                                     "% Positive" = numeric(length(c(correlCols, "Multilinear"))),
-                                     "Avg Correlation" = numeric(length(c(correlCols, "Multilinear"))),
-                                     check.names = FALSE)
+      dateCorrelations <- data.frame(
+        Metric = c(correlCols, "Multilinear"),
+        "Total Periods" = integer(length(c(correlCols, "Multilinear"))),
+        "Negative Periods" = integer(length(c(correlCols, "Multilinear"))),
+        "Positive Periods" = integer(length(c(correlCols, "Multilinear"))),
+        "% Negative" = numeric(length(c(correlCols, "Multilinear"))),
+        "% Positive" = numeric(length(c(correlCols, "Multilinear"))),
+        "Avg Correlation" = numeric(length(c(correlCols, "Multilinear"))),
+        check.names = FALSE
+        )
+      
       # Fill in correlations by date
       for(date in unique(datadf[, input$dateCol])) {
         dateDF <- datadf[datadf[,input$dateCol]==date, ]
@@ -395,27 +399,43 @@ shinyServer(function(input, output, session) {
   )
   
   # Page Filter
-  observeEvent({c(input$metricDiveFilterDate, input$pageFilterCheck)}, {
+  observeEvent(input$pageFilterCheck, {
     
     if(input$pageFilterCheck){
       
-      df <- vals$originalmetricdivedf
+      vals$dateFilterdf <- data.frame(Date = unique(vals$metricdivedf[, input$dateCol]))
+      output$pageFilterTable <- renderDT(vals$dateFilterdf,
+                                         options = list(
+                                           pageLength = 100,
+                                           paging = FALSE,
+                                           info = FALSE,
+                                           searching = FALSE
+                                           ),
+                                         rownames = FALSE,
+                                         selection = "multiple",
+                                         filter = "none",
+                                         style = "bootstrap",
+                                         autoHideNavigation = TRUE)
       
-      df <- df[df[,input$dateCol] == input$metricDiveFilterDate, ]
-      
-      vals$metricdivedf <- df
-      
-    }
-    
-  })
-  
-  observeEvent(input$pageFilterCheck, {
-    
-    if(!input$pageFilterCheck) {
+    } else if(!input$pageFilterCheck) {
       vals$metricdivedf <- vals$originalmetricdivedf
     }
     
   })
+  
+  observeEvent(input$pageFilterTable_rows_selected, {
+
+      if(length(input$pageFilterTable_rows_selected) == 0) {
+        vals$metricdivedf <- vals$originalmetricdivedf
+        return(NULL)
+      }
+    
+      selectedDates <- vals$dateFilterdf[input$pageFilterTable_rows_selected, "Date"]
+      df <- vals$originalmetricdivedf
+      df <- df[df[,input$dateCol] %in% selectedDates, ]
+      vals$metricdivedf <- df
+  })
+  
   
   observeEvent(input$pointFilterCheck, {
     
@@ -650,9 +670,11 @@ shinyServer(function(input, output, session) {
   #######################
   output$dataPreview <- renderDT(vals$datadf,
                                  options = list(
-                                   pageLength = 100
+                                   pageLength = 10
                                  ),
                                  rownames = FALSE,
+                                 fillContainer = TRUE,
+                                 style = "bootstrap",
                                  selection = "none")
   
   #####################################

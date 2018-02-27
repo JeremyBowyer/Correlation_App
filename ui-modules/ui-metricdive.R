@@ -17,9 +17,7 @@ metricDivePage <- function() {
                    conditionalPanel(
                      condition = "output.pageFilterCheck",
                      div(
-                       div(actionButton("pageBack", label="", icon("arrow-left")), style = "display:inline-block"),
-                       div(selectInput("metricDiveFilterDate", label="", choice = list()), style = "display:inline-block; vertical-align:middle"),
-                       div(actionButton("pageForward", label="", icon("arrow-right")), style = "display:inline-block")
+                       DTOutput("pageFilterTable")
                        )
                      ),
                    checkboxInput("pointFilterCheck", label = "Filter Using Scatter", value = FALSE),

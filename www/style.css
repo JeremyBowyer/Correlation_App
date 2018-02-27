@@ -28,5 +28,9 @@ div[data-value="Instructions"] table td,
 div[data-value="Instructions"] table th {
 	padding: 8px;
 	text-align: center;
-    border: 3px solid #f8f5f0;
+	border: 3px solid #f8f5f0;
+}
+
+#dataPreview .dataTables_scrollBody {
+	height: auto !important;
 }
