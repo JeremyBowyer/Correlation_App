@@ -17,11 +17,11 @@ options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 
 source("global.R", local=TRUE)
-source("filters.R", local=TRUE)
-source("transformations.R", local=TRUE)
-source("offsets.R", local=TRUE)
-source("performance.R",local=TRUE)
-source("conditions.R",local=TRUE)
+source("server-modules/filters.R", local=TRUE)
+source("server-modules/transformations.R", local=TRUE)
+source("server-modules/offsets.R", local=TRUE)
+source("server-modules/performance.R",local=TRUE)
+source("server-modules/conditions.R",local=TRUE)
 
 # Define Functions
 source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
