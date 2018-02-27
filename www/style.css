@@ -31,6 +31,8 @@ div[data-value="Instructions"] table th {
 	border: 3px solid #f8f5f0;
 }
 
-#dataPreview .dataTables_scrollBody {
+#dataPreview .dataTables_scrollBody,
+#dateCorrelations .dataTables_scrollBody,
+#summaryTable .dataTables_scrollBody {
 	height: auto !important;
 }

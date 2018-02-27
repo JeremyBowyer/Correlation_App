@@ -277,9 +277,14 @@ shinyServer(function(input, output, session) {
       summaryDF[nrow(summaryDF), "DoF"] <- fit$df
     }, error = function(e) {NULL})
     
-    output$summaryTable <- renderTable({
-      summaryDF
-    }, hover = TRUE, bordered = TRUE)
+    output$summaryTable <- renderDT(summaryDF,
+                                 options = list(
+                                   pageLength = 10
+                                 ),
+                                 rownames = FALSE,
+                                 fillContainer = TRUE,
+                                 style = "bootstrap",
+                                 selection = "none")
     
     ## By Date ##
     if(input$dateCol != "") {
@@ -336,9 +341,14 @@ shinyServer(function(input, output, session) {
         dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
       }
       
-      output$dateCorrelations <- renderTable({
-        dateCorrelations
-      }, hover = TRUE, bordered = TRUE)
+      output$dateCorrelations <- renderDT(dateCorrelations,
+                                 options = list(
+                                   pageLength = 10
+                                 ),
+                                 rownames = FALSE,
+                                 fillContainer = TRUE,
+                                 style = "bootstrap",
+                                 selection = "none")
     }
     
     updateTabsetPanel(session, "mainTabset", selected="correlations")

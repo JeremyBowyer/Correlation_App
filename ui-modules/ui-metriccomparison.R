@@ -8,12 +8,12 @@ metricComparisonsPage <- function(){
     tabsetPanel(
       tabPanel(
         "Summary - All Dates",
-        tableOutput("summaryTable")),
+        DTOutput("summaryTable")),
       tabPanel(
         "Correlations - By Date",
         conditionalPanel(
           condition = "output.dateColCheck",
-          tableOutput("dateCorrelations")
+          DTOutput("dateCorrelations")
           ),
         conditionalPanel(
           condition = "!output.dateColCheck",
