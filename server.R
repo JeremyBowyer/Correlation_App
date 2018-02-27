@@ -33,21 +33,23 @@ shinyServer(function(input, output, session) {
   ###################
   # Reactive Values #
   ###################
-  vals <- reactiveValues(valueFilterCount = 0,
-                         percentileFilterCount = 0,
-                         dateFilterCount = 0,
-                         transformationCount = 0,
-                         transformColIndex = NULL,
-                         offsetCount = 0,
-                         offsetColIndex = NULL,
-                         datadf = data.frame(),
-                         originaldf = data.frame(),
-                         metricdivedf = data.frame(),
-                         perfdf = data.frame(),
-                         yCol = "",
-                         dateCol = "",
-                         dateFormat = "%m/%d/%Y",
-                         loadingPreviews = FALSE)
+  vals <- reactiveValues(
+    valueFilterCount = 0,
+    percentileFilterCount = 0,
+    dateFilterCount = 0,
+    transformationCount = 0,
+    transformColIndex = NULL,
+    offsetCount = 0,
+    offsetColIndex = NULL,
+    datadf = data.frame(),
+    originaldf = data.frame(),
+    metricdivedf = data.frame(),
+    perfdf = data.frame(),
+    yCol = "",
+    dateCol = "",
+    dateFormat = "%m/%d/%Y",
+    loadingPreviews = FALSE
+    )
   
   ###########
   # Methods #
@@ -364,7 +366,7 @@ shinyServer(function(input, output, session) {
       # case we don't have write permissions to the current working dir (which
       # can happen when deployed).
       tempReport <- file.path(tempdir(), "report.Rmd")
-      file.copy("report.Rmd", tempReport, overwrite = TRUE)
+      file.copy("documents/report.Rmd", tempReport, overwrite = TRUE)
       
       # Subset DF to only include appropriate columns
       cols <- c(input$xCol, vals$yCol)

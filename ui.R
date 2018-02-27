@@ -15,6 +15,7 @@ library(DT)
 
 source("global.R", local=TRUE)
 source("ui-modules/ui-options.R", local=TRUE)
+source("ui-modules/ui-datapreview.R", local=TRUE)
 source("ui-modules/ui-metriccomparison.R", local=TRUE)
 source("ui-modules/ui-metricdive.R", local=TRUE)
 
@@ -25,11 +26,7 @@ shinyUI(
     fluid = TRUE,
     id = "mainTabset",
     optionsPage(),
-    tabPanel(
-      "Data Preview",
-      value="dataPreview",
-      DTOutput("dataPreview")
-      ),
+    dataPreviewPage(),
     metricComparisonsPage(),
     metricDivePage()
     )

@@ -123,11 +123,11 @@ optionsPage <- function() {
         tabsetPanel(
           tabPanel(
             "Instructions",
-            includeMarkdown("instructions.md")
+            includeMarkdown("documents/instructions.md")
             ),
           tabPanel(
             "Glossary",
-            includeMarkdown("glossary.md")
+            includeMarkdown("documents/glossary.md")
             )
           )
         )
