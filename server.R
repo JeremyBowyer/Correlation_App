@@ -44,6 +44,8 @@ shinyServer(function(input, output, session) {
     datadf = data.frame(),
     originaldf = data.frame(),
     metricdivedf = data.frame(),
+    metricdivedfPage = data.frame(),
+    metricdivedfPoint = data.frame(),
     dateFilterdf = data.frame(),
     perfdf = data.frame(),
     yCol = "",
@@ -408,7 +410,11 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  # Page Filter
+  #############
+  ## Filters ##
+  #############
+  
+  ## Page Filter ##
   observeEvent(input$pageFilterCheck, {
     
     if(input$pageFilterCheck){
@@ -426,10 +432,23 @@ shinyServer(function(input, output, session) {
                                          filter = "none",
                                          style = "bootstrap",
                                          autoHideNavigation = TRUE)
+     
+      vals$metricdivedfPage <- if(input$pointFilterCheck) vals$metricdivedfPoint  else vals$originalmetricdivedf
       
-    } else if(!input$pageFilterCheck) {
-      vals$metricdivedf <- vals$originalmetricdivedf
     }
+    
+    if(!input$pageFilterCheck && !input$pointFilterCheck) {
+      vals$metricdivedf <- vals$originalmetricdivedf
+      vals$metricdivedfPage <- data.frame()
+      return(NULL)
+    }
+    
+    if(!input$pageFilterCheck && input$pointFilterCheck) {
+      vals$metricdivedf <- vals$metricdivedfPoint
+      vals$metricdivedfPage <- data.frame()
+      return(NULL)
+    }
+    
     
   })
   
@@ -441,39 +460,85 @@ shinyServer(function(input, output, session) {
       }
     
       selectedDates <- vals$dateFilterdf[input$pageFilterTable_rows_selected, "Date"]
-      df <- vals$originalmetricdivedf
+      
+      df <- if(input$pointFilterCheck) vals$metricdivedfPoint else vals$originalmetricdivedf
       df <- df[df[,input$dateCol] %in% selectedDates, ]
       vals$metricdivedf <- df
+      vals$metricdivedfPage <- df
   })
   
-  
+  ## Point Filter ##
   observeEvent(input$pointFilterCheck, {
     
-    if(!input$pointFilterCheck) {
+    vals$metricdivedfPoint <- if(input$pageFilterCheck) vals$metricdivedfPage  else vals$originalmetricdivedf
+    
+    if(!input$pointFilterCheck && !input$pageFilterCheck) {
       vals$metricdivedf <- vals$originalmetricdivedf
+      vals$metricdivedfPoint <- data.frame()
+      return(NULL)
+    }
+    
+    if(!input$pointFilterCheck && input$pageFilterCheck) {
+      vals$metricdivedf <- vals$metricdivedfPage
+      vals$metricdivedfPoint <- data.frame()
+      return(NULL)
     }
     
   })
   
-  observeEvent(input$pageBack, {
+  observeEvent({input$keepPoints}, {
     
-    df <- vals$originalmetricdivedf
-    metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
-    currentdate <- input$metricDiveFilterDate
-    currentindex <- which(metricDates %in% currentdate)
-    index <- if (currentindex <= 1) currentindex else currentindex - 1
-    updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[index])
+    event.data <- event_data("plotly_selected", source = "metricScatter")
+    if(is.null(event.data) == TRUE) return(NULL)
+    
+    df <- vals$metricdivedf
+    
+    mod <- 1
+    
+    if (input$categoryCol != ""){
+      df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
+      aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
+        
+        cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
+        x[cat.index*mod, ]
+        
+      })
+      df <- do.call("rbind", aggs)
+    } else {
+      df <- df[(event.data$pointNumber + 1)*mod, ]
+    }
+    vals$metricdivedf <- df
+    vals$metricdivedfPoint <- df
     
   })
   
-  observeEvent(input$pageForward, {
+  observeEvent({input$removePoints}, {
     
-    df <- vals$originalmetricdivedf
-    metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
-    currentdate <- input$metricDiveFilterDate
-    currentindex <- which(metricDates %in% currentdate)
-    index <- if (currentindex >= length(metricDates)) currentindex else currentindex + 1
-    updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[index])
+    event.data <- event_data("plotly_selected", source = "metricScatter")
+    if(is.null(event.data) == TRUE) return(NULL)
+    
+    df <- vals$metricdivedf
+    
+    mod <- -1
+    
+    if (input$categoryCol != ""){
+      df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
+      aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
+        
+        cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
+        if(length(cat.index) > 0){
+          x[cat.index*mod, ]
+        } else {
+          x
+        }
+        
+      })
+      df <- do.call("rbind", aggs)
+    } else {
+      df <- df[(event.data$pointNumber + 1)*mod, ]
+    }
+    vals$metricdivedf <- df
+    vals$metricdivedfPoint <- df
     
   })
   
@@ -493,11 +558,6 @@ shinyServer(function(input, output, session) {
       
       vals$metricdivedf <- df
       vals$originalmetricdivedf <- df
-      
-      if(input$dateCol != ""){
-        metricDates <- unique(df[order(df[,input$dateCol]), input$dateCol])
-        updateSelectInput(session, 'metricDiveFilterDate', choices=metricDates, selected=metricDates[1])
-      }
      
       # Check for valid data, otherwise show error notification to user
       if(nrow(df) == 0) {
@@ -551,60 +611,6 @@ shinyServer(function(input, output, session) {
       add_markers(y = yform, color = colorform, text = ~text)  %>%
       add_lines(x = xform, y = fitted(fit), fill = "red", name = "Regression Line") %>%
       layout(dragmode = "lasso")
-    
-  })
-  
-  observeEvent({input$keepPoints}, {
-    
-    event.data <- event_data("plotly_selected", source = "metricScatter")
-    if(is.null(event.data) == TRUE) return(NULL)
-    
-    df <- vals$metricdivedf
-    
-    mod <- 1
-    
-    if (input$categoryCol != ""){
-      df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
-      aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
-        
-        cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
-        x[cat.index*mod, ]
-        
-      })
-      df <- do.call("rbind", aggs)
-    } else {
-      df <- df[(event.data$pointNumber + 1)*mod, ]
-    }
-    vals$metricdivedf <- df
-    
-  })
-  
-  observeEvent({input$removePoints}, {
-    
-    event.data <- event_data("plotly_selected", source = "metricScatter")
-    if(is.null(event.data) == TRUE) return(NULL)
-    
-    df <- vals$metricdivedf
-    
-    mod <- -1
-    
-    if (input$categoryCol != ""){
-      df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
-      aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
-        
-        cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
-        if(length(cat.index) > 0){
-          x[cat.index*mod, ]
-        } else {
-          x
-        }
-        
-      })
-      df <- do.call("rbind", aggs)
-    } else {
-      df <- df[(event.data$pointNumber + 1)*mod, ]
-    }
-    vals$metricdivedf <- df
     
   })
   
