@@ -10,8 +10,21 @@ transformationList = list("Difference" = "diff",
                           "Z-Score Longitudinal" = "zscorelong",
                           "Binary (String)" = "binarystring",
                           "Binary (Value)" = "binaryvalue",
-                          "Linear Residual" = "residual")
+                          "Linear Residual" = "residual",
+                          "Offset Forward" = "offsetfwd",
+                          "Offset Backward" = "offsetbwd")
 
 filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",
                   "Date Filter" = "dateFilter")
+
+aggregationLevelList = list("Day" = "day",
+                            "Month" = "month",
+                            "Year" = "year")
+
+aggregationFuncList = list("Sum" = "sum",
+                           "Average" = "average",
+                           "Earliest" = "earliest",
+                           "Latest" = "latest",
+                           "Lowest Number" = "lowest",
+                           "Highest Number" = "highest")

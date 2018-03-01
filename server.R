@@ -6,7 +6,7 @@
 #
 
 library(shiny)
-library(shinyalert)
+library(shinyalert) # https://github.com/daattali/shinyalert
 library(plotly)
 library(dplyr)
 library(reshape2)
@@ -19,7 +19,7 @@ options(stringsAsFactors = FALSE)
 source("global.R", local=TRUE)
 source("server-modules/filters.R", local=TRUE)
 source("server-modules/transformations.R", local=TRUE)
-source("server-modules/offsets.R", local=TRUE)
+source("server-modules/aggregation.R", local=TRUE)
 source("server-modules/performance.R",local=TRUE)
 source("server-modules/conditions.R",local=TRUE)
 
@@ -63,13 +63,13 @@ shinyServer(function(input, output, session) {
   }
   
   vals$refreshInputs <- function(session, input, vals) {
-    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol")) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")) {
         updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
     }
   }
   
   vals$unloadData <- function(session, input, output, vals) {
-    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol")) {
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")) {
         updateSelectInput(session, col, choices=list(), selected=NULL)
     }
     
@@ -135,6 +135,12 @@ shinyServer(function(input, output, session) {
   # Clear Offsets Button
   observeClearOffsets(input, output, session, vals)
   
+  
+  #############################
+  # Aggregate by Date Section #
+  #############################
+  # Aggregate Data Button
+  observeAggregateData(input, output, session, vals)
   
   # Run Analysis Button
   observeEvent(input$run, {

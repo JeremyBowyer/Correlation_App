@@ -58,7 +58,7 @@ optionsPage <- function() {
               ),
             tags$hr()),
           tabPanel(
-            "Metric Transformation",
+            "Transformations",
             tags$div(
               h3("Metric Transformations"),
               conditionalPanel(
@@ -110,6 +110,17 @@ optionsPage <- function() {
                 id="offsets-div",
                 style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"
                 ),
+              tags$br()
+              ),
+            tabPanel(
+              "Date Aggregation",
+              h3("Date Aggregation"),
+              selectInput("dateAggDateCol", "Select Date column", choices=list("", "Please upload data first.")),
+              textInput("dateAggDateColFormat", "Format dates are in", "%m/%d/%Y"),
+              selectInput("groupByCols", "Select Category column(s) (optional)", multiple = TRUE, choices=list("", "Please upload data first.")),
+              selectInput("aggregationLevel", "Aggregation Level", choices = aggregationLevelList),
+              selectInput("aggregationFunc", "Aggregation Function", choices = aggregationFuncList),
+              actionButton("aggregateData", "Aggregate Data"),
               tags$br()
               )
           ),
