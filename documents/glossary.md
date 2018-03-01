@@ -54,3 +54,9 @@ A given column will be transformed into 0s and 1s. Values equal to or greater th
 
 #### Linear Residual
 The residual values of a univariate linear regression, where the user provides an x column and a y column. It is the y value minus the expected y given the linear model.
+
+#### Offset Forward
+Data will simply be shifted forward by a specified number of data points.
+
+#### Offset Backward
+DAta will simply be shifted backward by a specific number of data points.

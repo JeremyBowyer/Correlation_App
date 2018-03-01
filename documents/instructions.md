@@ -57,7 +57,7 @@ This section allows you to filter your data in various ways. You will select a c
 
 For an explanation of each type of filter (Value, Percentile, Date), see the Glossary.
 
-### Metric Transformations
+### Transformations
 ---
 This section allows you to create transformations of columns in your dataset. For example if you have a column of prices that you want to be turned into performance, you can use the "% Change" transformation to do that. See the Glossary for an explanation of each transformation type.
 
@@ -86,9 +86,3 @@ Similar to above, except instead of a string to flag, you designate a minimum va
 
 #### Select x columns & Select y column
 These are used when creating a residual column. You are asked to give x columns (one or more) and a y column. The resulting column will be the difference between a given y value and the corresponding expected value from a linear regression.
-
-### Offsets
----
-This section allows you to shift a column up or down by a given amount. If you provide category column(s), the app will take that into account and it will shift the data up/down for each category in the category columns. So if you have price data that you've turned into performance using the % change metric transformation, you can use an offset to shift those performance numbers forward so they become subsequent performance.
-
-For an explanation of each type of transformation along with their requisite inputs, see the Glossary.
