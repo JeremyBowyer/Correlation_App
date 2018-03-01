@@ -125,16 +125,6 @@ shinyServer(function(input, output, session) {
   # Clear Transformations Button
   observeClearTransformations(input, output, session, vals)
   
-  ##################
-  # Offset Section #
-  ##################
-  # Add Offset Button
-  observeAddOffset(input, output, session, vals)
-  # Create Offsets Button
-  observeApplyOffsets(input, output, session, vals)
-  # Clear Offsets Button
-  observeClearOffsets(input, output, session, vals)
-  
   
   #############################
   # Aggregate by Date Section #

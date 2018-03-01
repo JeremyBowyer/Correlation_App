@@ -90,29 +90,6 @@ optionsPage <- function() {
             tags$hr()
             ),
             tabPanel(
-              "Offsets",
-              tags$div(
-                h3("Offsets"),
-                conditionalPanel(
-                  condition = "output.offsetsCheck",
-                  actionButton("applyOffsets", "Create Offsets", icon("arrows-v"), style="padding: 5px 10px 5px 10px;"),
-                  tags$br(),
-                  actionLink("offsetClear", "Clear All Offsets", style="color: #f12828;")
-                  ),
-                actionButton("addOffset", "Add Offset", style="padding:4px;font-size: 75%;"),
-                tags$br(),
-                tags$br(),
-                conditionalPanel(
-                  condition = "output.offsetsCheck",
-                  tags$hr()
-                  ),
-                tags$div(id="offsets"),
-                id="offsets-div",
-                style="padding: 0px 5px 0px 5px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"
-                ),
-              tags$br()
-              ),
-            tabPanel(
               "Date Aggregation",
               h3("Date Aggregation"),
               selectInput("dateAggDateCol", "Select Date column", choices=list("", "Please upload data first.")),
