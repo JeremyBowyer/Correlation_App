@@ -51,7 +51,10 @@ shinyServer(function(input, output, session) {
     yCol = "",
     dateCol = "",
     dateFormat = "%m/%d/%Y",
-    loadingPreviews = FALSE
+    loadingPreviews = FALSE,
+    IsAggregated = FALSE,
+    filterClearCnt = 0,
+    aggClearCnt = 0
     )
   
   ###########
@@ -105,6 +108,7 @@ shinyServer(function(input, output, session) {
   ###########################
   loadConditions(input, output, session, vals)
   
+
   ##################
   # Filter Section #
   ##################
@@ -115,6 +119,14 @@ shinyServer(function(input, output, session) {
   # Apply Filters Button
   observeClearFilters(input, output, session, vals)
   
+  #############################
+  # Aggregate by Date Section #
+  #############################
+  # Aggregate Data Button
+  observeAggregateData(input, output, session, vals)
+  # Clear Agg Button
+  observeClearAgg(input, output, session, vals)
+  
   ##########################
   # Transformation Section #
   ##########################
@@ -124,13 +136,6 @@ shinyServer(function(input, output, session) {
   observeCreateTransformations(input, output, session, vals)
   # Clear Transformations Button
   observeClearTransformations(input, output, session, vals)
-  
-  
-  #############################
-  # Aggregate by Date Section #
-  #############################
-  # Aggregate Data Button
-  observeAggregateData(input, output, session, vals)
   
   # Run Analysis Button
   observeEvent(input$run, {

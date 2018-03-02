@@ -23,7 +23,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                                     numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                                     selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
                                     selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
-                                    textInput(paste0("transformDateColFormat", cnt), "Format dates are in", "%m/%d/%Y"),
+                                    textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
                                     selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                                     tags$hr(), class="transformation")
              )
@@ -49,7 +49,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                                     textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
                                     selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
                                     selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
-                                    textInput(paste0("transformDateColFormat", cnt), "Format dates are in", "%m/%d/%Y"),
+                                    textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
                                     selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                                     tags$hr(), class="transformation")
              )
@@ -98,7 +98,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                             numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                             selectInput(paste0("transformCols", cnt), "Select columns to offset", choices=vals$getCols(), multiple = TRUE),
                             selectInput(paste0("transformDateCol", cnt), "Select column to offset along (probably a date)", choices=vals$getCols()),
-                            textInput(paste0("transformDateColFormat", cnt), "Format dates are in", "%m/%d/%Y"),
+                            textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
                             selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                             tags$hr(), class="transformation")
             )
@@ -111,7 +111,7 @@ observeAddTransformation <- function(input, output, session, vals) {
 
 observeCreateTransformations <- function(input, output, session, vals) {
   
-  createTransformations <- function(alert){
+  createTransformations <- function(alert, dateformat=FALSE){
     
     if(vals$transformationCount < 1){
       return(NULL)
@@ -131,7 +131,14 @@ observeCreateTransformations <- function(input, output, session, vals) {
       type <- input[[paste0("transformationType", cnt)]]
       cols <- input[[paste0("transformCols", cnt)]]
       dateCol <- input[[paste0("transformDateCol", cnt)]]
-      dateColFormat <- input[[paste0("transformDateColFormat", cnt)]]
+      
+      if(dateformat) {
+        updateTextInput(session, paste0("transformDateColFormat", cnt), value = input$dateAggDateColFormat)
+        dateColFormat <- input$dateAggDateColFormat
+      } else {
+        dateColFormat <- input[[paste0("transformDateColFormat", cnt)]]
+      }
+      
       catCols <- input[[paste0("transformCategoryCol", cnt)]]
       lag <- input[[paste0("transformationLag", cnt)]]
       transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
@@ -303,8 +310,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
           
-          
-          df[, transformName] <-  unlist(aggregate(df[,col], by=list(rep(1,nrow(df))), function(x) transformFunc(as.numeric(x), lag), simplify=FALSE)[["x"]])
+          df[, transformName] <- transformFunc(as.numeric(df[,col]), lag)
         }
         
       } else {
@@ -378,8 +384,15 @@ observeCreateTransformations <- function(input, output, session, vals) {
   
   # Clear Filters Button
   observeEvent(input$filterClear, {
-    
+
     createTransformations(alert=FALSE)
+    
+  })
+  
+  # Clear Aggregation Button
+  observeEvent(input$aggClear, {
+
+    createTransformations(alert=FALSE,dateformat=TRUE)
     
   })
   

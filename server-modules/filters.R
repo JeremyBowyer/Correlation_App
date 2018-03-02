@@ -40,7 +40,7 @@ observeAddFilter <- function(input, output, session, vals) {
                                       tags$div(textInput(paste0("dateFilter", cnt, "Max"), "Max"), style="display:inline-block")
                                     ),
                                     tags$div(
-                                      tags$div(textInput(paste0("dateFilter", cnt, "Format"), "Date Format", "%m/%d/%Y"), style="display:inline-block"),
+                                      tags$div(textInput(paste0("dateFilter", cnt, "Format"), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"), style="display:inline-block"),
                                       tags$div(a("Example Formats", href="http://www.statmethods.net/input/dates.html", target="_blank"), style="display:inline-block")
                                     ),
                                     tags$div(tags$hr(), class="dateFilter"), class="dateFilter"))
@@ -53,9 +53,8 @@ observeAddFilter <- function(input, output, session, vals) {
 
 observeApplyFilters <- function(input, output, session, vals) {
   
-  # Apply Filters Button
-  observeEvent(input$applyFilters, {
-    df <- vals$originaldf
+  applyFilters <- function(alert) {
+    df <- vals$datadf
     # Value Filters
     if(vals$valueFilterCount > 0) {
       for(filter in 1:vals$valueFilterCount){
@@ -118,22 +117,32 @@ observeApplyFilters <- function(input, output, session, vals) {
     
     vals$datadf <- df
     
-    shinyalert(
-        title = "",
-        text = "Your data has been filtered according to your specifications. You can find the updated dataset in the 'Data Preview' tab.",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = TRUE,
-        html = FALSE,
-        type = "success",
-        showConfirmButton = TRUE,
-        showCancelButton = FALSE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#3E3F3A",
-        timer = 0,
-        imageUrl = "",
-        animation = TRUE
-      )
-    
+    if(alert) {
+      shinyalert(
+          title = "",
+          text = "Your data has been filtered according to your specifications. You can find the updated dataset in the 'Data Preview' tab.",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = TRUE,
+          html = FALSE,
+          type = "success",
+          showConfirmButton = TRUE,
+          showCancelButton = FALSE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#3E3F3A",
+          timer = 0,
+          imageUrl = "",
+          animation = TRUE
+        )
+    }
+  }
+  
+  # Apply Filters Button
+  observeEvent(input$applyFilters, {
+    applyFilters(TRUE)
+  })
+  
+  observeEvent(input$aggClear, {
+    applyFilters(FALSE)
   })
 }
 
@@ -141,6 +150,14 @@ observeClearFilters <- function(input, output, session, vals) {
   
   # Clear Filters Button
   observeEvent(input$filterClear, {
+    
+    if(!input$filterClear && !input$aggClear){
+      return(NULL)
+    }
+    
+    vals$filterClearCnt <- input$filterClear
+    vals$aggClearCnt <- input$aggClear
+    
     removeUI(".valueFilter", multiple = TRUE)
     removeUI(".percentileFilter", multiple = TRUE)
     removeUI(".dateFilter", multiple = TRUE)
@@ -148,10 +165,10 @@ observeClearFilters <- function(input, output, session, vals) {
     vals$percentileFilterCount <- 0
     vals$dateFilterCount <- 0
     vals$datadf <- vals$originaldf
-    
+
     shinyalert(
       title = "",
-      text = "Your filter(s) have been removed. Any transformations and offsets you've created have been re-created using the unfiltered data. You can find them at te end of the table in the 'Data Preview' tab.",
+      text = "Your filter(s) have been removed. Any date aggregation or metric transformations you've created will be re-created in that order (First the data will be aggregated by date, then transformations wil be re-made).",
       closeOnEsc = TRUE,
       closeOnClickOutside = TRUE,
       html = FALSE,

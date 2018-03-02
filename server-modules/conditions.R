@@ -3,6 +3,11 @@
 ###########################
 loadConditions <- function(input, output, session, vals) {
   
+  output$aggCheck <- reactive({
+    return(vals$IsAggregated)
+  })
+  outputOptions(output, 'aggCheck', suspendWhenHidden=FALSE)
+  
 	output$fileUploaded <- reactive({
 	  return(nrow(vals$originaldf) > 0)
 	})

@@ -28,7 +28,7 @@ optionsPage <- function() {
             selectInput("dateCol", "Select Date column (optional)", choices=list("", "Please upload data first.")),
             conditionalPanel(
               condition = "output.dateColCheck",
-              textInput("dateColFormat", "Format dates are in", "%m/%d/%Y")
+              textInput("dateColFormat", "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y")
               ),
             selectInput("categoryCol", "Select Category column (optional)", choices=list("", "Please upload data first.")),
             selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list("Please upload data first."), multiple = TRUE),
@@ -92,10 +92,15 @@ optionsPage <- function() {
             tabPanel(
               "Date Aggregation",
               h3("Date Aggregation"),
+              conditionalPanel(
+                condition = "output.aggCheck",
+                actionLink("aggClear", "Undo Aggregation", style="color: #f12828;"),
+                tags$br()
+              ),
               selectInput("dateAggDateCol", "Select Date column", choices=list("", "Please upload data first.")),
-              textInput("dateAggDateColFormat", "Format dates are in", "%m/%d/%Y"),
+              textInput("dateAggDateColFormat", "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
               selectInput("groupByCols", "Select Category column(s) (optional)", multiple = TRUE, choices=list("", "Please upload data first.")),
-              selectInput("aggregationLevel", "Aggregation Level", choices = aggregationLevelList),
+              selectInput("aggregationLevel", "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
               selectInput("aggregationFunc", "Aggregation Function", choices = aggregationFuncList),
               actionButton("aggregateData", "Aggregate Data"),
               tags$br()

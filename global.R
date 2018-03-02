@@ -18,13 +18,12 @@ filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",
                   "Date Filter" = "dateFilter")
 
-aggregationLevelList = list("Day" = "day",
-                            "Month" = "month",
-                            "Year" = "year")
+aggregationLevelList = list("Month" = "%Y/%m",
+                            "Year" = "%Y")
 
 aggregationFuncList = list("Sum" = "sum",
                            "Average" = "average",
                            "Earliest" = "earliest",
                            "Latest" = "latest",
-                           "Lowest Number" = "lowest",
-                           "Highest Number" = "highest")
+                           "Lowest Number" = "min",
+                           "Highest Number" = "max")
