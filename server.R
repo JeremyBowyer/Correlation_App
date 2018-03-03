@@ -51,10 +51,7 @@ shinyServer(function(input, output, session) {
     yCol = "",
     dateCol = "",
     dateFormat = "%m/%d/%Y",
-    loadingPreviews = FALSE,
-    IsAggregated = FALSE,
-    filterClearCnt = 0,
-    aggClearCnt = 0
+    IsAggregated = FALSE
     )
   
   ###########
@@ -114,17 +111,19 @@ shinyServer(function(input, output, session) {
   ##################
   # Add filter Buttons
   observeAddFilter(input, output, session, vals)
-  # Clear Filters Button
-  observeApplyFilters(input, output, session, vals)
   # Apply Filters Button
-  observeClearFilters(input, output, session, vals)
+  observeApplyFilters(input, output, session, vals)
   
   #############################
   # Aggregate by Date Section #
   #############################
   # Aggregate Data Button
   observeAggregateData(input, output, session, vals)
-  # Clear Agg Button
+  
+  ############################
+  # Clear Filter & Clear Agg #
+  ############################
+  observeClearFilters(input, output, session, vals)
   observeClearAgg(input, output, session, vals)
   
   ##########################

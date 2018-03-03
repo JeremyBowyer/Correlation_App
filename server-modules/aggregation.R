@@ -1,3 +1,108 @@
+aggregateData <- function(input, output, session, vals) {
+  
+  # Grab values from current transformation request
+  dateCol <- input$dateAggDateCol
+  dateColFormat <- input$dateAggDateColFormat
+  catCols <- input$groupByCols
+  aggLevel <- input$aggregationLevel
+  aggType <- input$aggregationFunc
+  
+  # Prepare dataframe
+  df <- vals$datadf
+  df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat), aggLevel)
+  df <- df[order(df[, dateCol]), ]
+  
+  # Choose aggregation function
+  switch(aggType,
+         sum = {
+           aggFunc <- function(x) {
+             n <- as.numeric(x)
+             n <- n[!is.na(n)]
+             if(length(n) == 0) {
+               return(NA)
+             } else {
+               return(sum(n))
+             }
+           }
+         },
+         average = {
+           aggFunc <- function(x) {
+             n <- as.numeric(x)
+             n <- n[!is.na(n)]
+             if(length(n) == 0) {
+               return(NA)
+             } else {
+               return(mean(n))
+             }
+           }
+         },
+         earliest = {
+           aggFunc <- function(x) {
+             n <- as.numeric(x)
+             n <- n[!is.na(n)]
+             if(length(n) == 0) {
+               return(NA)
+             } else {
+               return(head(n, 1))
+             }
+           }
+         },
+         latest = {
+           aggFunc <- function(x) {
+             n <- as.numeric(x)
+             n <- n[!is.na(n)]
+             if(length(n) == 0) {
+               return(NA)
+             } else {
+               return(tail(n, 1))
+             }
+           }
+         },
+         min = {
+           aggFunc <- function(x) {
+             n <- as.numeric(x)
+             n <- n[!is.na(n)]
+             if(length(n) == 0) {
+               return(NA)
+             } else {
+               return(min(n))
+             }
+           }
+         },
+         max = {
+           aggFunc <- function(x) {
+             n <- as.numeric(x)
+             n <- n[!is.na(n)]
+             if(length(n) == 0) {
+               return(NA)
+             } else {
+               return(max(n))
+             }
+           }
+         }
+  )
+  
+  # Create formula for aggregate()
+  aggCols <- names(df)[!names(df) %in% c(dateCol, catCols)]
+  groupFormString <- paste0("cbind(", aggCols[1])
+  for(aggCol in aggCols[-1]) {
+    groupFormString <- paste0(groupFormString, ", ", aggCol)
+  }
+  
+  groupFormString <- paste0(groupFormString, ") ~")
+  
+  for (groupCol in c(dateCol, catCols)){
+    groupFormString <- paste0(groupFormString, "+", groupCol)
+  }
+  groupForm <- as.formula(groupFormString)
+  
+  # Aggregate data
+  vals$datadf <- aggregate(formula=groupForm, data=df, FUN=aggFunc, na.action=NULL)
+  vals$IsAggregated <- TRUE
+  
+}
+
+
 observeAggregateData <- function(input, output, session, vals) {
   
   observeEvent(input$aggregateData, {
@@ -16,117 +121,8 @@ observeAggregateData <- function(input, output, session, vals) {
       timer = 0,
       imageUrl = "",
       animation = TRUE,
-      callbackR = function(x) { if(x) aggregateData() }
+      callbackR = function(x) { if(x) aggregateData(input, output, session, vals) }
     )
-  })
-  
-  
-  aggregateData <- function() {
-    
-    # Grab values from current transformation request
-    dateCol <- input$dateAggDateCol
-    dateColFormat <- input$dateAggDateColFormat
-    catCols <- input$groupByCols
-    aggLevel <- input$aggregationLevel
-    aggType <- input$aggregationFunc
-    
-    # Prepare dataframe
-    df <- vals$datadf
-    df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat), aggLevel)
-    df <- df[order(df[, dateCol]), ]
-    
-    # Choose aggregation function
-    switch(aggType,
-           sum = {
-             aggFunc <- function(x) {
-               n <- as.numeric(x)
-               n <- n[!is.na(n)]
-               if(length(n) == 0) {
-                 return(NA)
-               } else {
-                 return(sum(n))
-               }
-             }
-           },
-           average = {
-             aggFunc <- function(x) {
-               n <- as.numeric(x)
-               n <- n[!is.na(n)]
-               if(length(n) == 0) {
-                 return(NA)
-               } else {
-                 return(mean(n))
-               }
-             }
-           },
-           earliest = {
-             aggFunc <- function(x) {
-               n <- as.numeric(x)
-               n <- n[!is.na(n)]
-               if(length(n) == 0) {
-                 return(NA)
-               } else {
-                 return(head(n, 1))
-               }
-             }
-           },
-           latest = {
-             aggFunc <- function(x) {
-               n <- as.numeric(x)
-               n <- n[!is.na(n)]
-               if(length(n) == 0) {
-                 return(NA)
-               } else {
-                 return(tail(n, 1))
-               }
-             }
-           },
-           min = {
-             aggFunc <- function(x) {
-               n <- as.numeric(x)
-               n <- n[!is.na(n)]
-               if(length(n) == 0) {
-                 return(NA)
-               } else {
-                 return(min(n))
-               }
-             }
-           },
-           max = {
-             aggFunc <- function(x) {
-               n <- as.numeric(x)
-               n <- n[!is.na(n)]
-               if(length(n) == 0) {
-                 return(NA)
-               } else {
-                 return(max(n))
-               }
-             }
-           }
-         )
-    
-    # Create formula for aggregate()
-    aggCols <- names(df)[!names(df) %in% c(dateCol, catCols)]
-    groupFormString <- paste0("cbind(", aggCols[1])
-    for(aggCol in aggCols[-1]) {
-      groupFormString <- paste0(groupFormString, ", ", aggCol)
-    }
-    
-    groupFormString <- paste0(groupFormString, ") ~")
-    
-    for (groupCol in c(dateCol, catCols)){
-      groupFormString <- paste0(groupFormString, "+", groupCol)
-    }
-    groupForm <- as.formula(groupFormString)
-    
-    # Aggregate data
-    vals$datadf <- aggregate(formula=groupForm, data=df, FUN=aggFunc, na.action=NULL)
-    vals$IsAggregated <- TRUE
-    
-  }
-  
-  observeEvent(input$filterClear, {
-    aggregateData()
   })
   
 }
@@ -139,6 +135,11 @@ observeClearAgg <- function(input, output, session, vals) {
     if(!input$filterClear && !input$aggClear){
       return(NULL)
     }
+    
+    
+    updateSelectInput(session, "dateAggDateCol", choices = vals$getCols(), selected = "")
+    updateTextInput(session, "dateAggDateColFormat", value = vals$dateFormat)
+    updateSelectInput(session, "groupByCols", choices = vals$getCols(), selected = NULL)
     
     vals$datadf <- vals$originaldf
     vals$IsAggregated <- FALSE
@@ -158,5 +159,8 @@ observeClearAgg <- function(input, output, session, vals) {
       imageUrl = "",
       animation = TRUE
     )
+    
+    applyFilters(FALSE, TRUE, input, output, session, vals)
+    
   })
 }  
