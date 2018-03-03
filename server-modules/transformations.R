@@ -102,6 +102,19 @@ observeAddTransformation <- function(input, output, session, vals) {
                             selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                             tags$hr(), class="transformation")
             )
+          },
+          ctc = {
+            insertUI(
+              selector="#transformations",
+              where="afterBegin",
+              ui = tags$div(h3(transformationName),
+                            tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                            textInput(paste0("transformationSuffix", cnt), "Resulting Column Name (required)", value = ""),
+                            selectInput(paste0("transformCols", cnt), NULL, choices=vals$getCols()),
+                            selectInput(paste0("transformOperator", cnt), NULL, choices = list("+", "-", "/", "*")),
+                            selectInput(paste0("transformY", cnt), NULL, choices=vals$getCols()),
+                            tags$hr(), class="transformation")
+            )
           }
         )
     
@@ -144,12 +157,33 @@ observeCreateTransformations <- function(input, output, session, vals) {
       transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
       transformBinaryString <- input[[paste0("transformBinaryString", cnt)]]
       transformBinaryValue <- input[[paste0("transformBinaryValue", cnt)]]
-      regressiony <- input[[paste0("transformationY", cnt)]]
+      transformY <- input[[paste0("transformY", cnt)]]
+      transformOp <- input[[paste0("transformOperator", cnt)]]
 
+      if(type=="ctc" && transformSuffix == "") {
+        shinyalert(
+          title = "",
+          text = "Please provide a name for the resulting column.",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = TRUE,
+          html = FALSE,
+          type = "error",
+          showConfirmButton = TRUE,
+          showCancelButton = FALSE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#3E3F3A",
+          timer = 0,
+          imageUrl = "",
+          animation = TRUE
+        )
+        
+        return(NULL)
+      }
+      
       # Assign transformation function based on type selected
       switch(type,
              residual = {
-               transformFunc <- function(x, lag = 0, y) { 
+               transformFunc <- function(x, y, ...) { 
                  x <- as.numeric(x)
                  y <- as.numeric(y)
                  residual <- (y - coef(lm(y ~ x))["x"]*x - coef(lm(y ~ x))["(Intercept)"])
@@ -157,10 +191,10 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              diff={
-               transformFunc <- function(x, lag, y = 0) { return( c(rep(NA, lag), diff(as.numeric(x), lag = lag)) ) }
+               transformFunc <- function(x, lag, ...) { return( c(rep(NA, lag), diff(as.numeric(x), lag = lag)) ) }
              },
              rollingsum={   
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  d <- as.numeric(x)
                  m <- numeric()
                  
@@ -178,7 +212,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              submedian={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  n <- as.numeric(x)
                  m <- numeric()
                  
@@ -194,7 +228,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              subhistmedian={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  n <- as.numeric(x)
                  m <- numeric()
                  
@@ -212,16 +246,16 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              crossmedian={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  m <- as.numeric(x) - median(as.numeric(x), na.rm = TRUE)
                  return( m )
                  }
              },
              perchg={
-               transformFunc <- function(x, lag, y = 0) { return(  as.numeric(Delt(as.numeric(x), k = lag))) }
+               transformFunc <- function(x, lag) { return(  as.numeric(Delt(as.numeric(x), k = lag))) }
              },
              perchgmedian={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  
                  d <- c(rep(NA, lag), diff(as.numeric(x), lag = lag))
                  
@@ -235,7 +269,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              perchgstd={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  d <- c(rep(NA, lag), diff(as.numeric(x), lag = lag))
                  
                  m <- numeric()
@@ -248,7 +282,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              zscorelong={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  n <- as.numeric(x)
                  
                  m <- numeric()
@@ -260,14 +294,14 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              zscorecross={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  n <- as.numeric(x)
                  m <- (n - mean(n, na.rm = TRUE)) / sd(n, na.rm = TRUE)
                  return( m )
                  }
              },
              binarystring={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  lowerX <- tolower(as.character(x))
                  m <- rep(0, length(x))
                  m[lowerX == tolower(transformBinaryString)] <- 1
@@ -275,7 +309,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              binaryvalue={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  n <- as.numeric(x)
                  m <- rep(0, length(x))
                  m[n >= as.numeric(transformBinaryValue)] <- 1
@@ -283,14 +317,19 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              offsetfwd={
-               transformFunc <- function(x, lag, y = 0) { 
+               transformFunc <- function(x, lag, ...) { 
                  return( c(rep(NA, lag), x[1:(length(x) - lag)]) )
                  }
              },
              offsetbwd={
-               transformFunc <- function(x, lag, y = 0) {
+               transformFunc <- function(x, lag, ...) {
                  return( c(x[(lag + 1):length(x)], rep(NA, lag)) )
                  }
+             },
+             ctc={
+               transformFunc <- function(x, y, op, ...) {
+                 return(.Primitive(op)(x,y))
+               }
              }
       )
       
@@ -305,12 +344,12 @@ observeCreateTransformations <- function(input, output, session, vals) {
         }
         
         for (col in cols){
-          transformName <- paste0(col, "_", transformSuffix)
+          transformName <- if(type == "ctc") transformSuffix else paste0(col, "_", transformSuffix)
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
           
-          df[, transformName] <- transformFunc(as.numeric(df[,col]), lag)
+          df[, transformName] <- transformFunc(x=as.numeric(df[,col]), lag=lag, y=df[,transformY], op=transformOp)
         }
         
       } else {
@@ -333,7 +372,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
         }
         
         for (col in cols){
-          transformName <- paste0(col, "_", transformSuffix)
+          transformName <- if(type == "ctc") transformSuffix else paste0(col, "_", transformSuffix)
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }

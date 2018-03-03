@@ -12,7 +12,8 @@ transformationList = list("Difference" = "diff",
                           "Binary (Value)" = "binaryvalue",
                           "Linear Residual" = "residual",
                           "Offset Forward" = "offsetfwd",
-                          "Offset Backward" = "offsetbwd")
+                          "Offset Backward" = "offsetbwd",
+                          "Column to Column" = "ctc")
 
 filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",
