@@ -24,7 +24,9 @@ metricDivePage <- function() {
                    conditionalPanel(
                      condition = "output.pointFilterCheck",
                      actionButton("keepPoints", "Keep Selection", value = FALSE),
-                     actionButton("removePoints", "Remove Selection", value = FALSE)
+                     actionButton("removePoints", "Remove Selection", value = FALSE),
+                     tags$br(),
+                     tags$br()
                      )
                    ),
                  downloadButton('downloadReport', 'Download Report')

@@ -449,5 +449,22 @@ observeClearTransformations <- function(input, output, session, vals) {
     vals$transformationCount <- 0
     vals$transformColIndex <- NULL
     vals$refreshInputs(session, input, vals)
+    
+    shinyalert(
+      title = "",
+      text = "Your transformations have been removed. Any filters you have applied based on those transformations are still applied.",
+      closeOnEsc = TRUE,
+      closeOnClickOutside = TRUE,
+      html = FALSE,
+      type = "success",
+      showConfirmButton = TRUE,
+      showCancelButton = FALSE,
+      confirmButtonText = "OK",
+      confirmButtonCol = "#3E3F3A",
+      timer = 0,
+      imageUrl = "",
+      animation = TRUE
+    )
+    
   })
 }

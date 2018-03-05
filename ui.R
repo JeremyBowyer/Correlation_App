@@ -30,5 +30,5 @@ shinyUI(
     dataPreviewPage(),
     metricComparisonsPage(),
     metricDivePage()
-    )
   )
+)

@@ -198,22 +198,8 @@ shinyServer(function(input, output, session) {
     datadf <- vals$datadf
     
     # Y Column
-    if(input$hierBox){
-      
-      datadf[, input$hierCol] <- as.numeric(datadf[, input$hierCol])
-      form <- as.formula(paste0(input$yCol, " ~ ", input$hierCol))
-      fit <- lm(form, datadf)
-      intercept <- fit$coefficients[1]
-      coefficient <- fit$coefficients[2]
-      datadf$residual <- datadf[,input$yCol] - (datadf[, input$hierCol] * coefficient + intercept)
-      
-      ignoreCols = c(input$hierCol, input$yCol, input$dateCol, input$categoryCol, input$ignoreCols, "residual")
-      yColumn <- "residual"
-      
-    } else {
-      ignoreCols = c(input$yCol, input$dateCol, input$categoryCol, input$ignoreCols)
-      yColumn <- input$yCol
-    }
+    ignoreCols = c(input$yCol, input$dateCol, input$categoryCol, input$ignoreCols)
+    yColumn <- input$yCol
     
     # Create vector of metric columns
     correlCols = unique(names(datadf)[!names(datadf) %in% ignoreCols])
@@ -592,6 +578,10 @@ shinyServer(function(input, output, session) {
   # Metric Scatter
   output$metricScatter <- renderPlotly({
     
+    if(input$xCol == "" || input$yCol == "") {
+      return(NULL)
+    }
+    
     df <- vals$metricdivedf
     if (input$dateCol != ""){
       df$text <- paste0("date: ", df[,input$dateCol])
@@ -617,6 +607,10 @@ shinyServer(function(input, output, session) {
   # Metric Histogram
   output$metricHist <- renderPlotly({
     
+    if(input$xCol == "") {
+      return(NULL)
+    }
+    
     df <- vals$metricdivedf
     xform <- as.formula(paste0("~",input$xCol))
     plot_ly(data = df, x = xform, type = "histogram")
@@ -625,6 +619,10 @@ shinyServer(function(input, output, session) {
   
   # Metric QQ Normal Dist
   output$metricQQNorm <- renderPlotly({
+    
+    if(input$xCol == "" || input$yCol == "") {
+      return(NULL)
+    }
     
     df <- vals$metricdivedf
     
@@ -642,6 +640,10 @@ shinyServer(function(input, output, session) {
   # Metric QQ Y
   output$metricQQy <- renderPlotly({
     
+    if(input$xCol == "" || input$yCol == "") {
+      return(NULL)
+    }
+    
     df <- vals$metricdivedf
     
     xyDF <- df[complete.cases(df[, c(input$xCol, input$yCol)]), c(input$xCol, input$yCol)]
@@ -658,23 +660,30 @@ shinyServer(function(input, output, session) {
   # Metric Rank Volatility
   output$metricRankVolatility <- renderPlotly({
     
-    if(input$dateCol != "") {
-      df <- vals$originalmetricdivedf
-      metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
-      wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
-      rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
-      diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
-      stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-      dates <- as.Date(unique(metricDF[,input$dateCol]))
-      stdDF <- data.frame(date = dates, std = stds)
-      stdDF <- stdDF[order(stdDF$date), ]
-      plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
+    if(input$xCol == "" || input$yCol == "" || input$dateCol == "") {
+      return(NULL)
     }
+    
+    df <- vals$originalmetricdivedf
+    metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
+    wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
+    rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
+    diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
+    stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
+    dates <- as.Date(unique(metricDF[,input$dateCol]))
+    stdDF <- data.frame(date = dates, std = stds)
+    stdDF <- stdDF[order(stdDF$date), ]
+    plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
     
   })
   
   # ANOVA
   output$aovSummary = reactivePrint(function() {
+    
+    if(input$xCol == "" || input$yCol == "") {
+      return(NULL)
+    }
+    
     df <- vals$metricdivedf
     form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
     summary(lm(form, data = df))

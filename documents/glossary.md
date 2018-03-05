@@ -2,7 +2,29 @@
 
 ## Glossary
 ---
+
+### Date Aggregation Functions
+---
+Below you'll find a description for each aggregation function. This is how your granular data will be combined into a condensed value.
+
+#### Sum
+A simple sum of the individual data points to be aggregated.
+
+#### Average
+Arithmetic mean of the individual data points to be aggregated. The sum of the data points divided by the number of data points.
+
+#### Earliest
+The earliest number available in the data to be aggregated.
+
+#### Latest
+The latest number available in the data to be aggregated.
+
+#### Lowest Number
+The lowest number in the data to be aggregated.
  
+#### Highest Number
+The higher number in the data to be aggregated.
+
 ### Filters
 ---
 #### Value

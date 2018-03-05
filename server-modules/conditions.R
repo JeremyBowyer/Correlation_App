@@ -13,11 +13,6 @@ loadConditions <- function(input, output, session, vals) {
 	})
 	outputOptions(output, 'fileUploaded', suspendWhenHidden=FALSE)
 
-	output$hierarchicalCheck <- reactive({
-	  return(input$hierBox)
-	})
-	outputOptions(output, 'hierarchicalCheck', suspendWhenHidden=FALSE)  
-
 	output$transformationsCheck <- reactive({
 	  return(vals$transformationCount > 0)
 	})
