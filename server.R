@@ -3,9 +3,7 @@
 # You can find out more about building applications with Shiny here:
 #
 # http://shiny.rstudio.com
-#
 
-# Test
 
 library(shiny)
 library(shinyalert) # https://github.com/daattali/shinyalert
