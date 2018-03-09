@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 datafiles/
+rsconnect/
+Correlation_App.Rproj
