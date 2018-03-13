@@ -82,3 +82,15 @@ Data will simply be shifted forward by a specified number of data points.
 
 #### Offset Backward
 DAta will simply be shifted backward by a specific number of data points.
+
+### Metrics
+---
+
+#### Rank Volatility
+Rank Volatility is a metric aimed at quantifying how much rank turnover a factor causes. In order for this to be calculated, you need to provide a date column and at least one category column.
+
+For example, let's say you're analyzing 10 yr government bond yields across countries, and your dataset is annual. The app will first look at each year, rank the countries by bond yield within that year, then divide those numbers by the total number of countries for which there is data available in that year (to normalize the ranks into a percentile). Then the app will take the difference in those percentiles over time for each country. Then a standard deviation of those changes in percentiles will be calculated for each year. 
+
+These standard deviations for each year are displayed in the Metric Dive page, under Metric Plots > Rank Volatility.
+
+They are averaged together and displayed as one number for each factor in your dataset, in the Metric Comparison page, under Summary - All Dates.
