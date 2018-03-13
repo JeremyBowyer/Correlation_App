@@ -2,6 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-datafiles/
-rsconnect/
+/datafiles/
+/rsconnect/
 Correlation_App.Rproj
