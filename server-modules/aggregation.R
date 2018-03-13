@@ -100,6 +100,23 @@ aggregateData <- function(input, output, session, vals) {
   vals$datadf <- aggregate(formula=groupForm, data=df, FUN=aggFunc, na.action=NULL)
   vals$IsAggregated <- TRUE
   
+  shinyalert(
+        title = "",
+        text = "Your data has been aggregated. You can review the results in the 'Data Preview' tab.",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "success",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+  
+  
 }
 
 

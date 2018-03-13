@@ -670,7 +670,7 @@ shinyServer(function(input, output, session) {
     rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
     diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
     stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
-    dates <- as.Date(unique(metricDF[,input$dateCol]))
+    dates <- as.Date(unique(metricDF[,input$dateCol]), format = vals$dateFormat)
     stdDF <- data.frame(date = dates, std = stds)
     stdDF <- stdDF[order(stdDF$date), ]
     plot_ly(data = stdDF, x = ~date, y = ~std, type = 'scatter', mode = 'lines')
