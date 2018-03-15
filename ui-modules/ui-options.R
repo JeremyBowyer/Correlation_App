@@ -50,7 +50,10 @@ optionsPage <- function() {
                 selectInput("groupByCols", "Select Category column(s) (optional)", multiple = TRUE, choices=list("", "Please upload data first.")),
                 selectInput("aggregationLevel", "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
                 selectInput("aggregationFunc", "Aggregation Function", choices = aggregationFuncList),
-                actionButton("aggregateData", "Aggregate Data"),
+                conditionalPanel(
+                  condition = "!output.aggCheck",
+                  actionButton("aggregateData", "Aggregate Data")
+                  ),
                 tags$br(),
                 style="padding: 5px 20px 20px 20px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"
               )

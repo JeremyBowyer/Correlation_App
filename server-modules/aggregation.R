@@ -89,16 +89,18 @@ aggregateData <- function(input, output, session, vals) {
     groupFormString <- paste0(groupFormString, ", ", aggCol)
   }
   
-  groupFormString <- paste0(groupFormString, ") ~")
+  groupFormString <- paste0(groupFormString, ") ~ ", dateCol)
   
-  for (groupCol in c(dateCol, catCols)){
-    groupFormString <- paste0(groupFormString, "+", groupCol)
+  for (groupCol in catCols){
+    groupFormString <- paste0(groupFormString, " + ", groupCol)
   }
   groupForm <- as.formula(groupFormString)
-  
+
   # Aggregate data
   vals$datadf <- aggregate(formula=groupForm, data=df, FUN=aggFunc, na.action=NULL)
   vals$IsAggregated <- TRUE
+  
+  Sys.sleep(0.5) # To allow previous shinyalert to close
   
   shinyalert(
         title = "",
@@ -115,7 +117,6 @@ aggregateData <- function(input, output, session, vals) {
         imageUrl = "",
         animation = TRUE
       )
-  
   
 }
 
@@ -163,7 +164,7 @@ observeClearAgg <- function(input, output, session, vals) {
     
     shinyalert(
       title = "",
-      text = "Your data aggregation has been removed. Any filters or metric transformations you created will be re-created in that order (first your data will be filtered, then transformations will be re-created).",
+      text = "Your data aggregation has been removed. Any filters or metric transformations you created will be re-created in the following order: First your data will be filtered, then transformations will be re-created.",
       closeOnEsc = TRUE,
       closeOnClickOutside = TRUE,
       html = FALSE,

@@ -62,6 +62,7 @@ applyFilters <- function(alert, dateformat, input, output, session, vals) {
       
       df[, filterCol] <- as.Date(as.character(df[, filterCol]), format= filterDateFormat)
       df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
+      df <- df[order(df[,filterCol]), ]
       df[, filterCol] <- as.character(format(df[, filterCol], filterDateFormat))
     }
   }
@@ -168,7 +169,7 @@ observeClearFilters <- function(input, output, session, vals) {
 
     shinyalert(
       title = "",
-      text = "Your filter(s) have been removed. Any date aggregation or metric transformations you've created will be re-created in that order (First the data will be aggregated by date, then transformations wil be re-made).",
+      text = "Your filter(s) have been removed. Any date aggregation or metric transformations you've created will be re-created in the following order: First the data will be aggregated by date, then transformations wil be re-made.",
       closeOnEsc = TRUE,
       closeOnClickOutside = TRUE,
       html = FALSE,
