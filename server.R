@@ -206,6 +206,23 @@ shinyServer(function(input, output, session) {
     # Update report columns dropdown
     updateSelectInput(session, "reportCols", choices=correlCols)
     
+    print(datadf)
+    if (!is.null(input$dateCol) && input$dateCol != "") {
+      dateFormat <- input$dateColFormat
+      
+      if(length(grep("%d", dateFormat)) == 0){
+        fullDateFormat <- paste0('%d-', dateFormat)
+        datadf[,input$dateCol] <- paste0("1-", as.character(datadf[, input$dateCol]))
+      } else {
+        fullDateFormat <- dateFormat
+      }
+      print(fullDateFormat)
+      print(dateFormat)
+      datadf[,input$dateCol] <- format(as.Date(as.character(datadf[, input$dateCol]), format = fullDateFormat), dateFormat)
+      datadf <- datadf[order(datadf[, input$dateCol]), ]
+    }
+    print(datadf)
+    
     ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table
     summaryDF <- data.frame(Metric = character(),
@@ -283,7 +300,6 @@ shinyServer(function(input, output, session) {
       # Fill in correlations by date
       for(date in unique(datadf[, input$dateCol])) {
         dateDF <- datadf[datadf[,input$dateCol]==date, ]
-        
         # single factor regressions
         for(col in correlCols) {
           dateCorrelations[dateCorrelations$Metric == col, as.character(date)] <- cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")

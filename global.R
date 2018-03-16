@@ -13,7 +13,8 @@ transformationList = list("Difference" = "diff",
                           "Linear Residual" = "residual",
                           "Offset Forward" = "offsetfwd",
                           "Offset Backward" = "offsetbwd",
-                          "Column to Column" = "ctc")
+                          "Column to Column" = "ctc",
+                          "Date Aggregation" = "dateagg")
 
 filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",

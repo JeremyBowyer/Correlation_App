@@ -109,10 +109,23 @@ observeAddTransformation <- function(input, output, session, vals) {
               where="afterBegin",
               ui = tags$div(h3(transformationName),
                             tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                            textInput(paste0("transformationSuffix", cnt), "Resulting Column Name (required)", value = ""),
+                            textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
                             selectInput(paste0("transformCols", cnt), NULL, choices=vals$getCols()),
                             selectInput(paste0("transformOperator", cnt), NULL, choices = list("+", "-", "/", "*")),
                             selectInput(paste0("transformY", cnt), NULL, choices=vals$getCols()),
+                            tags$hr(), class="transformation")
+            )
+          },
+          dateagg = {
+            insertUI(
+              selector="#transformations",
+              where="afterBegin",
+              ui = tags$div(h3(transformationName),
+                            tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                            textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
+                            selectInput(paste0("transformCols", cnt), "Select date column to be aggregated", choices=vals$getCols()),
+                            textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                            selectInput(paste0("transformAggregationLevel", cnt), "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
                             tags$hr(), class="transformation")
             )
           }
@@ -159,8 +172,9 @@ observeCreateTransformations <- function(input, output, session, vals) {
       transformBinaryValue <- input[[paste0("transformBinaryValue", cnt)]]
       transformY <- input[[paste0("transformY", cnt)]]
       transformOp <- input[[paste0("transformOperator", cnt)]]
-
-      if(type=="ctc" && transformSuffix == "") {
+      transformAggLvl <- input[[paste0("transformAggregationLevel", cnt)]]
+      
+      if(type %in% c("ctc", "dateagg") && transformSuffix == "") {
         shinyalert(
           title = "",
           text = "Please provide a name for the resulting column.",
@@ -317,7 +331,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              },
              offsetfwd={
-               transformFunc <- function(x, lag, ...) { 
+               transformFunc <- function(x, lag, ...) {
                  return( c(rep(NA, lag), x[1:(length(x) - lag)]) )
                  }
              },
@@ -328,7 +342,12 @@ observeCreateTransformations <- function(input, output, session, vals) {
              },
              ctc={
                transformFunc <- function(x, y, op, ...) {
-                 return(.Primitive(op)(x,y))
+                 return(.Primitive(op)(as.numeric(x),as.numeric(y)))
+               }
+             },
+             dateagg={
+               transformFunc <- function(x, aggLvl, dateFormat, ...) {
+                 return(format(as.Date(as.character(x), format = dateFormat),aggLvl))
                }
              }
       )
@@ -344,12 +363,16 @@ observeCreateTransformations <- function(input, output, session, vals) {
         }
         
         for (col in cols){
-          transformName <- if(type == "ctc") transformSuffix else paste0(col, "_", transformSuffix)
+          transformName <- if(type == "ctc" || type == "dateagg") transformSuffix else paste0(col, "_", transformSuffix)
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
-          
-          df[, transformName] <- transformFunc(x=as.numeric(df[,col]), lag=lag, y=df[,transformY], op=transformOp)
+          df[, transformName] <- transformFunc(x=df[,col],
+                                               lag=lag,
+                                               y=df[,transformY],
+                                               op=transformOp,
+                                               aggLvl=transformAggLvl,
+                                               dateFormat=dateColFormat)
         }
         
       } else {
@@ -376,7 +399,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
-          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(as.numeric(x), lag), simplify=FALSE)[["x"]])
+          df[, transformName] <- unlist(aggregate(df[,col], by=groupList, function(x) transformFunc(x=as.numeric(x), lag=lag), simplify=FALSE)[["x"]])
         }
         
         # reorder DF back to user-selected order
