@@ -56,7 +56,19 @@ shinyServer(function(input, output, session) {
   }
   
   vals$refreshInputs <- function(session, input, vals) {
-    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")) {
+    
+    cnt <- vals$transformationCount
+    transformInputs <- character()
+    for(i in 1:cnt) {
+      transformInputs <- c(transformInputs,
+                           paste0("transformCols", cnt),
+                           paste0("transformDateCol", cnt),
+                           paste0("transformCategoryCol", cnt),
+                           paste0("transformY", cnt)
+                           )
+    }
+    
+    for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols", transformInputs)) {
         updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
     }
   }

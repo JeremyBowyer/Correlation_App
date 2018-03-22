@@ -83,7 +83,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
                                    selectInput(paste0("transformCols", cnt), "Select x columns", choices=vals$getCols(), multiple = TRUE),
-                                   selectInput(paste0("transformationY", cnt), "Select y column", choices=vals$getCols()),
+                                   selectInput(paste0("transformY", cnt), "Select y column", choices=vals$getCols()),
                                    tags$hr(), class="transformation")
             )
           },
@@ -355,7 +355,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                }
              }
       )
-      
+
       if(is.null(catCols)) {
         # Run transformation based on whether or not category column was selected.
         # No Category columns#
@@ -380,7 +380,8 @@ observeCreateTransformations <- function(input, output, session, vals) {
                                         aggLvl=transformAggLvl,
                                         dateFormat=dateColFormat)
           
-          if(transformRes == FALSE) return(NULL)
+
+          if(length(transformRes) <= 1 && transformRes == FALSE) return(NULL)
           
           df[, transformName] <- transformRes
         
