@@ -266,7 +266,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  }
              },
              perchg={
-               transformFunc <- function(x, lag) { return(  as.numeric(Delt(as.numeric(x), k = lag))) }
+               transformFunc <- function(x, lag, ...) { return(  as.numeric(Delt(as.numeric(x), k = lag))) }
              },
              perchgmedian={
                transformFunc <- function(x, lag, ...) {
@@ -319,14 +319,16 @@ observeCreateTransformations <- function(input, output, session, vals) {
                  lowerX <- tolower(as.character(x))
                  m <- rep(0, length(x))
                  m[lowerX == tolower(transformBinaryString)] <- 1
+                 m[is.na(lowerX)] <- NA
                  return( m )
                  }
              },
              binaryvalue={
-               transformFunc <- function(x, lag, ...) {
-                 n <- as.numeric(x)
+               transformFunc <- function(x, lag, name, ...) {
+                 n <-as.numeric(x)
                  m <- rep(0, length(x))
                  m[n >= as.numeric(transformBinaryValue)] <- 1
+                 m[is.na(n)] <- NA
                  return( m )
                }
              },
@@ -347,7 +349,9 @@ observeCreateTransformations <- function(input, output, session, vals) {
              },
              dateagg={
                transformFunc <- function(x, aggLvl, dateFormat, ...) {
-                 return(format(as.Date(as.character(x), format = dateFormat),aggLvl))
+                 d <- format(as.Date(as.character(x), format = dateFormat),aggLvl)
+                 if(!vals$validateDates(d)) return(FALSE)
+                 return(d)
                }
              }
       )
@@ -359,6 +363,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
         # Order DF by date column, if present
         if (!is.null(dateCol) && dateCol != "") {
           df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat),dateColFormat)
+          if(!vals$validateDates(df[,dateCol])) return(NULL)
           df <- df[order(df[, dateCol]), ]
         }
         
@@ -367,13 +372,19 @@ observeCreateTransformations <- function(input, output, session, vals) {
           if(length(names(df)[names(df) == transformName]) > 0) {
             transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
           }
-          df[, transformName] <- transformFunc(x=df[,col],
-                                               lag=lag,
-                                               y=df[,transformY],
-                                               op=transformOp,
-                                               aggLvl=transformAggLvl,
-                                               dateFormat=dateColFormat)
-        }
+          
+          transformRes <- transformFunc(x=df[,col],
+                                        lag=lag,
+                                        y=df[,transformY],
+                                        op=transformOp,
+                                        aggLvl=transformAggLvl,
+                                        dateFormat=dateColFormat)
+          
+          if(transformRes == FALSE) return(NULL)
+          
+          df[, transformName] <- transformRes
+        
+          }
         
       } else {
         # Category columns #
@@ -383,6 +394,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
         
         if (!is.null(dateCol) && dateCol != "") {
           df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat),dateColFormat)
+          if(!vals$validateDates(df[,dateCol])) return(NULL)
           df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
         } else {
           df <- df[do.call(order, df[rev(catCols)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out

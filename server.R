@@ -70,6 +70,30 @@ shinyServer(function(input, output, session) {
     vals$originaldf <- NULL
   }
   
+  vals$validateDates <- function(dateColumn){
+    dateCheck <- sum(!is.na(dateColumn)) == 0
+    if(dateCheck){
+      Sys.sleep(0.5) # To allow previous shinyalert to close
+      shinyalert(
+        title = "",
+        text = "Incorrect date format detected. Check 'Data Preview' tab to confirm your date format.",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "error",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+
+    }
+    return(!dateCheck)
+  }
+  
   ##################
   # Event Handlers #
   ##################
@@ -206,7 +230,7 @@ shinyServer(function(input, output, session) {
     # Update report columns dropdown
     updateSelectInput(session, "reportCols", choices=correlCols)
     
-    print(datadf)
+
     if (!is.null(input$dateCol) && input$dateCol != "") {
       dateFormat <- input$dateColFormat
       
@@ -216,12 +240,12 @@ shinyServer(function(input, output, session) {
       } else {
         fullDateFormat <- dateFormat
       }
-      print(fullDateFormat)
-      print(dateFormat)
+
       datadf[,input$dateCol] <- format(as.Date(as.character(datadf[, input$dateCol]), format = fullDateFormat), dateFormat)
+      if(!vals$validateDates(datadf[,input$dateCol])) return(NULL)
       datadf <- datadf[order(datadf[, input$dateCol]), ]
     }
-    print(datadf)
+
     
     ## All Data Points ##
     # Loop through each metric column, run regression, populate summary table

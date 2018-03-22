@@ -60,7 +60,8 @@ applyFilters <- function(alert, dateformat, input, output, session, vals) {
       if(is.na(filterMax)) filterMax <- Inf
       if(is.na(filterMin)) filterMin <- -Inf
       
-      df[, filterCol] <- as.Date(as.character(df[, filterCol]), format= filterDateFormat)
+      df[,filterCol] <- as.Date(as.character(df[,filterCol]), format= filterDateFormat)
+      if(!vals$validateDates(df[,filterCol])) return(NULL)
       df <- subset(df, (df[,filterCol] <= filterMax & df[,filterCol] >= filterMin) | is.na(df[,filterCol]))
       df <- df[order(df[,filterCol]), ]
       df[, filterCol] <- as.character(format(df[, filterCol], filterDateFormat))

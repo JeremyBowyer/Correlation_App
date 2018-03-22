@@ -10,6 +10,7 @@ aggregateData <- function(input, output, session, vals) {
   # Prepare dataframe
   df <- vals$datadf
   df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat), aggLevel)
+  if(!vals$validateDates(df[,dateCol])) return(NULL)
   df <- df[order(df[, dateCol]), ]
   
   # Choose aggregation function
