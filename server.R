@@ -574,77 +574,109 @@ shinyServer(function(input, output, session) {
     
   })
   
-  # Upon selection of metric in Metric Dive tab
+  # Upon selection of metric in Metric Dive tab, or run analysis button
   observeEvent({
-    c(input$xCol,input$yCol,input$run,input$applyFilters,input$filterClear)
+    c(input$xCol,input$run)
   }, {
-    if(input$xCol != ""){
-      
-      # Process Data
-      df <- vals$datadf
-      df[,input$xCol] <- as.numeric(df[,input$xCol])
-      df[,input$yCol] <- as.numeric(df[,input$yCol])
-      df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
-      df <- subset(df, !is.infinite(df[,input$xCol]) & !is.infinite(df[,input$yCol]))
-      df <- subset(df, !is.nan(df[,input$xCol]) & !is.nan(df[,input$yCol]))
-      
-      vals$metricdivedf <- df
-      vals$originalmetricdivedf <- df
-     
-      # Check for valid data, otherwise show error notification to user
-      if(nrow(df) == 0) {
-        
-      } else if(sum(!is.na(as.numeric(df[, input$xCol]))) == 0) {
-        removeUI(".metricAlert", multiple = TRUE)
-        insertUI(
-          selector="#metricAlertDiv",
-          where="beforeEnd",
-          ui = tags$p("Column has no data after being coerced to numeric.", style="color: red;", class="metricAlert")
-        )
-        
-      } else {
-                formstring <- paste0("as.numeric(", input$yCol, ") ~ ")
-            formstring <- paste0(formstring, " as.numeric(", input$xCol, ")")
-        
-            form <- as.formula(formstring)
-          fit <- lm(form, df)
-
-
-                
-        
-        summarydf <- data.frame(x = c(NA,NA,NA,NA,NA), y = c(NA,NA,NA,NA,NA),"ANOVA" =c(NA,NA,NA,NA,NA))
-        names(summarydf) <- c(input$xCol,input$yCol)
-        row.names(summarydf) <- c("# NAs","# blanks","max","min","cor")
-        summarydf["# NAs",input$xCol] <- sum(is.na(df[,input$xCol] ))
-        summarydf["# NAs",input$yCol] <- sum(is.na(df[,input$yCol] ))
-        summarydf["max",input$xCol] <- max(df[,input$xCol] )
-        summarydf["max",input$yCol] <- max(df[,input$yCol] )
-        summarydf["min",input$xCol] <- min(df[,input$xCol] )
-        summarydf["min",input$yCol] <- min(df[,input$yCol] )
-        summarydf["cor","ANOVA"]    <- cor(as.numeric(df[,input$xCol]), as.numeric(df[, input$yCol]), use = "pairwise.complete.obs")
-        summarydf["# blanks",input$xCol]      <- sum(df[,input$xCol] == "",na.rm = TRUE)    
-          summarydf["# blanks",input$yCol]    <- sum(df[,input$yCol] == "",na.rm = TRUE) 
-          print(sum(df[,input$xCol] == ""))
-          print(sum(df[,input$yCol] == ""))
-          print(sum(is.na(df[,input$xCol] )))
-          print(sum(is.na(df[,input$yCol] )))
-        removeUI(".metricAlert", multiple = TRUE)
-
-        # Create quintiles by date and more processing
-        vals$perfdf <- calculatePerformance(df,input) 
-        vals$summarydf <- summarydf
-        
-        # Performance Output
-        output$datePerformance = renderTable({
-          return(vals$perfdf)
-        })
-        output$summaryStats <- renderTable(include.rownames = TRUE,
-                                           {
-          return( vals$summarydf )
-        })
-        
-      }
+    
+    if(input$xCol == ""){
+      return(NULL)  
     }
+      
+    # Process Data
+    df <- vals$datadf
+    df[,input$xCol] <- as.numeric(df[,input$xCol])
+    df[,input$yCol] <- as.numeric(df[,input$yCol])
+    df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
+    df <- subset(df, !is.infinite(df[,input$xCol]) & !is.infinite(df[,input$yCol]))
+    df <- subset(df, !is.nan(df[,input$xCol]) & !is.nan(df[,input$yCol]))
+    
+    vals$metricdivedf <- df
+    vals$originalmetricdivedf <- df
+    
+  })
+  
+  observeEvent({
+      c(
+      input$xCol,
+      input$run,
+      input$pageFilterCheck,
+      input$pageFilterTable_rows_selected,
+      input$pointFilterCheck,
+      input$keepPoints,
+      input$removePoints
+      )
+  }, {
+    
+    if(input$xCol == ""){
+      return(NULL)  
+    }
+    
+    df <- vals$metricdivedf
+    
+    if(nrow(df) == 0) {
+      return(NULL)
+    } 
+    
+    if(sum(!is.na(as.numeric(df[, input$xCol]))) == 0) {
+      
+      shinyalert(
+        title = "",
+        text = "Column has no data after being coerced to numeric. Try removing some filters or choosing a different column.",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "error",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+      
+      return(NULL)
+      
+    }
+    
+    xData <- as.numeric(df[, input$xCol])
+    yData <- as.numeric(df[, input$yCol])
+      
+    summarydf <- data.frame(
+      x = c(
+        sum(!is.na(xData)),
+        sd(xData, na.rm = TRUE),
+        mean(xData, na.rm = TRUE),
+        median(xData, na.rm = TRUE),
+        max(xData, na.rm = TRUE),
+        min(xData, na.rm = TRUE)
+      ),
+      y = c(
+        sum(!is.na(yData)),
+        sd(yData, na.rm = TRUE),
+        mean(yData, na.rm = TRUE),
+        median(yData, na.rm = TRUE),
+        max(yData, na.rm = TRUE),
+        min(yData, na.rm = TRUE)
+      ),
+      row.names = c("Data Points", "Standard Deviation", "Mean", "Median", "Max","Min")
+    )
+    
+    names(summarydf) <- c(input$xCol,input$yCol)
+    
+    output$summaryStats <- renderTable(include.rownames = TRUE, {
+      return(summarydf)
+    })
+    
+    # Create quintiles by date and more processing
+    vals$perfdf <- calculatePerformance(df,input) 
+    
+    # Performance Output
+    output$datePerformance = renderTable({
+      return(vals$perfdf)
+    })
+    
   })
   
   ##################
