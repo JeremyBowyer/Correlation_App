@@ -41,6 +41,7 @@ shinyServer(function(input, output, session) {
     metricdivedfPoint = data.frame(),
     dateFilterdf = data.frame(),
     perfdf = data.frame(),
+    summarydf = data.frame(),
     yCol = "",
     dateCol = "",
     dateFormat = "%m/%d/%Y",
@@ -575,7 +576,7 @@ shinyServer(function(input, output, session) {
   
   # Upon selection of metric in Metric Dive tab
   observeEvent({
-    c(input$xCol,input$run,input$applyFilters,input$filterClear)
+    c(input$xCol,input$yCol,input$run,input$applyFilters,input$filterClear)
   }, {
     if(input$xCol != ""){
       
@@ -602,15 +603,44 @@ shinyServer(function(input, output, session) {
         )
         
       } else {
+                formstring <- paste0("as.numeric(", input$yCol, ") ~ ")
+            formstring <- paste0(formstring, " as.numeric(", input$xCol, ")")
+        
+            form <- as.formula(formstring)
+          fit <- lm(form, df)
+
+
+                
+        
+        summarydf <- data.frame(x = c(NA,NA,NA,NA,NA), y = c(NA,NA,NA,NA,NA),"ANOVA" =c(NA,NA,NA,NA,NA))
+        names(summarydf) <- c(input$xCol,input$yCol)
+        row.names(summarydf) <- c("# NAs","# blanks","max","min","cor")
+        summarydf["# NAs",input$xCol] <- sum(is.na(df[,input$xCol] ))
+        summarydf["# NAs",input$yCol] <- sum(is.na(df[,input$yCol] ))
+        summarydf["max",input$xCol] <- max(df[,input$xCol] )
+        summarydf["max",input$yCol] <- max(df[,input$yCol] )
+        summarydf["min",input$xCol] <- min(df[,input$xCol] )
+        summarydf["min",input$yCol] <- min(df[,input$yCol] )
+        summarydf["cor","ANOVA"]    <- cor(as.numeric(df[,input$xCol]), as.numeric(df[, input$yCol]), use = "pairwise.complete.obs")
+        summarydf["# blanks",input$xCol]      <- sum(df[,input$xCol] == "",na.rm = TRUE)    
+          summarydf["# blanks",input$yCol]    <- sum(df[,input$yCol] == "",na.rm = TRUE) 
+          print(sum(df[,input$xCol] == ""))
+          print(sum(df[,input$yCol] == ""))
+          print(sum(is.na(df[,input$xCol] )))
+          print(sum(is.na(df[,input$yCol] )))
         removeUI(".metricAlert", multiple = TRUE)
 
         # Create quintiles by date and more processing
         vals$perfdf <- calculatePerformance(df,input) 
-        
+        vals$summarydf <- summarydf
         
         # Performance Output
         output$datePerformance = renderTable({
           return(vals$perfdf)
+        })
+        output$summaryStats <- renderTable(include.rownames = TRUE,
+                                           {
+          return( vals$summarydf )
         })
         
       }
@@ -733,6 +763,7 @@ shinyServer(function(input, output, session) {
     form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
     summary(lm(form, data = df))
   })
+
   
   
   #######################

@@ -64,7 +64,8 @@ metricDivePage <- function() {
                    "Details",
                    tabsetPanel(
                      tabPanel("ANOVA", verbatimTextOutput('aovSummary')),
-                     tabPanel("Performance", tableOutput("datePerformance"))
+                     tabPanel("Performance", tableOutput("datePerformance")),
+                     tabPanel("Summary", tableOutput("summaryStats"))
                      )
                    )
                  )
