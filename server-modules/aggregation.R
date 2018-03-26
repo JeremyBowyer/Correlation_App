@@ -1,124 +1,125 @@
 aggregateData <- function(input, output, session, vals) {
   
-  # Grab values from current transformation request
-  dateCol <- input$dateAggDateCol
-  dateColFormat <- input$dateAggDateColFormat
-  catCols <- input$groupByCols
-  aggLevel <- input$aggregationLevel
-  aggType <- input$aggregationFunc
-  
-  # Prepare dataframe
-  df <- vals$datadf
-  df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat), aggLevel)
-  if(!vals$validateDates(df[,dateCol])) return(NULL)
-  df <- df[order(df[, dateCol]), ]
-  
-  # Choose aggregation function
-  switch(aggType,
-         sum = {
-           aggFunc <- function(x) {
-             n <- as.numeric(x)
-             n <- n[!is.na(n)]
-             if(length(n) == 0) {
-               return(NA)
-             } else {
-               return(sum(n))
+  tryCatch({
+    # Grab values from current transformation request
+    dateCol <- input$dateAggDateCol
+    dateColFormat <- input$dateAggDateColFormat
+    catCols <- input$groupByCols
+    aggLevel <- input$aggregationLevel
+    aggType <- input$aggregationFunc
+    
+    # Prepare dataframe
+    df <- vals$datadf
+    df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat), aggLevel)
+    if(!vals$validateDates(df[,dateCol])) return(NULL)
+    df <- df[order(df[, dateCol]), ]
+    
+    # Choose aggregation function
+    switch(aggType,
+           sum = {
+             aggFunc <- function(x) {
+               n <- as.numeric(x)
+               n <- n[!is.na(n)]
+               if(length(n) == 0) {
+                 return(NA)
+               } else {
+                 return(sum(n))
+               }
+             }
+           },
+           average = {
+             aggFunc <- function(x) {
+               n <- as.numeric(x)
+               n <- n[!is.na(n)]
+               if(length(n) == 0) {
+                 return(NA)
+               } else {
+                 return(mean(n))
+               }
+             }
+           },
+           earliest = {
+             aggFunc <- function(x) {
+               n <- as.numeric(x)
+               n <- n[!is.na(n)]
+               if(length(n) == 0) {
+                 return(NA)
+               } else {
+                 return(head(n, 1))
+               }
+             }
+           },
+           latest = {
+             aggFunc <- function(x) {
+               n <- as.numeric(x)
+               n <- n[!is.na(n)]
+               if(length(n) == 0) {
+                 return(NA)
+               } else {
+                 return(tail(n, 1))
+               }
+             }
+           },
+           min = {
+             aggFunc <- function(x) {
+               n <- as.numeric(x)
+               n <- n[!is.na(n)]
+               if(length(n) == 0) {
+                 return(NA)
+               } else {
+                 return(min(n))
+               }
+             }
+           },
+           max = {
+             aggFunc <- function(x) {
+               n <- as.numeric(x)
+               n <- n[!is.na(n)]
+               if(length(n) == 0) {
+                 return(NA)
+               } else {
+                 return(max(n))
+               }
              }
            }
-         },
-         average = {
-           aggFunc <- function(x) {
-             n <- as.numeric(x)
-             n <- n[!is.na(n)]
-             if(length(n) == 0) {
-               return(NA)
-             } else {
-               return(mean(n))
-             }
-           }
-         },
-         earliest = {
-           aggFunc <- function(x) {
-             n <- as.numeric(x)
-             n <- n[!is.na(n)]
-             if(length(n) == 0) {
-               return(NA)
-             } else {
-               return(head(n, 1))
-             }
-           }
-         },
-         latest = {
-           aggFunc <- function(x) {
-             n <- as.numeric(x)
-             n <- n[!is.na(n)]
-             if(length(n) == 0) {
-               return(NA)
-             } else {
-               return(tail(n, 1))
-             }
-           }
-         },
-         min = {
-           aggFunc <- function(x) {
-             n <- as.numeric(x)
-             n <- n[!is.na(n)]
-             if(length(n) == 0) {
-               return(NA)
-             } else {
-               return(min(n))
-             }
-           }
-         },
-         max = {
-           aggFunc <- function(x) {
-             n <- as.numeric(x)
-             n <- n[!is.na(n)]
-             if(length(n) == 0) {
-               return(NA)
-             } else {
-               return(max(n))
-             }
-           }
-         }
-  )
+    )
+    
+    # Create formula for aggregate()
+    aggCols <- names(df)[!names(df) %in% c(dateCol, catCols)]
+    groupFormString <- paste0("cbind(", aggCols[1])
+    for(aggCol in aggCols[-1]) {
+      groupFormString <- paste0(groupFormString, ", ", aggCol)
+    }
+    
+    groupFormString <- paste0(groupFormString, ") ~ ", dateCol)
+    
+    for (groupCol in catCols){
+      groupFormString <- paste0(groupFormString, " + ", groupCol)
+    }
+    groupForm <- as.formula(groupFormString)
   
-  # Create formula for aggregate()
-  aggCols <- names(df)[!names(df) %in% c(dateCol, catCols)]
-  groupFormString <- paste0("cbind(", aggCols[1])
-  for(aggCol in aggCols[-1]) {
-    groupFormString <- paste0(groupFormString, ", ", aggCol)
-  }
-  
-  groupFormString <- paste0(groupFormString, ") ~ ", dateCol)
-  
-  for (groupCol in catCols){
-    groupFormString <- paste0(groupFormString, " + ", groupCol)
-  }
-  groupForm <- as.formula(groupFormString)
-
-  # Aggregate data
-  vals$datadf <- aggregate(formula=groupForm, data=df, FUN=aggFunc, na.action=NULL)
-  vals$IsAggregated <- TRUE
-  
-  Sys.sleep(0.5) # To allow previous shinyalert to close
-  
-  shinyalert(
-        title = "",
-        text = "Your data has been aggregated. You can review the results in the 'Data Preview' tab.",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = TRUE,
-        html = FALSE,
-        type = "success",
-        showConfirmButton = TRUE,
-        showCancelButton = FALSE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#3E3F3A",
-        timer = 0,
-        imageUrl = "",
-        animation = TRUE
-      )
-  
+    # Aggregate data
+    vals$datadf <- aggregate(formula=groupForm, data=df, FUN=aggFunc, na.action=NULL)
+    vals$IsAggregated <- TRUE
+    
+    Sys.sleep(0.5) # To allow previous shinyalert to close
+    
+    shinyalert(
+          title = "",
+          text = "Your data has been aggregated. You can review the results in the 'Data Preview' tab.",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = TRUE,
+          html = FALSE,
+          type = "success",
+          showConfirmButton = TRUE,
+          showCancelButton = FALSE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#3E3F3A",
+          timer = 0,
+          imageUrl = "",
+          animation = TRUE
+        )
+  }, error=shinyerror)  
 }
 
 

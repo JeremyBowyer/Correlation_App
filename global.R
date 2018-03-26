@@ -10,6 +10,7 @@ transformationList = list("Difference" = "diff",
                           "Z-Score Longitudinal" = "zscorelong",
                           "Binary (String)" = "binarystring",
                           "Binary (Value)" = "binaryvalue",
+                          "Binary (Percentile)" = "binarypercentile",
                           "Linear Residual" = "residual",
                           "Offset Forward" = "offsetfwd",
                           "Offset Backward" = "offsetbwd",
@@ -29,3 +30,37 @@ aggregationFuncList = list("Sum" = "sum",
                            "Latest" = "latest",
                            "Lowest Number" = "min",
                            "Highest Number" = "max")
+
+shinyerror <- function(e){
+    shinyalert(
+        title = "An error occurred",
+        text = e$message,
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = FALSE,
+        type = "error",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#3E3F3A",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+}
+
+tryStack <- function(expr,silent=FALSE) {
+  tryenv <- new.env()
+  out <- try(withCallingHandlers(expr, error=function(e){
+    shinyerror(e)
+    stack <- sys.calls()
+    stack <- stack[-(2:7)]
+    stack <- head(stack, -2)
+    stack <- sapply(stack, deparse)
+    if(!silent && isTRUE(getOption("show.error.messages"))) {
+      assign("stackmsg", value=paste(stack,collapse="\n"), envir=tryenv)
+    }
+    }), silent=silent)
+  if(inherits(out, "try-error")) out[2] <- tryenv$stackmsg
+  out
+}
