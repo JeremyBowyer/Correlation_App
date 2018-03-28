@@ -79,5 +79,10 @@ calculatePerformance <- function(df, input, dateCols = TRUE, col, vals){
                 
     allPerformance[6, "Quintile"] <- "Performance Differential"
     return(allPerformance)
-  }, error=shinyerror)
+  },error=function(e) {
+      if(DEBUG_MODE) {
+        stop(e)
+      }
+      shinyerror(e)
+  })
 }

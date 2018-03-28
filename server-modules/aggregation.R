@@ -119,7 +119,12 @@ aggregateData <- function(input, output, session, vals) {
           imageUrl = "",
           animation = TRUE
         )
-  }, error=shinyerror)  
+  },error=function(e) {
+      if(DEBUG_MODE) {
+        stop(e)
+      }
+      shinyerror(e)
+  })  
 }
 
 

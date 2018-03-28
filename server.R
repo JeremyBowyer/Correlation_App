@@ -394,7 +394,12 @@ shinyServer(function(input, output, session) {
       }
       
       updateTabsetPanel(session, "mainTabset", selected="correlations")
-    }, error=shinyerror)
+    },error=function(e) {
+      if(DEBUG_MODE) {
+        stop(e)
+      }
+      shinyerror(e)
+    })
   })
   
   output$downloadData <- downloadHandler(

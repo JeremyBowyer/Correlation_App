@@ -150,7 +150,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
   createTransformations <- function(alert, dateformat=FALSE){
 
     tryCatch({
-      
+      asdasdasd
       if(vals$transformationCount < 1){
         return(NULL)
       }
@@ -484,7 +484,12 @@ observeCreateTransformations <- function(input, output, session, vals) {
           animation = TRUE
         )
       }
-    },error=shinyerror)
+    },error=function(e) {
+      if(DEBUG_MODE) {
+        stop(e)
+      }
+      shinyerror(e)
+    })
   }
   # Create Transformations Button
   observeEvent(input$applyTransformations, {

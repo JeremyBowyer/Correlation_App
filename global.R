@@ -1,3 +1,5 @@
+DEBUG_MODE = FALSE
+
 transformationList = list("Difference" = "diff",
                           "Rolling Sum" = "rollingsum",
                           "Subtract Rolling Median" = "submedian",

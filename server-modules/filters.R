@@ -88,7 +88,12 @@ applyFilters <- function(alert, dateformat, input, output, session, vals) {
         animation = TRUE
       )
     }
-  }, error=shinyerror)
+  },error=function(e) {
+      if(DEBUG_MODE) {
+        stop(e)
+      }
+      shinyerror(e)
+  })
 }
 
 observeAddFilter <- function(input, output, session, vals) {
