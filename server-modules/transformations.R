@@ -150,7 +150,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
   createTransformations <- function(alert, dateformat=FALSE){
 
     tryCatch({
-      asdasdasd
+      
       if(vals$transformationCount < 1){
         return(NULL)
       }

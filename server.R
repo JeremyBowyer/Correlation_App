@@ -19,7 +19,7 @@ source("server-modules/conditions.R",local=TRUE)
 # Define Functions
 source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/Quintile_Function.R")
 
-script <- readChar('highlight_cells.js', file.info('highlight_cells.js')$size)
+conditionalFormattingScript <- readChar('highlight_cells.js', file.info('highlight_cells.js')$size)
 
 shinyServer(function(input, output, session) {
   
@@ -827,7 +827,7 @@ shinyServer(function(input, output, session) {
   # JavaScript Conditional Formatting #
   #####################################
   session$onFlushed(function() {
-    session$sendCustomMessage(type='jsCode', list(value = script))
+    session$sendCustomMessage(type='conditionalFormatting', list(value = conditionalFormattingScript))
   }, FALSE)
   
 })

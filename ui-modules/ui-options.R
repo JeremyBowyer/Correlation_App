@@ -115,7 +115,8 @@ optionsPage <- function() {
           ),
         tags$hr(),
         tags$head(
-          tags$script(HTML('Shiny.addCustomMessageHandler("jsCode", function(message) { eval(message.value); });')),
+          tags$script(HTML('Shiny.addCustomMessageHandler("conditionalFormatting", function(message) { eval(message.value); });')),
+          tags$script(src="loading_screen.js"),
           tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
           )
         ),
