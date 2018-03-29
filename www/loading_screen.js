@@ -37,10 +37,11 @@ $(document).on({
     },
 
     'shiny:busy': function(event) {
-        loadingScreen(true);
+        myTimeout = setTimeout(function(){ loadingScreen(true) }, 500);
     },
     
     'shiny:idle': function(event) {
+        clearTimeout(myTimeout);
         loadingScreen(false);
     }
 });
