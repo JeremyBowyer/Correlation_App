@@ -14,131 +14,148 @@ observeAddTransformation <- function(input, output, session, vals) {
            submedian = ,
            perchg = ,
            perchgmedian = ,
-           perchgstd =
-          {
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
-                                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
-                                    textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
-                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
-                                    tags$hr(), class="transformation")
-             )
+           perchgstd = {
+             insertUI(
+               selector="#transformations",
+               where="afterBegin",
+               ui = tags$div(
+                 h3(transformationName),
+                 tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                 textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                 numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
+                 selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
+                 selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
+                 textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                 selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
+                 tags$hr(), class="transformation")
+               )
            },
            crossmedian = ,
            zscorecross = { 
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
-                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
-                                    tags$hr(), class="transformation")
-             )
+             insertUI(
+               selector="#transformations",
+               where="afterBegin",
+               ui = tags$div(
+                 h3(transformationName),
+                 tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                 textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                 selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
+                 selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
+                 tags$hr(), class="transformation")
+               )
            },
            subhistmedian = , 
            zscorelong = {
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
-                                    selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
-                                    textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
-                                    selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
-                                    tags$hr(), class="transformation")
-             )
+             insertUI(
+               selector="#transformations",
+               where="afterBegin",
+               ui = tags$div(
+                 h3(transformationName),
+                 tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                 textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                 selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
+                 selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
+                 textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                 selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
+                 tags$hr(), class="transformation")
+               )
            },
            binarystring = {
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
-                                    textInput(paste0("transformString", cnt), "Value to be flagged as 1", value = ""),
-                                    tags$hr(), class="transformation")
-             )
+             insertUI(
+               selector="#transformations",
+               where="afterBegin",
+               ui = tags$div(
+                 h3(transformationName),
+                 tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                 textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                 selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
+                 textInput(paste0("transformString", cnt), "Value to be flagged as 1", value = ""),
+                 tags$hr(), class="transformation")
+               )
            },
            binaryvalue = {
-             insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
-                                    textInput(paste0("transformBinaryValue", cnt), "Value, data points equal to or above to be flagged as 1", value = ""),
-                                    tags$hr(), class="transformation")
-             )
+             insertUI(
+               selector="#transformations",
+               where="afterBegin",
+               ui = tags$div(
+                 h3(transformationName),
+                 tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                 textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                 selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
+                 textInput(paste0("transformBinaryValue", cnt), "Value, data points equal to or above to be flagged as 1", value = ""),
+                 tags$hr(), class="transformation")
+               )
            },
           binarypercentile = {
-            insertUI(selector="#transformations",
-                      where="afterBegin",
-                      ui = tags$div(h3(transformationName),
-                                    tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                    textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                    selectInput(paste0("transformCols", cnt), NULL, choices=vals$getCols()),
-                                    sliderInput(paste0("transformationSlider", cnt), NULL, min=0, max=1, value=c(0,1), step=0.01),
-                                    tags$div(tags$hr()), class="transformation"))
+            insertUI(
+              selector="#transformations",
+              where="afterBegin",
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                selectInput(paste0("transformCols", cnt), NULL, choices=vals$getCols()),
+                sliderInput(paste0("transformationSlider", cnt), NULL, min=0, max=1, value=c(0,1), step=0.01),
+                tags$div(tags$hr()), class="transformation")
+              )
           },
           residual = {
-            insertUI(selector="#transformations",
-                     where="afterBegin",
-                     ui = tags$div(h3(transformationName),
-                                   tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                                   textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                                   selectInput(paste0("transformCols", cnt), "Select x columns", choices=vals$getCols(), multiple = TRUE),
-                                   selectInput(paste0("transformY", cnt), "Select y column", choices=vals$getCols()),
-                                   tags$hr(), class="transformation")
-            )
+            insertUI(
+              selector="#transformations",
+              where="afterBegin",
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                selectInput(paste0("transformCols", cnt), "Select x columns", choices=vals$getCols(), multiple = TRUE),
+                selectInput(paste0("transformY", cnt), "Select y column", choices=vals$getCols()),
+                tags$hr(), class="transformation")
+              )
           },
           offsetfwd = ,
           offsetbwd = {
             insertUI(
               selector="#transformations",
               where="afterBegin",
-              ui = tags$div(h3(transformationName),
-                            tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                            textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
-                            numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
-                            selectInput(paste0("transformCols", cnt), "Select columns to offset", choices=vals$getCols(), multiple = TRUE),
-                            selectInput(paste0("transformDateCol", cnt), "Select column to offset along (probably a date)", choices=vals$getCols()),
-                            textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
-                            selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
-                            tags$hr(), class="transformation")
-            )
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
+                selectInput(paste0("transformCols", cnt), "Select columns to offset", choices=vals$getCols(), multiple = TRUE),
+                selectInput(paste0("transformDateCol", cnt), "Select column to offset along (probably a date)", choices=vals$getCols()),
+                textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
+                tags$hr(), class="transformation")
+              )
           },
           ctc = {
             insertUI(
               selector="#transformations",
               where="afterBegin",
-              ui = tags$div(h3(transformationName),
-                            tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                            textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
-                            selectInput(paste0("transformCols", cnt), NULL, choices=vals$getCols()),
-                            selectInput(paste0("transformOperator", cnt), NULL, choices = list("+", "-", "/", "*")),
-                            selectInput(paste0("transformY", cnt), NULL, choices=vals$getCols()),
-                            tags$hr(), class="transformation")
-            )
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
+                selectInput(paste0("transformCols", cnt), NULL, choices=vals$getCols()),
+                selectInput(paste0("transformOperator", cnt), NULL, choices = list("+", "-", "/", "*")),
+                selectInput(paste0("transformY", cnt), NULL, choices=vals$getCols()),
+                tags$hr(), class="transformation")
+              )
           },
           dateagg = {
             insertUI(
               selector="#transformations",
               where="afterBegin",
-              ui = tags$div(h3(transformationName),
-                            tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
-                            textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
-                            selectInput(paste0("transformCols", cnt), "Select date column to be aggregated", choices=vals$getCols()),
-                            textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
-                            selectInput(paste0("transformAggregationLevel", cnt), "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
-                            tags$hr(), class="transformation")
-            )
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
+                selectInput(paste0("transformCols", cnt), "Select date column to be aggregated", choices=vals$getCols()),
+                textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                selectInput(paste0("transformAggregationLevel", cnt), "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
+                tags$hr(), class="transformation")
+              )
           }
         )
   }) 
@@ -279,7 +296,9 @@ observeCreateTransformations <- function(input, output, session, vals) {
                    }
                },
                perchg={
-                 transformFunc <- function(x, lag, ...) { return(  as.numeric(Delt(as.numeric(x), k = lag))) }
+                 transformFunc <- function(x, lag, ...) {
+                   return(  as.numeric(Delt(as.numeric(x), k = lag)) )
+                   }
                },
                perchgmedian={
                  transformFunc <- function(x, lag, ...) {
@@ -414,14 +433,15 @@ observeCreateTransformations <- function(input, output, session, vals) {
                                           dateFormat=dateColFormat,
                                           transformString=transformString,
                                           transformValue=transformBinaryValue,
-                                          transformSlider = transformSlider)
+                                          transformSlider = transformSlider
+                                          )
             
   
             if(length(transformRes) <= 1 && transformRes == FALSE) return(NULL)
             
             df[, transformName] <- transformRes
           
-            }
+          }
           
         } else {
           # Category columns #

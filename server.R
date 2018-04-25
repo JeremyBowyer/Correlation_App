@@ -737,6 +737,37 @@ shinyServer(function(input, output, session) {
     
   })
   
+  # Metric Data Points
+  # By Date
+  output$metricDataPointsDate <- renderPlotly({
+    
+    if(input$xCol == "" || input$dateCol == "") {
+      return(NULL)
+    }
+    
+    metricDF <- vals$datadf
+    dataPointsDF <- aggregate(metricDF[, input$xCol], by=list(metricDF[, input$dateCol]), function(x) sum(!is.na(as.numeric(x))))
+    names(dataPointsDF) <- c("Date", "DataPoints")
+    dataPointsDF$Date <- as.Date(dataPointsDF$Date, format = vals$dateFormat)
+    dataPointsDF <- dataPointsDF[order(dataPointsDF$Date), ]
+    plot_ly(data = dataPointsDF, x = ~Date, y = ~DataPoints, type = 'scatter', mode = 'lines')
+    
+  })
+  # By Category
+  output$metricDataPointsCategory <- renderPlotly({
+    
+    if(input$xCol == "" || input$categoryCol == "") {
+      return(NULL)
+    }
+    
+    metricDF <- vals$datadf
+    dataPointsDF <- aggregate(metricDF[, input$xCol], by=list(metricDF[, input$categoryCol]), function(x) sum(!is.na(as.numeric(x))))
+    names(dataPointsDF) <- c("Category", "DataPoints")
+    dataPointsDF <- dataPointsDF[order(dataPointsDF$Category), ]
+    plot_ly(data = dataPointsDF, x = ~Category, y = ~DataPoints, type = 'bar')
+    
+  })
+  
   # Metric QQ Normal Dist
   output$metricQQNorm <- renderPlotly({
     

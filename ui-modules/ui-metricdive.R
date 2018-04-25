@@ -44,6 +44,35 @@ metricDivePage <- function() {
                        tags$br()
                        ),
                      tabPanel("Histogram", plotlyOutput("metricHist")),
+                     tabPanel(
+                       "Data Points",
+                       tabsetPanel(
+                         tabPanel(
+                           "By Date",
+                           conditionalPanel(
+                             condition = "output.dateColCheck",
+                             h3("Number of non-na data points by date."),
+                             plotlyOutput("metricDataPointsDate")
+                             ),
+                           conditionalPanel(
+                             condition = "!output.dateColCheck",
+                             h3("Select a date column to see data points by date.")
+                             )
+                           ),
+                         tabPanel(
+                           "By Category",
+                           conditionalPanel(
+                             condition = "output.catColCheck",
+                             h3("Number of non-na data points by category."),
+                             plotlyOutput("metricDataPointsCategory")
+                             ),
+                           conditionalPanel(
+                             condition = "!output.catColCheck",
+                             h3("Select a category column to see data points by category.")
+                             )
+                           )
+                         )
+                       ),
                      tabPanel("QQ - Normal Dist", plotlyOutput("metricQQNorm")),
                      tabPanel("QQ - Y", plotlyOutput("metricQQy")),
                      tabPanel(
