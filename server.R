@@ -691,7 +691,8 @@ shinyServer(function(input, output, session) {
                                            pageLength = 6,
                                            paging = FALSE,
                                            info = FALSE,
-                                           searching = FALSE
+                                           searching = FALSE,
+                                           ordering = FALSE
                                            ),
                                       rownames = FALSE,
                                       fillContainer = TRUE,
