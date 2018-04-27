@@ -686,9 +686,18 @@ shinyServer(function(input, output, session) {
     vals$perfdf <- calculatePerformance(df=df,input=input,dateCols=TRUE,vals=vals) 
     
     # Performance Output
-    output$datePerformance = renderTable({
-      return(vals$perfdf)
-    })
+    output$datePerformance = renderDT(vals$perfdf,
+                                      options = list(
+                                           pageLength = 6,
+                                           paging = FALSE,
+                                           info = FALSE,
+                                           searching = FALSE
+                                           ),
+                                      rownames = FALSE,
+                                      fillContainer = TRUE,
+                                      style = "bootstrap",
+                                      selection = "none")
+    
     
   })
   

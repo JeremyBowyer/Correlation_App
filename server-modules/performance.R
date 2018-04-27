@@ -33,13 +33,15 @@ calculatePerformance <- function(df, input, dateCols = TRUE, col, vals){
     df[,"quints"] <- NA
       
     aggs <- by(df, INDICES = df[, input$dateCol], function(x) {
+      
       tryCatch({
         #if(length((x[,input$xCol])) >= 5)
         x[,"quints"] <- quint(as.numeric(x[,input$xCol]))
       }, error = function(e) {
         x[,"quints"] <- rep(NA, nrow(x))
       })
-      x
+      return(x)
+      
     })
   
     dfquints <- do.call("rbind", aggs)
@@ -54,31 +56,34 @@ calculatePerformance <- function(df, input, dateCols = TRUE, col, vals){
     allPerformance[6, "All"] <- performanceDifferential
     
     if(dateCols){
-        dates <- as.Date(df[, input$dateCol], format=vals$dateFormat)
-        dateChars <- unique(as.character(dates[order(dates)]))
-        for(date in dateChars) {
-          datedf <- df[df[,input$dateCol] == date, ]
-    
-          allPerformance[, as.character(date)] <- NA
-          tryCatch({
-            datedf[, "quints"] <- quint(datedf[,input$xCol])
-            aggs <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))
-            performanceDifferential <- ((aggs[1, "x"] * 2 + aggs[2, "x"]) / 3) - ((aggs[5, "x"] * 2 + aggs[4, "x"]) / 3)
-            for(row in 1:nrow(aggs)){
-              allPerformance[aggs[row, 1], as.character(date)] <- aggs[row, "x"]
-            }
-            allPerformance[6, as.character(date)] <- performanceDifferential
-    
-          }, error = function(e) {
-            allPerformance[, as.character(date)] <- rep(NA,nrow(allPerformance))
-          })
+      
+      dates <- as.Date(df[, input$dateCol], format=vals$dateFormat)
+      dateChars <- unique(format(dates[order(dates)],vals$dateFormat))
+
+      for(date in dateChars) {
+
+        datedf <- df[df[,input$dateCol] == date, ]
+        allPerformance[, as.character(date)] <- NA
+        tryCatch({
+          datedf[, "quints"] <- quint(datedf[,input$xCol])
+          aggs <- aggregate(datedf[, input$yCol], by = list(datedf$quints), function(x) mean(x, na.rm = TRUE))
+          performanceDifferential <- ((aggs[1, "x"] * 2 + aggs[2, "x"]) / 3) - ((aggs[5, "x"] * 2 + aggs[4, "x"]) / 3)
+          for(row in 1:nrow(aggs)){
+            allPerformance[aggs[row, 1], as.character(date)] <- aggs[row, "x"]
+          }
+          allPerformance[6, as.character(date)] <- performanceDifferential
+  
+        }, error = function(e) {
+          allPerformance[, as.character(date)] <- rep(NA,nrow(allPerformance))
+        })
     
       }
     
-    }  # Calculate performance by quintile for each date, populate performance df
+    }
                 
     allPerformance[6, "Quintile"] <- "Performance Differential"
     return(allPerformance)
+    
   },error=function(e) {
       if(DEBUG_MODE) {
         stop(e)
