@@ -758,8 +758,13 @@ shinyServer(function(input, output, session) {
     metricDF <- vals$datadf
     dataPointsDF <- aggregate(metricDF[, input$xCol], by=list(metricDF[, input$dateCol]), function(x) sum(!is.na(as.numeric(x))))
     names(dataPointsDF) <- c("Date", "DataPoints")
-    dataPointsDF$Date <- as.Date(dataPointsDF$Date, format = vals$dateFormat)
+   # dataPointsDF$Date <- as.Date(as.character(dataPointsDF$Date), format = vals$dateFormat)
+    dataPointsDF$Date <- parse_date_time(dataPointsDF$Date,order=vals$dateFormat)
+    print(vals$dateFormat)
     dataPointsDF <- dataPointsDF[order(dataPointsDF$Date), ]
+    ##dataPointsDF$Date <- format(dataPointsDF$Date,vals$dateFormat)
+    print(dataPointsDF$Date)
+    
     plot_ly(data = dataPointsDF, x = ~Date, y = ~DataPoints, type = 'scatter', mode = 'lines')
     
   })
