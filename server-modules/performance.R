@@ -57,8 +57,8 @@ calculatePerformance <- function(df, input, dateCols = TRUE, col, vals){
     
     if(dateCols){
       
-      dates <- as.Date(df[, input$dateCol], format=vals$dateFormat)
-      dateChars <- unique(format(dates[order(dates)],vals$dateFormat))
+      dates <- parse_date_time(as.character(df[, input$dateCol]), order=vals$dateFormat)
+      dateChars <- unique(format(dates[order(dates)], vals$dateFormat))
 
       for(date in dateChars) {
 
