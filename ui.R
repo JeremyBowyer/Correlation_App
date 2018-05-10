@@ -15,7 +15,7 @@ source("ui-modules/ui-metricdive.R", local=TRUE)
 
 shinyUI(
   navbarPage(
-    title = "Correlation App",
+    title = "analyzR",
     theme = shinytheme("sandstone"),
     fluid = TRUE,
     id = "mainTabset",
