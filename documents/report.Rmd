@@ -84,7 +84,7 @@ for(date in unique(df[, dateCol])) {
 
 }
 
-correlDF$Date <- as.Date(correlDF$Date, format=dateFormat)
+correlDF$Date <- parse_date_time(as.character(correlDF$Date), order=dateFormat)
 correlDF <- correlDF[order(correlDF$Date), ]
 
 metricCorrelations <- as.numeric(correlDF$Correlation)

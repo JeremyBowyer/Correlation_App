@@ -593,7 +593,7 @@ shinyServer(function(input, output, session) {
     c(input$xCol,input$run)
   }, {
     
-    if(input$xCol == ""){
+    if(input$xCol == "" || input$yCol == ""){
       return(NULL)  
     }
       
@@ -622,7 +622,7 @@ shinyServer(function(input, output, session) {
       )
   }, {
     
-    if(input$xCol == ""){
+    if(input$xCol == "" || input$yCol == ""){
       return(NULL)  
     }
     
@@ -738,7 +738,7 @@ shinyServer(function(input, output, session) {
   # Metric Histogram
   output$metricHist <- renderPlotly({
     
-    if(input$xCol == "") {
+    if(input$xCol == "" || input$yCol == "") {
       return(NULL)
     }
     
@@ -752,7 +752,7 @@ shinyServer(function(input, output, session) {
   # By Date
   output$metricDataPointsDate <- renderPlotly({
     
-    if(input$xCol == "" || input$dateCol == "") {
+    if(input$xCol == "" || input$dateCol == "" || input$yCol == "") {
       return(NULL)
     }
     
@@ -772,7 +772,7 @@ shinyServer(function(input, output, session) {
   # By Category
   output$metricDataPointsCategory <- renderPlotly({
     
-    if(input$xCol == "" || input$categoryCol == "") {
+    if(input$xCol == "" || input$categoryCol == "" || input$yCol == "") {
       return(NULL)
     }
     
