@@ -19,9 +19,11 @@ vals <- reactiveValues(
     yCol = "",
     dateCol = "",
     dateFormat = "%m/%d/%Y",
-    IsAggregated = FALSE
+    IsAggregated = FALSE,
+    inputList <- c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")
     )
 
+    
 transformationList = list("Difference" = "diff",
                           "Rolling Sum" = "rollingsum",
                           "Subtract Rolling Median" = "submedian",

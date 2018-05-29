@@ -18,13 +18,13 @@ loadMethods <- function(input, output, session, vals) {
                                )
         }
 
-        for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols", transformInputs)) {
+        for(col in c(vals$inputList, transformInputs)) {
             updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
         }
     }
 
     vals$unloadData <- function(session, input, output, vals) {
-        for(col in c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")) {
+        for(col in vals$inputList) {
             updateSelectInput(session, col, choices=list(), selected=NULL)
         }
 
