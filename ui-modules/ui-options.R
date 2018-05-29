@@ -32,7 +32,6 @@ optionsPage <- function() {
               selectInput("multiCols", "Select Columns to be included in the multilinear (optional)", choices=list("Please upload data first."), multiple = TRUE),
               tags$hr(),
               actionButton("run", "Run Analysis", style="color: #fff; background-color: rgb(2, 140, 7); border: solid 1px #005a03;"),
-              downloadButton('downloadData', 'Download Customized Data'),
               style="padding: 5px 20px 20px 20px; background: #e4dfd6; border: 1px solid #b5b3b0; margin: 10px 0 0 0; border-radius: 5px;"
               )
             ),
