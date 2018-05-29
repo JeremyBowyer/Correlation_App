@@ -1,5 +1,27 @@
 DEBUG_MODE = FALSE
 
+vals <- reactiveValues(
+    valueFilterCount = 0,
+    percentileFilterCount = 0,
+    dateFilterCount = 0,
+    transformationCount = 0,
+    transformColIndex = NULL,
+    offsetCount = 0,
+    offsetColIndex = NULL,
+    datadf = data.frame(),
+    originaldf = data.frame(),
+    metricdivedf = data.frame(),
+    metricdivedfPage = data.frame(),
+    metricdivedfPoint = data.frame(),
+    dateFilterdf = data.frame(),
+    perfdf = data.frame(),
+    summarydf = data.frame(),
+    yCol = "",
+    dateCol = "",
+    dateFormat = "%m/%d/%Y",
+    IsAggregated = FALSE
+    )
+
 transformationList = list("Difference" = "diff",
                           "Rolling Sum" = "rollingsum",
                           "Subtract Rolling Median" = "submedian",
