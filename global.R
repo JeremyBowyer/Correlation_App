@@ -20,7 +20,7 @@ vals <- reactiveValues(
     dateCol = "",
     dateFormat = "%m/%d/%Y",
     IsAggregated = FALSE,
-    inputList <- c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")
+    inputList = c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")
     )
 
     
