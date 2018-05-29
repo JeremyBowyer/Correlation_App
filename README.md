@@ -1,4 +1,4 @@
-## Correlation App
+## analyzeR
 
 ### About
 ---

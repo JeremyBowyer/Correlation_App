@@ -15,7 +15,7 @@ source("ui-modules/ui-metricdive.R", local=TRUE)
 
 shinyUI(
   navbarPage(
-    title = "analyzR",
+    title = "analyzeR",
     theme = shinytheme("sandstone"),
     fluid = TRUE,
     id = "mainTabset",
