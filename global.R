@@ -41,6 +41,7 @@ transformationList = list("Difference" = "diff",
                           "Offset Forward" = "offsetfwd",
                           "Offset Backward" = "offsetbwd",
                           "Column to Column" = "ctc",
+						  "Column Arithmetic" = "ca",
                           "Date Aggregation" = "dateagg")
 
 filterList = list("Value Filter" = "valueFilter",

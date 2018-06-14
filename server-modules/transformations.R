@@ -143,6 +143,20 @@ observeAddTransformation <- function(input, output, session, vals) {
                 tags$hr(), class="transformation")
               )
           },
+          ca = {
+            insertUI(
+              selector="#transformations",
+              where="afterBegin",
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
+                selectInput(paste0("transformCols", cnt), "Column", choices=vals$getCols()),
+                selectInput(paste0("transformOperator", cnt), "Operator", choices = list("+", "-", "/", "*")),
+                numericInput(paste0("transformBinaryValue", cnt), "Amount", value = 0),
+                tags$hr(), class="transformation")
+              )
+          },
           dateagg = {
             insertUI(
               selector="#transformations",
@@ -397,6 +411,11 @@ observeCreateTransformations <- function(input, output, session, vals) {
                ctc={
                  transformFunc <- function(x, y, op, ...) {
                    return(.Primitive(op)(as.numeric(x),as.numeric(y)))
+                 }
+               },
+               ca={
+                 transformFunc <- function(x, transformValue, op, ...) {
+                   return(.Primitive(op)(as.numeric(x),as.numeric(transformValue)))
                  }
                },
                dateagg={
