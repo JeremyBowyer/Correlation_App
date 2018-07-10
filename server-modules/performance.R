@@ -56,12 +56,9 @@ calculatePerformance <- function(df, input, dateCols = TRUE, col, vals){
     allPerformance[6, "All"] <- performanceDifferential
     
     if(dateCols){
-      
       dates <- parse_date_time(as.character(df[, input$dateCol]), order=vals$dateFormat)
       dateChars <- unique(format(dates[order(dates)], vals$dateFormat))
-
       for(date in dateChars) {
-
         datedf <- df[df[,input$dateCol] == date, ]
         allPerformance[, as.character(date)] <- NA
         tryCatch({

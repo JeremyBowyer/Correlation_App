@@ -1,6 +1,7 @@
 observeRunAnalysis <- function(input, output, session, vals) {
+
 observeEvent(input$run, {
-    tryCatch({
+    # tryCatch({
       if(!nrow(vals$originaldf) > 0) {
         shinyalert(
           title = "",
@@ -76,22 +77,27 @@ observeEvent(input$run, {
       updateSelectInput(session, "reportCols", choices=correlCols)
       
   
+      # If date format is missing Day component,
+      # add one temporarily, then convert to date and validate
       if (!is.null(input$dateCol) && input$dateCol != "") {
         dateFormat <- input$dateColFormat
         
         if(length(grep("%d", dateFormat)) == 0){
           fullDateFormat <- paste0('%d-', dateFormat)
           datadf[,input$dateCol] <- paste0("1-", as.character(datadf[, input$dateCol]))
+          
+          if(length(grep("%m", fullDateFormat)) == 0){
+          fullDateFormat <- paste0('%m-', fullDateFormat)
+          datadf[,input$dateCol] <- paste0("1-", as.character(datadf[, input$dateCol]))
+        } 
         } else {
           fullDateFormat <- dateFormat
         }
-  
-        datadf[,input$dateCol] <- format(as.Date(as.character(datadf[, input$dateCol]), format = fullDateFormat), dateFormat)
+
+        datadf[,input$dateCol] <- as.Date(as.character(datadf[, input$dateCol]), format = fullDateFormat)
         if(!vals$validateDates(datadf[,input$dateCol])) return(NULL)
         datadf <- datadf[order(datadf[, input$dateCol]), ]
       }
-  
-      
       ## All Data Points ##
       # Loop through each metric column, run regression, populate summary table
       summaryDF <- data.frame(Metric = character(),
@@ -121,13 +127,14 @@ observeEvent(input$run, {
           fit <- lm(form, datadf)
           summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
           summaryDF[nrow(summaryDF), "DoF"] <- fit$df
-        }, error = function(e) {NULL})
+        }, error = function(e) {
+          summaryDF[nrow(summaryDF), "Correlation"] <- NA
+          summaryDF[nrow(summaryDF), "DoF"] <- NA
+        })
   
         perfdf <-  calculatePerformance(df=datadf,input=input,dateCols=FALSE,col=col,vals=vals) 
         summaryDF[nrow(summaryDF),"Performance Differential"] <- perfdf[6,"All"]
-        
       }
-      
       # Multi-linear
       if(exists("fit")) { suppressWarnings(rm("fit")) }
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- "Multilinear"
@@ -141,24 +148,27 @@ observeEvent(input$run, {
         }
       }
       
+      
       tryCatch({
         form <- as.formula(formstring)
         fit <- lm(form, datadf)
         datadf[names(fit$fitted.values), "fitted"] <- fit$fitted.values
         summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
         summaryDF[nrow(summaryDF), "DoF"] <- fit$df
-      }, error = function(e) {NULL})
+      }, error = function(e) {
+        summaryDF[nrow(summaryDF), "Correlation"] <- NA
+        summaryDF[nrow(summaryDF), "DoF"] <- NA
+      })
   
     
       output$summaryTable <- renderDT(summaryDF,
-                                   options = list(
-                                     pageLength = 10
-                                   ),
-                                   rownames = FALSE,
-                                   fillContainer = TRUE,
-                                   style = "bootstrap",
-                                   selection = "none")
-      
+                                      options = list(
+                                        pageLength = 10
+                                        ),
+                                      rownames = FALSE,
+                                      fillContainer = TRUE,
+                                      style = "bootstrap",
+                                      selection = "none")
       ## By Date ##
       if(input$dateCol != "") {
         dateCorrelations <- data.frame(
@@ -173,13 +183,18 @@ observeEvent(input$run, {
           )
         
         # Fill in correlations by date
-        dates <- as.Date(as.character(unique(datadf[, input$dateCol])), format = vals$dateFormat)
-        dates <- format(dates[order(dates)], vals$dateFormat)
+        dates <- unique(datadf[, input$dateCol])
+        dates  <- dates[order(dates)]
         for(date in dates) {
           dateDF <- datadf[datadf[,input$dateCol]==date, ]
+          chardate <- format(as.Date(date), format=dateFormat)
           # single factor regressions
           for(col in correlCols) {
-            dateCorrelations[dateCorrelations$Metric == col, as.character(date)] <- cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")
+            dateCorrelations[dateCorrelations$Metric == col, chardate] <-
+              tryCatch({
+                cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")},
+                error=function(e){return(NA)
+              })
           }
           
           # multi-linear regression
@@ -205,7 +220,8 @@ observeEvent(input$run, {
         
         # Fill in summary stats of date correlations
         for(col in c(correlCols,"Multilinear")) {
-          metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, as.character(unique(datadf[, input$dateCol]))])
+          chardates <- format(unique(datadf[, input$dateCol]), format=dateFormat)
+          metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, chardates])
           metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
           dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations)
           dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
@@ -226,11 +242,11 @@ observeEvent(input$run, {
       }
       
       updateTabsetPanel(session, "mainTabset", selected="correlations")
-    },error=function(e) {
-      if(DEBUG_MODE) {
-        stop(e)
-      }
-      shinyerror(e)
-    })
+    # },error=function(e) {
+    #   if(DEBUG_MODE) {
+    #     stop(e)
+    #   }
+    #   shinyerror(e)
+    # })
   })
 }

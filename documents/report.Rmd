@@ -47,6 +47,11 @@ title: `r paste0(params$metric, " ~ ", params$yCol)`
 
 </style>
 
+```{r include=FALSE}
+install.packages("plotly") 
+library(plotly)
+```
+
 ```{r, echo=FALSE}
 # Grab parameters and store them in variables
 df <- params$df

@@ -1,5 +1,6 @@
 library(shiny)
-library(shinyalert) # https://github.com/daattali/shinyalert
+library(shinyalert)
+# https://github.com/daattali/shinyalert
 library(plotly)
 library(dplyr)
 library(reshape2)
@@ -9,7 +10,7 @@ library(DT)
 library(lubridate)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
-
+  
 source("global.R", local=TRUE)
 source("server-modules/filters.R", local=TRUE)
 source("server-modules/transformations.R", local=TRUE)

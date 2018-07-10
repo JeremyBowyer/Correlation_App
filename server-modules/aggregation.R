@@ -101,6 +101,7 @@ aggregateData <- function(input, output, session, vals) {
     # Aggregate data
     vals$datadf <- aggregate(formula=groupForm, data=df, FUN=aggFunc, na.action=NULL)
     vals$IsAggregated <- TRUE
+    updateTextInput(session, "dateColFormat", value = aggLevel)
     
     Sys.sleep(0.5) # To allow previous shinyalert to close
     
@@ -168,6 +169,7 @@ observeClearAgg <- function(input, output, session, vals) {
     
     vals$datadf <- vals$originaldf
     vals$IsAggregated <- FALSE
+    updateTextInput(session, "dateColFormat", value = "%m/%d/%Y")
     
     shinyalert(
       title = "",

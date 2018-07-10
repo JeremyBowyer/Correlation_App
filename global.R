@@ -1,4 +1,4 @@
-DEBUG_MODE = FALSE
+DEBUG_MODE = TRUE
 
 vals <- reactiveValues(
     valueFilterCount = 0,

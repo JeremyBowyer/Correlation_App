@@ -433,9 +433,11 @@ observeCreateTransformations <- function(input, output, session, vals) {
           
           # Order DF by date column, if present
           if (!is.null(dateCol) && dateCol != "") {
-            df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat),dateColFormat)
+            df[,dateCol] <- as.Date(as.character(df[, dateCol]), format = dateColFormat)
             if(!vals$validateDates(df[,dateCol])) return(NULL)
             df <- df[order(df[, dateCol]), ]
+            df[,dateCol] <- format(df[,dateCol],dateColFormat)
+            print(dateColFormat)
           }
           
           for (col in cols){
@@ -467,7 +469,6 @@ observeCreateTransformations <- function(input, output, session, vals) {
           # Order by category cols then date col.
           # This step is needed to ensure unlisted aggregate data is in proper order
           # Order DF by date column, if present
-          
           if (!is.null(dateCol) && dateCol != "") {
             df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat),dateColFormat)
             if(!vals$validateDates(df[,dateCol])) return(NULL)

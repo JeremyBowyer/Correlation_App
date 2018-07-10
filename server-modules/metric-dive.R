@@ -190,10 +190,8 @@ metricDivePlots <- function(input, output, session, vals) {
     names(dataPointsDF) <- c("Date", "DataPoints")
    # dataPointsDF$Date <- as.Date(as.character(dataPointsDF$Date), format = vals$dateFormat)
     dataPointsDF$Date <- parse_date_time(dataPointsDF$Date,order=vals$dateFormat)
-    print(vals$dateFormat)
     dataPointsDF <- dataPointsDF[order(dataPointsDF$Date), ]
     ##dataPointsDF$Date <- format(dataPointsDF$Date,vals$dateFormat)
-    print(dataPointsDF$Date)
     
     plot_ly(data = dataPointsDF, x = ~Date, y = ~DataPoints, type = 'scatter', mode = 'lines')
     
@@ -305,7 +303,8 @@ processMetricDiveDF <- function(input, output, session, vals) {
       df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
       df <- subset(df, !is.infinite(df[,input$xCol]) & !is.infinite(df[,input$yCol]))
       df <- subset(df, !is.nan(df[,input$xCol]) & !is.nan(df[,input$yCol]))
-      
+      df <- subset(df, !is.na(df[,input$dateCol]))
+
       vals$metricdivedf <- df
       vals$originalmetricdivedf <- df
     
@@ -337,11 +336,11 @@ calculateMetricStats <- function(input, output, session, vals) {
     }
     
     df <- vals$metricdivedf
-    
+    df <- subset(df, !is.na(df[,input$dateCol]))
     if(nrow(df) == 0) {
       return(NULL)
     } 
-    
+
     if(sum(!is.na(as.numeric(df[, input$xCol]))) == 0) {
       
       shinyalert(
