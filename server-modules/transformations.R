@@ -25,7 +25,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                  numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                  selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
                  selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
-                 textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                 textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", vals$dateFormat),
                  selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                  tags$hr(), class="transformation")
                )
@@ -55,7 +55,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                  textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
                  selectInput(paste0("transformCols", cnt), "Select columns to transform", choices=vals$getCols(), multiple = TRUE),
                  selectInput(paste0("transformDateCol", cnt), "Select column to transform along (probably a date)", choices=vals$getCols()),
-                 textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                 textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", vals$dateFormat),
                  selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                  tags$hr(), class="transformation")
                )
@@ -124,7 +124,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                 numericInput(paste0("transformationLag", cnt), "Select Lag", value = 1, min = 1), 
                 selectInput(paste0("transformCols", cnt), "Select columns to offset", choices=vals$getCols(), multiple = TRUE),
                 selectInput(paste0("transformDateCol", cnt), "Select column to offset along (probably a date)", choices=vals$getCols()),
-                textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", vals$dateFormat),
                 selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
                 tags$hr(), class="transformation")
               )
@@ -166,7 +166,7 @@ observeAddTransformation <- function(input, output, session, vals) {
                 tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
                 textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
                 selectInput(paste0("transformCols", cnt), "Select date column to be aggregated", choices=vals$getCols()),
-                textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                textInput(paste0("transformDateColFormat", cnt), "Format dates are in (check 'Data Preview' tab)", vals$dateFormat),
                 selectInput(paste0("transformAggregationLevel", cnt), "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
                 tags$hr(), class="transformation")
               )
@@ -180,7 +180,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
 
   createTransformations <- function(alert, dateformat=FALSE){
 
-    tryCatch({
+    # tryCatch({
       
       if(vals$transformationCount < 1){
         return(NULL)
@@ -206,6 +206,20 @@ observeCreateTransformations <- function(input, output, session, vals) {
           dateColFormat <- input$dateAggDateColFormat
         } else {
           dateColFormat <- input[[paste0("transformDateColFormat", cnt)]]
+        }
+        
+        if (!is.null(dateCol) && dateCol != "") {
+
+          if(length(grep("%d", dateColFormat)) == 0){
+            fullDateFormat <- paste0('%d-', dateColFormat)
+            df[,dateCol] <- paste0("1-", as.character(df[, dateCol]))
+          } else {
+            fullDateFormat <- dateColFormat
+          }
+  
+          df[,dateCol] <- as.Date(as.character(df[, dateCol]), format = fullDateFormat)
+          if(!vals$validateDates(df[,dateCol])) return(NULL)
+          df <- df[order(df[, dateCol]), ]
         }
         
         catCols <- input[[paste0("transformCategoryCol", cnt)]]
@@ -433,11 +447,8 @@ observeCreateTransformations <- function(input, output, session, vals) {
           
           # Order DF by date column, if present
           if (!is.null(dateCol) && dateCol != "") {
-            df[,dateCol] <- as.Date(as.character(df[, dateCol]), format = dateColFormat)
-            if(!vals$validateDates(df[,dateCol])) return(NULL)
             df <- df[order(df[, dateCol]), ]
             df[,dateCol] <- format(df[,dateCol],dateColFormat)
-            print(dateColFormat)
           }
           
           for (col in cols){
@@ -470,13 +481,12 @@ observeCreateTransformations <- function(input, output, session, vals) {
           # This step is needed to ensure unlisted aggregate data is in proper order
           # Order DF by date column, if present
           if (!is.null(dateCol) && dateCol != "") {
-            df[,dateCol] <- format(as.Date(as.character(df[, dateCol]), format = dateColFormat),dateColFormat)
-            if(!vals$validateDates(df[,dateCol])) return(NULL)
             df <- df[do.call(order, df[c(rev(catCols),dateCol)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
           } else {
             df <- df[do.call(order, df[rev(catCols)]), ] #rev() reverses the category column vector, because aggregate() sorts using last in first out
           }
           
+          df[,dateCol] <- format(df[,dateCol],dateColFormat)
           
           groupList <- list()
           for (col in catCols){
@@ -524,12 +534,12 @@ observeCreateTransformations <- function(input, output, session, vals) {
           animation = TRUE
         )
       }
-    },error=function(e) {
-      if(DEBUG_MODE) {
-        stop(e)
-      }
-      shinyerror(e)
-    })
+    # },error=function(e) {
+    #   if(DEBUG_MODE) {
+    #     stop(e)
+    #   }
+    #   shinyerror(e)
+    # })
   }
   # Create Transformations Button
   observeEvent(input$applyTransformations, {

@@ -1,7 +1,7 @@
 observeRunAnalysis <- function(input, output, session, vals) {
 
 observeEvent(input$run, {
-    # tryCatch({
+    tryCatch({
       if(!nrow(vals$originaldf) > 0) {
         shinyalert(
           title = "",
@@ -85,11 +85,6 @@ observeEvent(input$run, {
         if(length(grep("%d", dateFormat)) == 0){
           fullDateFormat <- paste0('%d-', dateFormat)
           datadf[,input$dateCol] <- paste0("1-", as.character(datadf[, input$dateCol]))
-          
-          if(length(grep("%m", fullDateFormat)) == 0){
-          fullDateFormat <- paste0('%m-', fullDateFormat)
-          datadf[,input$dateCol] <- paste0("1-", as.character(datadf[, input$dateCol]))
-        } 
         } else {
           fullDateFormat <- dateFormat
         }
@@ -242,11 +237,11 @@ observeEvent(input$run, {
       }
       
       updateTabsetPanel(session, "mainTabset", selected="correlations")
-    # },error=function(e) {
-    #   if(DEBUG_MODE) {
-    #     stop(e)
-    #   }
-    #   shinyerror(e)
-    # })
+    },error=function(e) {
+      if(DEBUG_MODE) {
+        stop(e)
+      }
+      shinyerror(e)
+    })
   })
 }
