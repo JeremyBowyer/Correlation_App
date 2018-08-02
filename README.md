@@ -7,3 +7,9 @@ An R Shiny application that automates a number of high level analysis techniques
 ### Where to find it
 ---
 The application is currently hosted on shinyapps.io, and can be found [here](https://jeremybowyer.shinyapps.io/Correlation_App/).
+
+Alternatively, you can run the app directly from this repo:
+
+``` r
+runGitHub("analyzeR", "jeremybowyer")
+```
