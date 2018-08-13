@@ -8,6 +8,11 @@ a[data-title="Produced with Plotly"]{
 	display: none;
 }
 
+/* Override Date Filter Table */
+#pageFilterTable {
+    height: 400px !important;
+}
+
 .report_btn {
     padding: 8px;
     font-size: 20px;

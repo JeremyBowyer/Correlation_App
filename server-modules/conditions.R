@@ -65,4 +65,10 @@ loadConditions <- function(input, output, session, vals) {
 	  return(input$pointFilterCheck)
 	})
 	outputOptions(output,'pointFilterCheck', suspendWhenHidden=FALSE)
+	
+	output$bigDataCheck <- reactive({
+	  return(nrow(vals$metricdivedf) > MAX_ROW_LIMIT)
+	})
+	outputOptions(output,'bigDataCheck', suspendWhenHidden=FALSE)
+	
 }

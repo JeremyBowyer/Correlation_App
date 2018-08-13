@@ -20,7 +20,10 @@ metricDivePage <- function() {
                        DTOutput("pageFilterTable")
                        )
                      ),
-                   checkboxInput("pointFilterCheck", label = "Filter Using Scatter", value = FALSE),
+                   conditionalPanel(
+                     condition = "!output.bigDataCheck",
+                     checkboxInput("pointFilterCheck", label = "Filter Using Scatter", value = FALSE)
+                   ),
                    conditionalPanel(
                      condition = "output.pointFilterCheck",
                      actionButton("keepPoints", "Keep Selection", value = FALSE),
@@ -39,7 +42,14 @@ metricDivePage <- function() {
                    tabsetPanel(
                      tabPanel(
                        "Scatter",
-                       plotlyOutput("metricScatter"),
+                       conditionalPanel(
+                         condition = "!output.bigDataCheck",
+                         plotlyOutput("metricScatter", height="800px")
+                       ),
+                       conditionalPanel(
+                         condition = "output.bigDataCheck",
+                         plotOutput("staticScatter", height="800px")
+                       ),
                        tags$br(),
                        tags$br()
                        ),

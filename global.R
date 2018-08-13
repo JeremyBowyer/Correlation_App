@@ -1,4 +1,6 @@
 DEBUG_MODE = TRUE
+MAX_ROW_LIMIT = 5e4
+
 
 vals <- reactiveValues(
     valueFilterCount = 0,
@@ -15,7 +17,7 @@ vals <- reactiveValues(
     metricdivedfPoint = data.frame(),
     dateFilterdf = data.frame(),
     perfdf = data.frame(),
-    summarydf = data.frame(),
+    summaryDF = data.frame(),
     yCol = "",
     dateCol = "",
     dateFormat = "%m/%d/%Y",

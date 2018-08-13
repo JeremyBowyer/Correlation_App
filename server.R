@@ -10,12 +10,14 @@ library(DT)
 library(lubridate)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
+options(shiny.maxRequestSize=10000*1024^2) 
   
 source("global.R", local=TRUE)
 source("server-modules/filters.R", local=TRUE)
 source("server-modules/transformations.R", local=TRUE)
 source("server-modules/metric-dive.R", local=TRUE)
 source("server-modules/download-custom-data.R", local=TRUE)
+source("server-modules/download-comparison-data.R", local=TRUE)
 source("server-modules/download-report.R", local=TRUE)
 source("server-modules/run-analysis.R", local=TRUE)
 source("server-modules/uploaded-data.R", local=TRUE)
@@ -84,9 +86,16 @@ shinyServer(function(input, output, session) {
   #####################
   # Various Mechanics #
   #####################
-  observeRunAnalysis(input, output, session, vals)
   observeDownloadCustomData(input, output, session, vals)
+  observeDownloadComparisonData(input, output, session, vals)
   observeDownloadReport(input, output, session, vals)
+  
+  
+  #####################
+  # Metric Comparison #
+  #####################
+  observeRunAnalysis(input, output, session, vals)
+  correlPlots(input, output, session, vals)
   
   #################
   ## Metric Dive ##
@@ -100,6 +109,12 @@ shinyServer(function(input, output, session) {
   # Data Preview Screen #
   #######################
   dataPreview(input, output, session, vals)
+  
+  
+  session$onSessionEnded(function() {
+      stopApp()
+      q("no")
+  })
   
   #####################################
   # JavaScript Conditional Formatting #

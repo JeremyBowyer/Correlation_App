@@ -48,7 +48,7 @@ title: `r paste0(params$metric, " ~ ", params$yCol)`
 </style>
 
 ```{r include=FALSE}
-install.packages("plotly") 
+#install.packages("plotly") 
 library(plotly)
 ```
 
@@ -182,13 +182,14 @@ xNorm <- qnorm(c(1:nrow(xyDF)) / nrow(xyDF), mean(xyDF[,metric], na.rm = TRUE), 
 xNorm <- replace(xNorm, is.infinite(xNorm), NA)
 sortedDF <- data.frame(x = sortedX, y = sortedY, xNorm = xNorm)
 
-plot_ly(data = sortedDF, x = ~x, y = ~y)
+plot(sortedX, sortedY, xlab=metric, ylab=yCol)
+#plot_ly(data = sortedDF, x = ~x, y = ~y)
 ```
 
-Data
+Data (first 250 rows)
 =======================================================================
 ```{r, results='asis'}
-knitr::kable(df)
+knitr::kable(head(df, n = 250))
 ```
 
 <script>

@@ -1,7 +1,7 @@
 observeRunAnalysis <- function(input, output, session, vals) {
 
 observeEvent(input$run, {
-    tryCatch({
+    #tryCatch({
       if(!nrow(vals$originaldf) > 0) {
         shinyalert(
           title = "",
@@ -98,6 +98,7 @@ observeEvent(input$run, {
       summaryDF <- data.frame(Metric = character(),
                               'Rank Volatility (max 0.57)' = character(),
                               Correlation = numeric(),
+                              'R-Squared' = numeric(),
                               DoF = integer(),
                               check.names = FALSE,
                               "Performance Differential" = numeric())
@@ -105,6 +106,9 @@ observeEvent(input$run, {
       for(col in correlCols) {
         if(exists("fit")) { suppressWarnings(rm("fit")) }
         summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
+        
+        datadf[!is.finite(datadf[, col]), col] <- NA
+        datadf[!is.finite(datadf[, yColumn]), yColumn] <- NA
         
         # Rank Volatility
         tryCatch({
@@ -120,10 +124,13 @@ observeEvent(input$run, {
         tryCatch({
           form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
           fit <- lm(form, datadf)
-          summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
+          correl <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
+          summaryDF[nrow(summaryDF), "Correlation"] <- correl
+          summaryDF[nrow(summaryDF), "R-Squared"] <- correl*correl
           summaryDF[nrow(summaryDF), "DoF"] <- fit$df
         }, error = function(e) {
           summaryDF[nrow(summaryDF), "Correlation"] <- NA
+          summaryDF[nrow(summaryDF), "R-Squared"] <- NA
           summaryDF[nrow(summaryDF), "DoF"] <- NA
         })
   
@@ -148,14 +155,18 @@ observeEvent(input$run, {
         form <- as.formula(formstring)
         fit <- lm(form, datadf)
         datadf[names(fit$fitted.values), "fitted"] <- fit$fitted.values
-        summaryDF[nrow(summaryDF), "Correlation"] <- cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
+        correl <- cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
+        summaryDF[nrow(summaryDF), "Correlation"] <- correl
+        summaryDF[nrow(summaryDF), "R-Squared"] <- correl*correl
         summaryDF[nrow(summaryDF), "DoF"] <- fit$df
       }, error = function(e) {
         summaryDF[nrow(summaryDF), "Correlation"] <- NA
+        summaryDF[nrow(summaryDF), "R-Squared"] <- NA
         summaryDF[nrow(summaryDF), "DoF"] <- NA
       })
   
-    
+      vals$summaryDF <- summaryDF
+      
       output$summaryTable <- renderDT(summaryDF,
                                       options = list(
                                         pageLength = 10
@@ -237,11 +248,30 @@ observeEvent(input$run, {
       }
       
       updateTabsetPanel(session, "mainTabset", selected="correlations")
-    },error=function(e) {
-      if(DEBUG_MODE) {
-        stop(e)
-      }
-      shinyerror(e)
-    })
+    # },error=function(e) {
+    #   if(DEBUG_MODE) {
+    #     stop(e)
+    #   }
+    #   shinyerror(e)
+    # })
   })
+}
+
+correlPlots <- function(input, output, session, vals) {
+  
+  output$correlHist <- renderPlotly({
+
+    df <- vals$summaryDF
+    plot_ly(data = df, x = ~Correlation, type = "histogram")
+    
+  })
+  
+  
+  output$correlScatter <- renderPlotly({
+    
+    df <- vals$summaryDF
+    plot_ly(data = df, x = ~DoF, y = ~Correlation, color = ~Metric, type = 'scatter')
+    
+  })
+  
 }

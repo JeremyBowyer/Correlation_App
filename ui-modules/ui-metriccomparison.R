@@ -8,7 +8,20 @@ metricComparisonsPage <- function(){
     tabsetPanel(
       tabPanel(
         "Summary - All Dates",
-        DTOutput("summaryTable")),
+        tabsetPanel(
+          tabPanel(
+            "Table",
+            DTOutput("summaryTable"),
+            downloadButton('downloadComparison', 'Download Comparison Data')),
+          tabPanel(
+            "Histogram",
+            plotlyOutput("correlHist", height="700px")),
+          tabPanel(
+            "Scatter",
+            plotlyOutput("correlScatter", height="700px")
+          )
+        )
+      ),
       tabPanel(
         "Correlations - By Date",
         conditionalPanel(

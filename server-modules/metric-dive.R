@@ -132,16 +132,16 @@ observeMetricDiveFilters <- function(input, output, session, vals) {
 
 metricDivePlots <- function(input, output, session, vals) {
   
-    ##################
+  ##################
   # Reactive plots #
   ##################
   # Metric Scatter
   output$metricScatter <- renderPlotly({
-    
-    if(input$xCol == "" || input$yCol == "") {
+
+    if(input$xCol == "" || input$yCol == "" || nrow(vals$metricdivedf) > MAX_ROW_LIMIT)  {
       return(NULL)
     }
-    
+
     df <- vals$metricdivedf
     if (input$dateCol != ""){
       df$text <- paste0("date: ", df[,input$dateCol])
@@ -150,18 +150,33 @@ metricDivePlots <- function(input, output, session, vals) {
     }
     xform <- as.formula(paste0("~",input$xCol))
     yform <- as.formula(paste0("~",input$yCol))
-    
+
     colorcol <- if(input$categoryCol != "") input$categoryCol else input$xCol
     colorform <- as.formula(paste0("~", colorcol))
-    
+
     form <- as.formula(paste0(input$yCol, "~", input$xCol))
     fit <- lm(form, data = df)
-    df %>%
+    p <- df %>%
       plot_ly(x = xform, source = "metricScatter") %>%
       add_markers(y = yform, color = colorform, text = ~text)  %>%
       add_lines(x = xform, y = fitted(fit), fill = "red", name = "Regression Line") %>%
       layout(dragmode = "lasso")
-    
+    p
+  })
+  
+  output$staticScatter <- renderPlot({
+
+    if(input$xCol == "" || input$yCol == "" || nrow(vals$metricdivedf) <= MAX_ROW_LIMIT)  {
+      return(NULL)
+    }
+
+    df <- vals$metricdivedf
+    x <- df[,input$xCol]
+    y <- df[,input$yCol]
+
+    plot(x, y, xlab=input$xCol, ylab=input$yCol)
+    abline(lm(y ~ x))
+
   })
   
   # Metric Histogram
@@ -298,12 +313,13 @@ processMetricDiveDF <- function(input, output, session, vals) {
         
       # Process Data
       df <- vals$datadf
+      
       df[,input$xCol] <- as.numeric(df[,input$xCol])
       df[,input$yCol] <- as.numeric(df[,input$yCol])
       df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
       df <- subset(df, !is.infinite(df[,input$xCol]) & !is.infinite(df[,input$yCol]))
       df <- subset(df, !is.nan(df[,input$xCol]) & !is.nan(df[,input$yCol]))
-      df <- subset(df, !is.na(df[,input$dateCol]))
+      if(!is.null(input$dateCol) && input$dateCol != "") df <- subset(df, !is.na(df[,input$dateCol]))
 
       vals$metricdivedf <- df
       vals$originalmetricdivedf <- df
@@ -336,7 +352,8 @@ calculateMetricStats <- function(input, output, session, vals) {
     }
     
     df <- vals$metricdivedf
-    df <- subset(df, !is.na(df[,input$dateCol]))
+    if(!is.null(input$dateCol) && input$dateCol != "") df <- subset(df, !is.na(df[,input$dateCol]))
+
     if(nrow(df) == 0) {
       return(NULL)
     } 
