@@ -99,6 +99,7 @@ observeEvent(input$run, {
                               'Rank Volatility (max 0.57)' = character(),
                               Correlation = numeric(),
                               'R-Squared' = numeric(),
+                              Slope = numeric(),
                               DoF = integer(),
                               check.names = FALSE,
                               "Performance Differential" = numeric())
@@ -125,12 +126,14 @@ observeEvent(input$run, {
           form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
           fit <- lm(form, datadf)
           correl <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
-          summaryDF[nrow(summaryDF), "Correlation"] <- correl
-          summaryDF[nrow(summaryDF), "R-Squared"] <- correl*correl
+          summaryDF[nrow(summaryDF), "Correlation"] <- round(correl, 4)
+          summaryDF[nrow(summaryDF), "R-Squared"] <- round(correl*correl, 4)
+          summaryDF[nrow(summaryDF), "Slope"] <- round(coef(fit)[2], 4)
           summaryDF[nrow(summaryDF), "DoF"] <- fit$df
         }, error = function(e) {
           summaryDF[nrow(summaryDF), "Correlation"] <- NA
           summaryDF[nrow(summaryDF), "R-Squared"] <- NA
+          summaryDF[nrow(summaryDF), "Slope"] <- NA
           summaryDF[nrow(summaryDF), "DoF"] <- NA
         })
   
@@ -156,12 +159,14 @@ observeEvent(input$run, {
         fit <- lm(form, datadf)
         datadf[names(fit$fitted.values), "fitted"] <- fit$fitted.values
         correl <- cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
-        summaryDF[nrow(summaryDF), "Correlation"] <- correl
-        summaryDF[nrow(summaryDF), "R-Squared"] <- correl*correl
+        summaryDF[nrow(summaryDF), "Correlation"] <- round(correl, 4)
+        summaryDF[nrow(summaryDF), "R-Squared"] <- round(correl*correl, 4)
+        summaryDF[nrow(summaryDF), "Slope"] <- round(coef(fit)[2], 4)
         summaryDF[nrow(summaryDF), "DoF"] <- fit$df
       }, error = function(e) {
         summaryDF[nrow(summaryDF), "Correlation"] <- NA
         summaryDF[nrow(summaryDF), "R-Squared"] <- NA
+        summaryDF[nrow(summaryDF), "Slope"] <- NA
         summaryDF[nrow(summaryDF), "DoF"] <- NA
       })
   

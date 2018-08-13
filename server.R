@@ -11,6 +11,7 @@ library(lubridate)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors = FALSE)
 options(shiny.maxRequestSize=10000*1024^2) 
+options(digits=4)
   
 source("global.R", local=TRUE)
 source("server-modules/filters.R", local=TRUE)
