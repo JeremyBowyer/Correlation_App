@@ -137,8 +137,9 @@ observeEvent(input$run, {
           summaryDF[nrow(summaryDF), "DoF"] <- NA
         })
   
-        perfdf <-  calculatePerformance(df=datadf,input=input,dateCols=FALSE,col=col,vals=vals) 
-        summaryDF[nrow(summaryDF),"Performance Differential"] <- perfdf[6,"All"]
+        perfTable <- calculatePerformance(df,col, input$yCol, input$dateCol, vals$dateFormat)
+        summaryDF[nrow(summaryDF),"Performance Differential"] <- perfTable[6, "All"] 
+
       }
       # Multi-linear
       if(exists("fit")) { suppressWarnings(rm("fit")) }

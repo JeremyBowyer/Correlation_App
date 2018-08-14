@@ -11,5 +11,7 @@ The application is currently hosted on shinyapps.io, and can be found [here](htt
 Alternatively, you can run the app directly from this repo:
 
 ``` r
+library(shiny)
+
 runGitHub("analyzeR", "jeremybowyer")
 ```

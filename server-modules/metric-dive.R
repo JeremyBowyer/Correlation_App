@@ -410,7 +410,7 @@ calculateMetricStats <- function(input, output, session, vals) {
     })
     
     # Create quintiles by date and more processing
-    vals$perfdf <- calculatePerformance(df=df,input=input,dateCols=TRUE,vals=vals) 
+    vals$perfdf <- calculatePerformanceDates(df, input$xCol, input$yCol, input$dateCol, vals$dateFormat)
     
     # Performance Output
     output$datePerformance = renderDT(vals$perfdf,
