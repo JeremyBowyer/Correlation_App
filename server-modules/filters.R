@@ -1,6 +1,16 @@
 applyFilters <- function(alert, dateformat, input, output, session, vals) {
   tryCatch({
     df <- vals$datadf
+    
+    # Complete Cases Filters
+    if(vals$completeCasesFilterCount > 0) {
+      for(filter in 1:vals$completeCasesFilterCount){
+        filterCols <- input[[paste0("completeCasesFilter",filter)]]
+        
+        df <- df[complete.cases(df[, filterCols]), ]
+      }
+    }
+    
     # Value Filters
     if(vals$valueFilterCount > 0) {
       for(filter in 1:vals$valueFilterCount){
@@ -103,6 +113,16 @@ observeAddFilter <- function(input, output, session, vals) {
     filterName <- names(filterList[filterList==filter])
     
     switch(filter,
+           completeCasesFilter = {
+             vals$completeCasesFilterCount <- vals$completeCasesFilterCount + 1
+             cnt <- vals$completeCasesFilterCount
+             insertUI(selector="#filters",
+                      where="afterBegin",
+                      ui = tags$div(h3(filterName),
+                                    tags$div(textInput(paste0("filterType", cnt), label = NULL, value=filter),style="display:none;"),
+                                    selectInput(paste0("completeCasesFilter", cnt), "Select Columns; rows with NAs will be removed", choices=vals$getCols(), multiple = TRUE),
+                                    tags$div(tags$hr()), class="valueFilter"))
+           },
            valueFilter = {
              vals$valueFilterCount <- vals$valueFilterCount + 1
              cnt <- vals$valueFilterCount

@@ -3,6 +3,7 @@ MAX_ROW_LIMIT = 5e4
 
 
 vals <- reactiveValues(
+    completeCasesFilterCount = 0,
     valueFilterCount = 0,
     percentileFilterCount = 0,
     dateFilterCount = 0,
@@ -48,7 +49,8 @@ transformationList = list("Difference" = "diff",
 
 filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",
-                  "Date Filter" = "dateFilter")
+                  "Date Filter" = "dateFilter",
+                  "Complete Cases Filter" = "completeCasesFilter")
 
 aggregationLevelList = list("Month" = "%Y/%m",
                             "Year" = "%Y")

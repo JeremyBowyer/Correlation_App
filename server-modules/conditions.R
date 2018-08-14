@@ -19,7 +19,7 @@ loadConditions <- function(input, output, session, vals) {
 	outputOptions(output, 'transformationsCheck', suspendWhenHidden=FALSE)  
 
 	output$filtersCheck <- reactive({
-	  return(vals$valueFilterCount > 0 || vals$percentileFilterCount > 0 || vals$dateFilterCount > 0 )
+	  return(vals$valueFilterCount > 0 || vals$percentileFilterCount > 0 || vals$dateFilterCount > 0 || vals$completeCasesFilterCount > 0)
 	})
 	outputOptions(output, 'filtersCheck', suspendWhenHidden=FALSE)
 
