@@ -1,3 +1,97 @@
+calculatePerformanceBinary <- function(df, xCol, yCol, dateCol, dateFormat, include_df=FALSE) {
+  
+  #
+  # Function to calculate the performance differential of a given X column,
+  # if that column is binary (only has 2 unique values)
+  #
+  # Returns a dataframe containing the average Y value for the
+  # two unique values of X, and the difference between them.
+  #
+  
+  # Subset df by complete cases
+  if (dateCol == "") {
+    
+    df <- df[,c(xCol,yCol)]
+    df <- df[complete.cases(df), ]
+    
+  } else {
+    
+    df <- df[,c(xCol,yCol,dateCol)]
+    df <- df[complete.cases(df), ]
+    
+  }
+  
+  if(nrow(df) == 0) { return(NA) }
+  
+  binary_values = unique(df[,xCol])
+
+  if(length(binary_values) != 2) {
+    print("Data not binary. Unique values:")
+    print(binary_values)
+    return(NULL)
+  }
+  
+  allPerformance <- data.frame(Value = binary_values, stringsAsFactors=FALSE)
+  allPerformance[,"All"] <- NA
+  
+  allPerformance[1, "All"] <- mean(df[df[,xCol] == binary_values[1],yCol], na.rm=TRUE)
+  allPerformance[2, "All"] <- mean(df[df[,xCol] == binary_values[2],yCol], na.rm=TRUE)
+  allPerformance[3, ] <- c("Differential", allPerformance[1, "All"] - allPerformance[2, "All"])
+  
+  return(allPerformance)
+  
+}
+
+
+calculatePerformanceDatesBinary <- function(df, xCol, yCol, dateCol, dateFormat) {
+  
+  #
+  # Function to calculate the performance differential of a given X column,
+  # if that column is binary (only has 2 unique values)
+  #
+  # Returns a dataframe containing the average Y value for the
+  # two unique values of X, and the difference between them.
+  #
+  # A column for each date is included, in addition to an "All" column
+  #
+    
+  # Grab initial performance table with "All" column
+  allPerformance <- calculatePerformanceBinary(df, xCol, yCol, dateCol, dateFormat) 
+
+  # If there is no date, no need to add columns for each date
+  if(dateCol == "") { return(allPerformance) }
+  
+  df <- df[,c(xCol,yCol,dateCol)]
+  df <- df[complete.cases(df), ]
+  
+  # If data isn't binary, return NULL, with explanation
+  binary_values = unique(df[,xCol])
+  if(length(binary_values) != 2) {
+    print("Data not binary. Unique values:")
+    print(binary_values)
+    return(NULL)
+  }
+  
+  # Loop through each date and calculate average Y value and differential
+  dates <- parse_date_time(as.character(df[, dateCol]), order=dateFormat)
+  dateChars <- unique(format(dates[order(dates)], dateFormat))
+  
+  for(date in dateChars) {
+    
+    datedf <- df[format(dates, dateFormat) == date, ]
+    allPerformance[, as.character(date)] <- NA
+    
+    allPerformance[1, as.character(date)] <- mean(datedf[datedf[,xCol] == binary_values[1],yCol], na.rm=TRUE)
+    allPerformance[2, as.character(date)] <- mean(datedf[datedf[,xCol] == binary_values[2],yCol], na.rm=TRUE)
+    allPerformance[3, as.character(date)] <- allPerformance[1, as.character(date)] - allPerformance[2, as.character(date)]
+
+  }
+  
+  return(allPerformance)
+  
+}
+
+
 calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df=FALSE) {
   
   #
@@ -41,6 +135,13 @@ calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df
     
     df <- do.call("rbind", aggs)
   }
+  
+  # Check for binary data
+  binary_values = unique(df[,xCol])
+  
+  if(length(binary_values) == 2) {
+    return(calculatePerformanceBinary(df, xCol, yCol, dateCol, dateFormat))
+  }
     
   # Calculate Performance, then Performance Differential
   allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"), stringsAsFactors=FALSE)
@@ -73,9 +174,15 @@ calculatePerformanceDates <- function(df, xCol, yCol, dateCol, dateFormat) {
   # A column for each date is included, in addition to an "All" column
   #
   
+  # Check for binary data
+  binary_values = unique(df[,xCol])
+  
+  if(length(binary_values) == 2) {
+    return(calculatePerformanceDatesBinary(df, xCol, yCol, dateCol, dateFormat))
+  }
   
   # Grab initial performance table with "All" column
-  output <- calculatePerformanceDifferential(df, xCol, yCol, dateCol, dateFormat, include_df=TRUE) 
+  output <- calculatePerformance(df, xCol, yCol, dateCol, dateFormat, include_df=TRUE) 
   allPerformance <- output$allPerformance
     
   # This dataframe is already quintiled appropriate

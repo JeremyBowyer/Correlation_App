@@ -137,7 +137,7 @@ observeEvent(input$run, {
           summaryDF[nrow(summaryDF), "DoF"] <- NA
         })
   
-        perfTable <- calculatePerformance(df,col, input$yCol, input$dateCol, vals$dateFormat)
+        perfTable <- calculatePerformance(datadf, col, input$yCol, input$dateCol, vals$dateFormat)
         summaryDF[nrow(summaryDF),"Performance Differential"] <- perfTable[6, "All"] 
 
       }
