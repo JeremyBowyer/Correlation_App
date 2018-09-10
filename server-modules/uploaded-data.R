@@ -8,7 +8,8 @@ observeUploadedData <- function(input, output, session, vals) {
 
         vals$unloadData(session, input, output, vals)
 
-        datadf = read.csv(inFile$datapath)
+        datadf = read.csv(inFile$datapath, check.names=FALSE)
+
         vals$datadf <- datadf
         vals$originaldf <- datadf
         vals$refreshInputs(session, input, vals)

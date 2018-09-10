@@ -170,6 +170,19 @@ observeAddTransformation <- function(input, output, session, vals) {
                 selectInput(paste0("transformAggregationLevel", cnt), "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
                 tags$hr(), class="transformation")
               )
+          },
+          bucket = {
+            insertUI(
+              selector="#transformations",
+              where="afterBegin",
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Resulting column name (required)", value = ""),
+                selectInput(paste0("transformBucketCols", cnt), "Columns to bucket", choices=vals$getCols(), multiple=TRUE),
+                selectInput(paste0("transformBucketAggregation", cnt), "Bucket Method", choices = bucketFuncList),
+                tags$hr(), class="transformation")
+              )
           }
         )
   }) 
@@ -199,8 +212,10 @@ observeCreateTransformations <- function(input, output, session, vals) {
         # Grab values from current transformation request
         type <- input[[paste0("transformationType", cnt)]]
         cols <- input[[paste0("transformCols", cnt)]]
+        cols <- if(is.null(cols)){""} else{cols}
         dateCol <- input[[paste0("transformDateCol", cnt)]]
         
+        # Grab date format from date aggregation, if data is aggregated by date
         if(dateformat) {
           updateTextInput(session, paste0("transformDateColFormat", cnt), value = input$dateAggDateColFormat)
           dateColFormat <- input$dateAggDateColFormat
@@ -208,6 +223,8 @@ observeCreateTransformations <- function(input, output, session, vals) {
           dateColFormat <- input[[paste0("transformDateColFormat", cnt)]]
         }
         
+        # If there is a valid date column, make sure it has a Day
+        # component, add one if necessary.
         if (!is.null(dateCol) && dateCol != "") {
 
           if(length(grep("%d", dateColFormat)) == 0){
@@ -222,6 +239,7 @@ observeCreateTransformations <- function(input, output, session, vals) {
           df <- df[order(df[, dateCol]), ]
         }
         
+        # Grab all possible transformation column values
         catCols <- input[[paste0("transformCategoryCol", cnt)]]
         lag <- input[[paste0("transformationLag", cnt)]]
         transformSuffix <- gsub(" ", ".", input[[paste0("transformationSuffix", cnt)]])
@@ -231,8 +249,10 @@ observeCreateTransformations <- function(input, output, session, vals) {
         transformY <- input[[paste0("transformY", cnt)]]
         transformOp <- input[[paste0("transformOperator", cnt)]]
         transformAggLvl <- input[[paste0("transformAggregationLevel", cnt)]]
+        transformBucketCols <- input[[paste0("transformBucketCols", cnt)]]
+        transformBucketAggregation <- input[[paste0("transformBucketAggregation", cnt)]]
         
-        if(type %in% c("ctc", "dateagg") && transformSuffix == "") {
+        if(type %in% c("ctc", "dateagg", "bucket") && transformSuffix == "") {
           shinyalert(
             title = "",
             text = "Please provide a name for the resulting column.",
@@ -438,6 +458,29 @@ observeCreateTransformations <- function(input, output, session, vals) {
                    if(!vals$validateDates(d)) return(FALSE)
                    return(d)
                  }
+               },
+               bucket={
+                 transformFunc <- function(df, transformBucketCols, transformBucketAggregation, ...) {
+                   bucket_df <- df[,transformBucketCols]
+                   switch(transformBucketAggregation,
+                          sum={
+                            n <- rowSums(bucket_df, na.rm=TRUE)
+                            m <- rowMeans(bucket_df,na.rm=TRUE)
+                            n <- replace(n,is.nan(m),NA)
+                          },
+                          average={
+                            n <- rowMeans(bucket_df, na.rm=TRUE)
+                          },
+                          binary={
+                            n <- rowSums(bucket_df, na.rm=TRUE)
+                            m <- rowMeans(bucket_df,na.rm=TRUE)
+                            n <- replace(n,is.nan(m),NA)
+                            n <- replace(n, n<=0, 0)
+                            n <- replace(n, n>0, 1)
+                            
+                          })
+                   return(n)
+                 }
                }
         )
   
@@ -450,14 +493,15 @@ observeCreateTransformations <- function(input, output, session, vals) {
             df <- df[order(df[, dateCol]), ]
             df[,dateCol] <- format(df[,dateCol],dateColFormat)
           }
-          
+        
           for (col in cols){
-            transformName <- if(type == "ctc" || type == "dateagg") transformSuffix else paste0(col, "_", transformSuffix)
+            transformName <- if(type %in% c("ctc", "dateagg", "bucket")) transformSuffix else paste0(col, "_", transformSuffix)
             if(length(names(df)[names(df) == transformName]) > 0) {
               transformName = paste0(transformName, length(names(df)[names(df) == transformName]))
             }
             
-            transformRes <- transformFunc(x=df[,col],
+            transformRes <- transformFunc(df=df,
+                                          x=df[,col],
                                           lag=lag,
                                           y=df[,transformY],
                                           op=transformOp,
@@ -465,7 +509,9 @@ observeCreateTransformations <- function(input, output, session, vals) {
                                           dateFormat=dateColFormat,
                                           transformString=transformString,
                                           transformValue=transformBinaryValue,
-                                          transformSlider = transformSlider
+                                          transformSlider = transformSlider,
+                                          transformBucketCols = transformBucketCols,
+                                          transformBucketAggregation = transformBucketAggregation
                                           )
             
   

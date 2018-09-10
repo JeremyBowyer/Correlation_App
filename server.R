@@ -1,3 +1,4 @@
+options(java.parameters = "-Xmx12048m")
 library(shiny)
 library(shinyalert)
 # https://github.com/daattali/shinyalert
@@ -9,7 +10,7 @@ library(XLConnect)
 library(DT)
 library(lubridate)
 options(shiny.deprecation.messages=FALSE)
-options(stringsAsFactors = FALSE)
+options(stringsAsFactors=FALSE)
 options(shiny.maxRequestSize=10000*1024^2) 
 options(digits=4)
   

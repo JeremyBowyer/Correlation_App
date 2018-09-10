@@ -104,7 +104,12 @@ observeEvent(input$run, {
                               check.names = FALSE,
                               "Performance Differential" = numeric())
   
+      datadf[[yColumn]] <- as.numeric(datadf[[yColumn]])
+      
       for(col in correlCols) {
+        
+        datadf[[col]] <- as.numeric(datadf[[col]])
+        
         if(exists("fit")) { suppressWarnings(rm("fit")) }
         summaryDF[nrow(summaryDF) + 1, "Metric"] <- col
         
@@ -123,7 +128,7 @@ observeEvent(input$run, {
         
         # Correlation and DoF
         tryCatch({
-          form <- as.formula(paste0("as.numeric(", yColumn, ") ~ as.numeric(", col,")"))
+          form <- as.formula(paste0("`", yColumn, "` ~ `", col,"`"))
           fit <- lm(form, datadf)
           correl <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
           summaryDF[nrow(summaryDF), "Correlation"] <- round(correl, 4)
@@ -131,26 +136,28 @@ observeEvent(input$run, {
           summaryDF[nrow(summaryDF), "Slope"] <- round(coef(fit)[2], 4)
           summaryDF[nrow(summaryDF), "DoF"] <- fit$df
         }, error = function(e) {
+          print(e$message)
           summaryDF[nrow(summaryDF), "Correlation"] <- NA
           summaryDF[nrow(summaryDF), "R-Squared"] <- NA
           summaryDF[nrow(summaryDF), "Slope"] <- NA
           summaryDF[nrow(summaryDF), "DoF"] <- NA
         })
-  
-        perfTable <- calculatePerformance(datadf, col, input$yCol, input$dateCol, vals$dateFormat)
-        summaryDF[nrow(summaryDF),"Performance Differential"] <- perfTable[6, "All"] 
 
+        perfTable <- calculatePerformance(datadf, col, input$yCol, input$dateCol, vals$dateFormat)
+        summaryDF[nrow(summaryDF),"Performance Differential"] <- perfTable[nrow(perfTable),"All"] 
+
+        
       }
       # Multi-linear
       if(exists("fit")) { suppressWarnings(rm("fit")) }
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- "Multilinear"
       
-      formstring <- paste0("as.numeric(", yColumn, ") ~ ")
+      formstring <- paste0("as.numeric(`", yColumn, "`) ~ ")
       for (col in multiCols){
         if(col == multiCols[length(multiCols)]) {
-          formstring <- paste0(formstring, " as.numeric(", col, ")")
+          formstring <- paste0(formstring, " as.numeric(`", col, "`)")
         } else {
-          formstring <- paste0(formstring, " as.numeric(", col, ") +")
+          formstring <- paste0(formstring, " as.numeric(`", col, "`) +")
         }
       }
       

@@ -45,7 +45,8 @@ transformationList = list("Difference" = "diff",
                           "Offset Backward" = "offsetbwd",
                           "Column to Column" = "ctc",
                           "Column Arithmetic" = "ca",
-                          "Date Aggregation" = "dateagg")
+                          "Date Aggregation" = "dateagg",
+                          "Bucket" = "bucket")
 
 filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",
@@ -61,6 +62,10 @@ aggregationFuncList = list("Sum" = "sum",
                            "Latest" = "latest",
                            "Lowest Number" = "min",
                            "Highest Number" = "max")
+
+bucketFuncList = list("Sum" = "sum",
+                      "Average" = "average",
+                      "Binary" = "binary")
 
 shinyerror <- function(e){
     shinyalert(

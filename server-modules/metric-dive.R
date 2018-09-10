@@ -148,13 +148,13 @@ metricDivePlots <- function(input, output, session, vals) {
     } else {
       df$text <- ""
     }
-    xform <- as.formula(paste0("~",input$xCol))
-    yform <- as.formula(paste0("~",input$yCol))
+    xform <- as.formula(paste0("~`",input$xCol,"`"))
+    yform <- as.formula(paste0("~`",input$yCol,"`"))
 
     colorcol <- if(input$categoryCol != "") input$categoryCol else input$xCol
-    colorform <- as.formula(paste0("~", colorcol))
+    colorform <- as.formula(paste0("~`",colorcol,"`"))
 
-    form <- as.formula(paste0(input$yCol, "~", input$xCol))
+    form <- as.formula(paste0("`", input$yCol, "` ~ `", input$xCol,"`"))
     fit <- lm(form, data = df)
     p <- df %>%
       plot_ly(x = xform, source = "metricScatter") %>%
@@ -187,7 +187,7 @@ metricDivePlots <- function(input, output, session, vals) {
     }
     
     df <- vals$metricdivedf
-    xform <- as.formula(paste0("~",input$xCol))
+    xform <- as.formula(paste0("~`",input$xCol,"`"))
     plot_ly(data = df, x = xform, type = "histogram")
     
   })
@@ -275,7 +275,7 @@ metricDivePlots <- function(input, output, session, vals) {
     
     df <- vals$originalmetricdivedf
     metricDF <- df[order(df[,input$dateCol]) ,c(input$dateCol, input$categoryCol, input$xCol)]
-    wideMetricDF <- dcast(metricDF,as.formula(paste0(input$dateCol," ~ ",input$categoryCol)), value.var = input$xCol)[, -1]
+    wideMetricDF <- dcast(metricDF,as.formula(paste0("`",input$dateCol,"` ~ `",input$categoryCol,"`")), value.var = input$xCol)[, -1]
     rankDF <- t(apply(wideMetricDF, 1, function(x) rank(x, na.last = "keep") / length(which(!is.na(x))) ))
     diffRankDF <- apply(rankDF, 2, function(x) c(NA, diff(x)))
     stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
@@ -294,7 +294,7 @@ metricDivePlots <- function(input, output, session, vals) {
     }
     
     df <- vals$metricdivedf
-    form <- as.formula(paste0("as.numeric(", input$yCol, ") ~ as.numeric(", input$xCol,")"))
+    form <- as.formula(paste0("as.numeric(`", input$yCol, "`) ~ as.numeric(`", input$xCol,"`)"))
     summary(lm(form, data = df))
   })
   

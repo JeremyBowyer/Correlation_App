@@ -21,22 +21,25 @@ calculatePerformanceBinary <- function(df, xCol, yCol, dateCol, dateFormat, incl
     
   }
   
-  if(nrow(df) == 0) { return(NA) }
+  if(nrow(df) == 0) { return(data.frame(All=NA)) }
   
-  binary_values = unique(df[,xCol])
-
+  binary_values <- unique(df[,xCol])
+  binary_values <- binary_values[order(binary_values)]
+  
   if(length(binary_values) != 2) {
     print("Data not binary. Unique values:")
-    print(binary_values)
-    return(NULL)
+    return(data.frame(All=NA))
   }
-  
+
   allPerformance <- data.frame(Value = binary_values, stringsAsFactors=FALSE)
+  
   allPerformance[,"All"] <- NA
   
-  allPerformance[1, "All"] <- mean(df[df[,xCol] == binary_values[1],yCol], na.rm=TRUE)
-  allPerformance[2, "All"] <- mean(df[df[,xCol] == binary_values[2],yCol], na.rm=TRUE)
+  allPerformance[1, "All"] <- mean(as.numeric(df[df[,xCol] == binary_values[1],yCol]), na.rm=TRUE)
+  allPerformance[2, "All"] <- mean(as.numeric(df[df[,xCol] == binary_values[2],yCol]), na.rm=TRUE)
   allPerformance[3, ] <- c("Differential", allPerformance[1, "All"] - allPerformance[2, "All"])
+  
+  if(include_df) { return(list(df=df, allPerformance=allPerformance)) }
   
   return(allPerformance)
   
@@ -57,19 +60,16 @@ calculatePerformanceDatesBinary <- function(df, xCol, yCol, dateCol, dateFormat)
     
   # Grab initial performance table with "All" column
   allPerformance <- calculatePerformanceBinary(df, xCol, yCol, dateCol, dateFormat) 
-
   # If there is no date, no need to add columns for each date
   if(dateCol == "") { return(allPerformance) }
   
-  df <- df[,c(xCol,yCol,dateCol)]
-  df <- df[complete.cases(df), ]
-  
   # If data isn't binary, return NULL, with explanation
-  binary_values = unique(df[,xCol])
+  binary_values <- unique(df[,xCol])
+  binary_values <- binary_values[order(binary_values)]
   if(length(binary_values) != 2) {
     print("Data not binary. Unique values:")
     print(binary_values)
-    return(NULL)
+    return(data.frame(All=NA))
   }
   
   # Loop through each date and calculate average Y value and differential
@@ -81,12 +81,12 @@ calculatePerformanceDatesBinary <- function(df, xCol, yCol, dateCol, dateFormat)
     datedf <- df[format(dates, dateFormat) == date, ]
     allPerformance[, as.character(date)] <- NA
     
-    allPerformance[1, as.character(date)] <- mean(datedf[datedf[,xCol] == binary_values[1],yCol], na.rm=TRUE)
-    allPerformance[2, as.character(date)] <- mean(datedf[datedf[,xCol] == binary_values[2],yCol], na.rm=TRUE)
+    allPerformance[1, as.character(date)] <- mean(as.numeric(datedf[datedf[,xCol] == binary_values[1],yCol]), na.rm=TRUE)
+    allPerformance[2, as.character(date)] <- mean(as.numeric(datedf[datedf[,xCol] == binary_values[2],yCol]), na.rm=TRUE)
     allPerformance[3, as.character(date)] <- allPerformance[1, as.character(date)] - allPerformance[2, as.character(date)]
 
   }
-  
+
   return(allPerformance)
   
 }
@@ -108,7 +108,7 @@ calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df
     df <- df[,c(xCol,yCol)]
     df <- df[complete.cases(df), ]
     
-    if(nrow(df) == 0) { return(NA) }
+    if(nrow(df) == 0) { return(data.frame(All=NA)) }
     
     df[,"quints"] <- NA
     df$quints <- quint(as.numeric(df[,xCol]))
@@ -118,7 +118,7 @@ calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df
     df <- df[,c(xCol,yCol,dateCol)]
     df <- df[complete.cases(df), ]
     
-    if(nrow(df) == 0) { return(NA) }
+    if(nrow(df) == 0) { return(data.frame(All=NA)) }
     
     df[,"quints"] <- NA
     
@@ -137,11 +137,11 @@ calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df
   }
   
   # Check for binary data
-  binary_values = unique(df[,xCol])
-  
-  if(length(binary_values) == 2) {
-    return(calculatePerformanceBinary(df, xCol, yCol, dateCol, dateFormat))
+  unique_vals = unique(df[,xCol])
+  if(length(unique_vals) == 2) {
+    return(calculatePerformanceBinary(df, xCol, yCol, dateCol, dateFormat, include_df=include_df))
   }
+  
     
   # Calculate Performance, then Performance Differential
   allPerformance <- data.frame(Quintile = c("Q1 (Highest)", "Q2", "Q3", "Q4", "Q5 (Lowest)"), stringsAsFactors=FALSE)
@@ -174,28 +174,24 @@ calculatePerformanceDates <- function(df, xCol, yCol, dateCol, dateFormat) {
   # A column for each date is included, in addition to an "All" column
   #
   
-  # Check for binary data
-  binary_values = unique(df[,xCol])
-  
-  if(length(binary_values) == 2) {
-    return(calculatePerformanceDatesBinary(df, xCol, yCol, dateCol, dateFormat))
-  }
-  
   # Grab initial performance table with "All" column
   output <- calculatePerformance(df, xCol, yCol, dateCol, dateFormat, include_df=TRUE) 
-  allPerformance <- output$allPerformance
-    
+  allPerformance <- output$allPerformance  
+
   # This dataframe is already quintiled appropriate
   df <- output$df
-
   # If there is no date, no need to add columns for each date
   if(dateCol == "") { return(allPerformance) }
   
+  # Check for binary data
+  unique_vals = unique(df[,xCol])
+  if(length(unique_vals) == 2) {
+    return(calculatePerformanceDatesBinary(df, xCol, yCol, dateCol, dateFormat))
+  }
   
   # Loop through each date and calculate average Y value and differential
   dates <- parse_date_time(as.character(df[, dateCol]), order=dateFormat)
   dateChars <- unique(format(dates[order(dates)], dateFormat))
-  
   for(date in dateChars) {
     
     datedf <- df[format(dates, dateFormat) == date, ]
@@ -217,7 +213,6 @@ calculatePerformanceDates <- function(df, xCol, yCol, dateCol, dateFormat) {
     })
 
   }
-
   return(allPerformance)
   
 }
