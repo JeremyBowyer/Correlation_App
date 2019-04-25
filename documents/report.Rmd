@@ -10,6 +10,7 @@ params:
   metric: NA
   yCol: NA
   dateCol: NA
+  categoryCol: NA
   dateFormat: NA
 ---
 
@@ -59,6 +60,7 @@ perf <- params$perf
 metric <- params$metric
 yCol <- params$yCol
 dateCol <- params$dateCol
+categoryCol <- params$categoryCol
 dateFormat <- params$dateFormat
 ```
 
@@ -77,16 +79,32 @@ correlSummaryDF <- data.frame(Metric = metric,
 correlSummaryDF <- data.frame(Statistic = NA,
                               Value = NA)
 
-correlDF <- data.frame(Date = NA,
-                       Correlation = NA)
+correlDF <- data.frame(Date = character(),
+                       Correlation = numeric(),
+                       DataPoints = numeric(),
+                       Color = character(),
+                       Explanation = character())
 
 # Fill in correlations by date
 for(date in unique(df[, dateCol])) {
 
   dateDF <- df[df[,dateCol]==date, ]
   correlDF[nrow(correlDF) + 1, "Date"] <- date
-  correlDF[nrow(correlDF), "Correlation"] <- cor(as.numeric(dateDF[, metric]), as.numeric(dateDF[, yCol]), use = "pairwise.complete.obs")
+  
+  x <- as.numeric(dateDF[, metric])
+  y <- as.numeric(dateDF[, yCol])
+  DataPoints <- sum(complete.cases(x,y))
 
+  if(DataPoints < 10){
+    correlDF[nrow(correlDF), 'Correlation'] <- NA
+    correlDF[nrow(correlDF), 'DataPoints'] <- NA
+    correlDF[nrow(correlDF), 'Explanation'] <- paste0("Number of data points: ", DataPoints)
+  } else {
+    correlDF[nrow(correlDF), "Correlation"] <- cor(x, y, use = "na.or.complete")
+    correlDF[nrow(correlDF), 'DataPoints'] <- DataPoints
+    correlDF[nrow(correlDF), 'Explanation'] <- paste0("Number of flags: ", sum(y==1))
+  }
+  
 }
 
 correlDF$Date <- parse_date_time(as.character(correlDF$Date), order=dateFormat)
@@ -109,8 +127,13 @@ correlSummaryDF[4, "Value"] <- paste0(round((length(metricCorrelations[metricCor
 correlSummaryDF[5, "Statistic"] <- "% Positive"
 correlSummaryDF[5, "Value"] <- paste0(round((length(metricCorrelations[metricCorrelations > 0]) / length(metricCorrelations))*100, 2),"%")
 
-correlSummaryDF[6, "Statistic"] <- "Avg Correlation"
-correlSummaryDF[6, "Value"] <- as.character(round(mean(metricCorrelations, na.rm = TRUE), 2))
+# Weighted Average
+correlDF[, "CorrelxDP"] <- correlDF[, "Correlation"] * correlDF[, "DataPoints"]
+correlDFComplete <- correlDF[complete.cases(correlDF[, c("Correlation", "DataPoints")]), ]
+wghtdAvg <- sum(correlDFComplete[, "CorrelxDP"], na.rm = TRUE) / sum(correlDFComplete[, "DataPoints"], na.rm = TRUE)
+
+correlSummaryDF[6, "Statistic"] <- "Wght'd Avg Correlation"
+correlSummaryDF[6, "Value"] <- as.character(round(wghtdAvg, 2))
 ```
 
 Sidebar {.sidebar}
@@ -138,14 +161,17 @@ knitr::kable(perf[, 1:2], table.attr = "id=\"perfTable\"")
 
 #### Fit Summary
 ```{r, results='asis'}
-form <- as.formula(paste0("as.numeric(", yCol, ") ~ as.numeric(", metric,")"))
+form <- as.formula(paste0(yCol, " ~ `", metric, "`"))
 fit <- lm(form, data = df)
 rsq <- summary(fit)$r.squared
 pval <- anova(fit)[,5][1]
 dof <- anova(fit)[,1][2]
+intercept <- fit$coefficients[1]
+slope <- fit$coefficients[2]
 
-fitsummaryDF <- data.frame(Statistic = c("R-Squared", "P-Value", "Degrees of Freedom"),
-                           Value = c(rsq, pval, dof))
+
+fitsummaryDF <- data.frame(Statistic = c("R-Squared", "P-Value", "Intercept", "Slope", "Degrees of Freedom"),
+                           Value = c(rsq, pval, intercept, slope, dof))
 # Correlation by date summary
 knitr::kable(fitsummaryDF)
 ```
@@ -156,18 +182,64 @@ Plots
 Row {.tabset}
 -----------------------------------------------------------------------
 
+### Scatter
+
+```{r}
+# Scatter plot
+xform <- as.formula(paste0("~`",metric,"`"))
+yform <- as.formula(paste0("~`",yCol,"`"))
+
+colorcol <- if(categoryCol != "") categoryCol else metric
+colorform <- as.formula(paste0("~`",colorcol,"`"))
+
+if (dateCol != ""){
+  df$text <- paste0("Date: ", df[,dateCol], "</br>Color: ", df[,colorcol])
+} else {
+  df$text <- paste0("Color: ", df[,colorcol])
+}
+
+form <- as.formula(paste0("`", yCol, "` ~ `", metric,"`"))
+fit <- lm(form, data = df)
+p <- df %>%
+  plot_ly(x = xform,label=df$categoryCol) %>%
+  add_markers(y = yform, color = colorform, text = ~text)  %>%
+  add_lines(x = xform, y = fitted(fit), fill = "red", name = "Regression Line")
+p
+```
+
+### Performance
+
+```{r}
+knitr::kable(perf, table.attr = "id=\"perfByDateTable\"")
+```
+
 ### Correlation by date
 
 ```{r}
 # Correlation by date plot
-plot_ly(data = correlDF, x = ~Date, y = ~Correlation, type = 'scatter', mode = 'lines')
+correlDF$Color <- 'rgba(104, 104, 104, 0.8)'
+correlDF$Color[correlDF$Correlation < 0] <- 'rgba(222,45,38, 0.8)'
+correlDF$Color[correlDF$Correlation > 0] <- 'rgba(75,200,75, 0.8)'
+
+plotDF <- correlDF[complete.cases(correlDF[, c("Correlation")]), ]
+
+plot_ly(data = plotDF, x = ~Date, y = ~Correlation, type = 'bar',  marker = list(color = plotDF$Color))
+```
+
+### Data Points by date
+
+```{r}
+# Data Points by date plot
+plotDF <- correlDF[complete.cases(correlDF[, c("DataPoints")]), ]
+
+plot_ly(data = plotDF, x = ~Date, y = ~DataPoints, type = 'bar',  marker = list(color = plotDF$Color))
 ```
 
 ### Histogram of X Values
 
 ```{r}
 # Histogram of X Values
-xform <- as.formula(paste0("~",metric))
+xform <- as.formula(paste0("~ `", metric, "`"))
 plot_ly(data = df, x = xform, type = "histogram")
 ```
 
@@ -186,15 +258,15 @@ plot(sortedX, sortedY, xlab=metric, ylab=yCol)
 #plot_ly(data = sortedDF, x = ~x, y = ~y)
 ```
 
-Data (first 250 rows)
+Data Preview (first 250 rows)
 =======================================================================
 ```{r, results='asis'}
-knitr::kable(head(df, n = 250))
+knitr::kable(head(df[, -grep("text", names(df))], n = 250))
 ```
 
 <script>
-for(i = 0; i < $('#perfTable th').length; i++) {
-  colorTableByCol('perfTable', i);
+for(i = 0; i < $('#perfByDateTable th').length; i++) {
+  colorTableByCol('perfByDateTable', i);
 }
 
 function colorTableByCol(tableid, colindex){

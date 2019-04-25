@@ -1,6 +1,7 @@
 observeUploadedData <- function(input, output, session, vals) {
    
     observeEvent(input$csvfile, {
+
         inFile <- input$csvfile
 
         if (is.null(inFile))

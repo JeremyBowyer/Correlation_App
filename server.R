@@ -9,6 +9,8 @@ library(quantmod)
 library(XLConnect)
 library(DT)
 library(lubridate)
+library(rpart)
+library(rpart.plot)
 options(shiny.deprecation.messages=FALSE)
 options(stringsAsFactors=FALSE)
 options(shiny.maxRequestSize=10000*1024^2) 
@@ -35,7 +37,6 @@ source("https://raw.githubusercontent.com/JeremyBowyer/Quintile-Function/master/
 conditionalFormattingScript <- readChar('highlight_cells.js', file.info('highlight_cells.js')$size)
 
 shinyServer(function(input, output, session) {
-  
 
   ###########
   # Methods #

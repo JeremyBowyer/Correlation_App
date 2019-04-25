@@ -23,7 +23,7 @@ vals <- reactiveValues(
     dateCol = "",
     dateFormat = "%m/%d/%Y",
     IsAggregated = FALSE,
-    inputList = c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "xCol", "dateAggDateCol", "groupByCols")
+    inputList = c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "corMatCols", "xCol", "dateAggDateCol", "groupByCols")
     )
 
     
@@ -46,7 +46,8 @@ transformationList = list("Difference" = "diff",
                           "Column to Column" = "ctc",
                           "Column Arithmetic" = "ca",
                           "Date Aggregation" = "dateagg",
-                          "Bucket" = "bucket")
+                          "Bucket" = "bucket",
+                          "Quintile" = "quintile")
 
 filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",

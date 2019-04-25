@@ -1,7 +1,7 @@
 observeRunAnalysis <- function(input, output, session, vals) {
 
 observeEvent(input$run, {
-    #tryCatch({
+     # tryCatch(
       if(!nrow(vals$originaldf) > 0) {
         shinyalert(
           title = "",
@@ -70,6 +70,9 @@ observeEvent(input$run, {
       # Create vector of multi-linear columns
       multiCols = input$multiCols
       
+      # Create vector of correlation matrix columns
+      corMatCols <- input$corMatCols
+      
       # Update Metric Dive Dropdown
       updateSelectInput(session, "xCol", choices=correlCols)
       
@@ -88,7 +91,6 @@ observeEvent(input$run, {
         } else {
           fullDateFormat <- dateFormat
         }
-
         datadf[,input$dateCol] <- as.Date(as.character(datadf[, input$dateCol]), format = fullDateFormat)
         if(!vals$validateDates(datadf[,input$dateCol])) return(NULL)
         datadf <- datadf[order(datadf[, input$dateCol]), ]
@@ -107,7 +109,6 @@ observeEvent(input$run, {
       datadf[[yColumn]] <- as.numeric(datadf[[yColumn]])
       
       for(col in correlCols) {
-        
         datadf[[col]] <- as.numeric(datadf[[col]])
         
         if(exists("fit")) { suppressWarnings(rm("fit")) }
@@ -115,7 +116,7 @@ observeEvent(input$run, {
         
         datadf[!is.finite(datadf[, col]), col] <- NA
         datadf[!is.finite(datadf[, yColumn]), yColumn] <- NA
-        
+
         # Rank Volatility
         tryCatch({
           metricDF <- datadf[order(datadf[,input$dateCol]) ,c(input$dateCol, input$categoryCol, col)]
@@ -125,12 +126,12 @@ observeEvent(input$run, {
           stds <- apply(diffRankDF, 1, function(x) sd(x, na.rm = TRUE))
           summaryDF[nrow(summaryDF), "Rank Volatility (max 0.57)"] <- round(mean(stds, na.rm = TRUE), 2)
         }, error = function(e) {NULL})
-        
+
         # Correlation and DoF
         tryCatch({
           form <- as.formula(paste0("`", yColumn, "` ~ `", col,"`"))
           fit <- lm(form, datadf)
-          correl <- cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
+          correl <- suppressWarnings(cor(as.numeric(datadf[, col]), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs"))
           summaryDF[nrow(summaryDF), "Correlation"] <- round(correl, 4)
           summaryDF[nrow(summaryDF), "R-Squared"] <- round(correl*correl, 4)
           summaryDF[nrow(summaryDF), "Slope"] <- round(coef(fit)[2], 4)
@@ -142,12 +143,12 @@ observeEvent(input$run, {
           summaryDF[nrow(summaryDF), "Slope"] <- NA
           summaryDF[nrow(summaryDF), "DoF"] <- NA
         })
-
+        
         perfTable <- calculatePerformance(datadf, col, input$yCol, input$dateCol, vals$dateFormat)
         summaryDF[nrow(summaryDF),"Performance Differential"] <- perfTable[nrow(perfTable),"All"] 
-
         
       }
+      
       # Multi-linear
       if(exists("fit")) { suppressWarnings(rm("fit")) }
       summaryDF[nrow(summaryDF) + 1, "Metric"] <- "Multilinear"
@@ -166,7 +167,7 @@ observeEvent(input$run, {
         form <- as.formula(formstring)
         fit <- lm(form, datadf)
         datadf[names(fit$fitted.values), "fitted"] <- fit$fitted.values
-        correl <- cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs")
+        correl <- suppressWarnings(cor(as.numeric(datadf$fitted), as.numeric(datadf[, yColumn]), use = "pairwise.complete.obs"))
         summaryDF[nrow(summaryDF), "Correlation"] <- round(correl, 4)
         summaryDF[nrow(summaryDF), "R-Squared"] <- round(correl*correl, 4)
         summaryDF[nrow(summaryDF), "Slope"] <- round(coef(fit)[2], 4)
@@ -188,6 +189,26 @@ observeEvent(input$run, {
                                       fillContainer = TRUE,
                                       style = "bootstrap",
                                       selection = "none")
+      
+
+      if (corMatCols != "" && !is.null(corMatCols)) {
+        corMatData <- datadf[,corMatCols]
+        corMatData <- apply(corMatData, 2, as.numeric)
+        cor_mat <- cor(corMatData, use="pairwise.complete.obs")
+        output$corMat <- renderDT(cor_mat,
+                                  options = list(
+                                    pageLength = 100,
+                                    paging = FALSE,
+                                    info = FALSE,
+                                    searching = FALSE,
+                                    scrollY = "600px"),
+                                  rownames = TRUE,
+                                  extensions = "Scroller",
+                                  style = "bootstrap",
+                                  selection="none",
+                                  autoHideNavigation = TRUE)
+        }
+      
       ## By Date ##
       if(input$dateCol != "") {
         dateCorrelations <- data.frame(
@@ -197,9 +218,18 @@ observeEvent(input$run, {
           "Positive Periods" = integer(length(c(correlCols, "Multilinear"))),
           "% Negative" = numeric(length(c(correlCols, "Multilinear"))),
           "% Positive" = numeric(length(c(correlCols, "Multilinear"))),
+          "Weighted Avg Correlation" = numeric(length(c(correlCols, "Multilinear"))),
           "Avg Correlation" = numeric(length(c(correlCols, "Multilinear"))),
           check.names = FALSE
           )
+        # DF to store data points for all metrics
+        dateDataPointsDF = data.frame(Metric = c(correlCols, "Multilinear"))
+        
+        # Create DFs to store correlations and datapoints for each metric
+        correlDPList = list()
+        for (col in correlCols){
+          correlDPList[[col]] = data.frame("Correlations" = numeric(), "DataPoints" = numeric(), "CorrelxDP" = numeric())
+        }
         
         # Fill in correlations by date
         dates <- unique(datadf[, input$dateCol])
@@ -209,13 +239,23 @@ observeEvent(input$run, {
           chardate <- format(as.Date(date), format=dateFormat)
           # single factor regressions
           for(col in correlCols) {
-            dateCorrelations[dateCorrelations$Metric == col, chardate] <-
-              tryCatch({
-                cor(as.numeric(dateDF[, col]), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")},
-                error=function(e){return(NA)
-              })
+            x <- as.numeric(dateDF[, col])
+            y <- as.numeric(dateDF[, yColumn])
+            
+            if(sum(complete.cases(x,y)) < 10){
+              dateCorrelations[dateCorrelations$Metric == col, chardate] <- NA
+              dateDataPointsDF[dateDataPointsDF$Metric == col, chardate] <- NA
+            } else {
+              correl = suppressWarnings(cor(x, y, use = "pairwise.complete.obs"))
+              dp = sum(complete.cases(x,y))
+              
+              dateCorrelations[dateCorrelations$Metric == col, chardate] <- correl
+              dateDataPointsDF[dateDataPointsDF$Metric == col, chardate] <- dp
+              correlDPList[[col]][chardate, "Correlations"] <- correl
+              correlDPList[[col]][chardate, "DataPoints"] <- dp
+            }
           }
-          
+
           # multi-linear regression
           if(exists("fit")) { suppressWarnings(rm("fit")) }
           
@@ -232,27 +272,55 @@ observeEvent(input$run, {
             form <- as.formula(formstring)
             fit <- lm(form, dateDF)
             dateDF[names(fit$fitted.values), "fitted"] <- fit$fitted.values
-            dateCorrelations[dateCorrelations$Metric == "Multilinear", date] <- cor(as.numeric(dateDF$fitted), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs")
-          }, error = function(e) {NULL})
+            dateCorrelations[dateCorrelations$Metric == "Multilinear", chardate] <- suppressWarnings(cor(as.numeric(dateDF$fitted), as.numeric(dateDF[, yColumn]), use = "pairwise.complete.obs"))
+          }, error = function(e) {
+            #print(e$message)
+            NULL
+          })
           
         }
         
+        output$dateDataPointsDF <- renderDT(dateDataPointsDF,
+                                            options = list(
+                                              pageLength = 10, 
+                                              paging = TRUE
+                                              ),
+                                            rownames = FALSE,
+                                            fillContainer = TRUE,
+                                            style = "bootstrap",
+                                            selection = "none")
+
         # Fill in summary stats of date correlations
         for(col in c(correlCols,"Multilinear")) {
-          chardates <- format(unique(datadf[, input$dateCol]), format=dateFormat)
-          metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, chardates])
-          metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
-          dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations)
-          dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
-          dateCorrelations[dateCorrelations$Metric == col, "Positive Periods"] <- length(metricCorrelations[metricCorrelations > 0])
-          dateCorrelations[dateCorrelations$Metric == col, "% Negative"] <- length(metricCorrelations[metricCorrelations < 0]) / length(metricCorrelations)
-          dateCorrelations[dateCorrelations$Metric == col, "% Positive"] <- length(metricCorrelations[metricCorrelations > 0]) / length(metricCorrelations)
-          dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
+          tryCatch({
+            # Weighted Average Correlation
+            colDF <- correlDPList[[col]]
+            colDF <- colDF[complete.cases(colDF[, c("Correlations", "DataPoints")]), ]
+            colDF[, "CorrelxDP"] <- colDF[, "Correlations"] * colDF[, "DataPoints"]
+            wghtdAvg <- sum(colDF[, "CorrelxDP"], na.rm = TRUE) / sum(colDF[, "DataPoints"], na.rm = TRUE)
+            
+            # Vector of correlations, for summary stats
+            chardates <- format(unique(datadf[, input$dateCol]), format=dateFormat)
+            metricCorrelations <- as.numeric(dateCorrelations[dateCorrelations$Metric == col, chardates])
+            metricCorrelations <- metricCorrelations[!is.na(metricCorrelations)]
+            
+            # Fill in summary stats
+            dateCorrelations[dateCorrelations$Metric == col, "Total Periods"] <- length(metricCorrelations)
+            dateCorrelations[dateCorrelations$Metric == col, "Negative Periods"] <- length(metricCorrelations[metricCorrelations < 0])
+            dateCorrelations[dateCorrelations$Metric == col, "Positive Periods"] <- length(metricCorrelations[metricCorrelations > 0])
+            dateCorrelations[dateCorrelations$Metric == col, "% Negative"] <- length(metricCorrelations[metricCorrelations < 0]) / length(metricCorrelations)
+            dateCorrelations[dateCorrelations$Metric == col, "% Positive"] <- length(metricCorrelations[metricCorrelations > 0]) / length(metricCorrelations)
+            dateCorrelations[dateCorrelations$Metric == col, "Weighted Avg Correlation"] <- wghtdAvg
+            dateCorrelations[dateCorrelations$Metric == col, "Avg Correlation"] <- mean(metricCorrelations, na.rm = TRUE)
+          }, error=function(e){
+            NULL
+          })
         }
         
         output$dateCorrelations <- renderDT(dateCorrelations,
                                             options = list(
-                                              pageLength = 10
+                                              pageLength = 10, 
+                                              paging = TRUE
                                             ),
                                             rownames = FALSE,
                                             fillContainer = TRUE,
@@ -261,12 +329,12 @@ observeEvent(input$run, {
       }
       
       updateTabsetPanel(session, "mainTabset", selected="correlations")
-    # },error=function(e) {
+    # ,error=function(e) {
     #   if(DEBUG_MODE) {
     #     stop(e)
     #   }
     #   shinyerror(e)
-    # })
+    # })})
   })
 }
 

@@ -2,6 +2,12 @@
 # Option Panel Conditions #
 ###########################
 loadConditions <- function(input, output, session, vals) {
+  output$binaryYCheck <- reactive({
+    yvals <- vals$metricdivedf[, input$yCol]
+    yvals <- yvals[!is.na(yvals)]
+    return(length(unique(yvals)) == 2)
+  })
+  outputOptions(output, 'binaryYCheck', suspendWhenHidden=FALSE)
   
   output$aggCheck <- reactive({
     return(vals$IsAggregated)

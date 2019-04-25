@@ -4,8 +4,7 @@ metricComparisonsPage <- function(){
     "Metric Comparison",
     value="correlations",
     textOutput("currentY_comparison"),
-    tags$br(),
-    tabsetPanel(
+    tags$br(),tabsetPanel(
       tabPanel(
         "Summary - All Dates",
         tabsetPanel(
@@ -19,7 +18,11 @@ metricComparisonsPage <- function(){
           tabPanel(
             "Scatter",
             plotlyOutput("correlScatter", height="700px")
-          )
+          ),
+          tabPanel(
+            "Correlation Matrix",
+            DTOutput("corMat"))
+          
         )
       ),
       tabPanel(
@@ -32,8 +35,20 @@ metricComparisonsPage <- function(){
           condition = "!output.dateColCheck",
           h3("Select a date column to see correlations by date.")
           )
+        ),
+      tabPanel(
+        "Data Points - By Date",
+        conditionalPanel(
+          condition = "output.dateColCheck",
+          DTOutput("dateDataPointsDF")
+          ),
+        conditionalPanel(
+          condition = "!output.dateColCheck",
+          h3("Select a date column to see correlations by date.")
+          )
         )
       )
+    
     )
   
 }

@@ -1,5 +1,5 @@
 loadMethods <- function(input, output, session, vals) {
-    
+  
     vals$getCols <- function(){
         df = vals$datadf
         return(names(df))

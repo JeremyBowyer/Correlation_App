@@ -11,9 +11,11 @@ observeMetricDiveFilters <- function(input, output, session, vals) {
                                            pageLength = 100,
                                            paging = FALSE,
                                            info = FALSE,
-                                           searching = FALSE
+                                           searching = FALSE,
+                                           scrollY = "300px"
                                            ),
                                          rownames = FALSE,
+                                         extensions = "Scroller",
                                          selection = "multiple",
                                          filter = "none",
                                          style = "bootstrap",
@@ -142,18 +144,19 @@ metricDivePlots <- function(input, output, session, vals) {
       return(NULL)
     }
 
-    df <- vals$metricdivedf
-    if (input$dateCol != ""){
-      df$text <- paste0("date: ", df[,input$dateCol])
-    } else {
-      df$text <- ""
-    }
     xform <- as.formula(paste0("~`",input$xCol,"`"))
     yform <- as.formula(paste0("~`",input$yCol,"`"))
 
     colorcol <- if(input$categoryCol != "") input$categoryCol else input$xCol
     colorform <- as.formula(paste0("~`",colorcol,"`"))
 
+    df <- vals$metricdivedf
+    if (input$dateCol != ""){
+      df$text <- paste0("Date: ", df[,input$dateCol], "</br>Color: ", df[,colorcol])
+    } else {
+      df$text <- paste0("Color: ", df[,colorcol])
+    }
+    
     form <- as.formula(paste0("`", input$yCol, "` ~ `", input$xCol,"`"))
     fit <- lm(form, data = df)
     p <- df %>%
@@ -298,6 +301,20 @@ metricDivePlots <- function(input, output, session, vals) {
     summary(lm(form, data = df))
   })
   
+  # Classification Tree
+  output$classTreePlot = renderPlot({
+    
+    if(input$xCol == "" || input$yCol == "") {
+      return(NULL)
+    }
+    
+    df <- vals$metricdivedf[, c(input$xCol, input$yCol)]
+    form <- as.formula(paste0("`", input$yCol, "` ~ `", input$xCol, "`"))
+    control <- rpart.control(minsplit=1, minbucket=1, cp=0.00001, maxdepth=1)
+    mod <- rpart(form, df, control = control, method = "class")
+    rpart.plot(mod)
+  })
+  
 }
 
 processMetricDiveDF <- function(input, output, session, vals) {
@@ -425,6 +442,66 @@ calculateMetricStats <- function(input, output, session, vals) {
                                       fillContainer = TRUE,
                                       style = "bootstrap",
                                       selection = "none")
+  
+    # Classification Tree DF
+    # Create Model
+    df <- vals$metricdivedf[, c(input$xCol, input$yCol)]
+    form <- as.formula(paste0("`", input$yCol, "` ~ `", input$xCol, "`"))
+    control <- rpart.control(minsplit=1, minbucket=1, cp=0.00001, maxdepth=1)
+    mod <- rpart(form, df, control = control, method = "class")
     
+    modYVals <- unique(mod$y)
+    yVals = unique(df[!is.na(df[,input$yCol]), input$yCol])
+    yValDict <- list()
+    yValDict[as.character(yVals[1])] <- modYVals[1]
+    yValDict[as.character(yVals[2])] <- modYVals[2]
+    
+    # Create empty output dataframe
+    outputDF <- data.frame("1" = c("Root","Left", "Right"),
+                           "2" = numeric(3),
+                           "3" = numeric(3),
+                           "4" = numeric(3),
+                           "5" = numeric(3),
+                           "6" = numeric(3),
+                           "7" = numeric(3),
+                           "8" = numeric(3),
+                           "9" = numeric(3),
+                           "10" = numeric(3))
+    
+    dfnames <- c("Node",
+                 "Predicted Value",
+                 "N",
+                 "N % of Dataset",
+                 paste0(names(yValDict)[1]," -- N"),
+                 paste0(names(yValDict)[1]," -- N % of Dataset"),
+                 paste0(names(yValDict)[1]," -- N % of Node Dataset"),
+                 paste0(names(yValDict)[2]," -- N"),
+                 paste0(names(yValDict)[2]," -- N % of Dataset"),
+                 paste0(names(yValDict)[2]," -- N % of Node Dataset"))
+    names(outputDF) <- dfnames
+    
+    
+    # Extract Stats
+    nObs <- length(mod$y)
+    nVal1 <- length(mod$y[mod$y == yValDict[1]])
+    nVal2 <- length(mod$y[mod$y == yValDict[2]])
+    
+    for(i in 1:dim(mod$frame$yval2)[1]){
+      nodeDetails = mod$frame$yval2[i,]
+
+      outputDF[i, "Predicted Value"] <- as.numeric(names(yValDict)[nodeDetails[1]])
+      outputDF[i, "N"] <- nodeDetails[2] + nodeDetails[3]
+      outputDF[i, "N % of Dataset"] <- nodeDetails[6]
+      outputDF[i, paste0(names(yValDict)[1]," -- N")] <- nodeDetails[2]
+      outputDF[i, paste0(names(yValDict)[1]," -- N % of Dataset")] <- nodeDetails[2] / nObs
+      outputDF[i, paste0(names(yValDict)[1]," -- N % of Node Dataset")] <- nodeDetails[2] / (nodeDetails[2] + nodeDetails[3])
+      outputDF[i, paste0(names(yValDict)[2]," -- N")] <- nodeDetails[3]
+      outputDF[i, paste0(names(yValDict)[2]," -- N % of Dataset")] <- nodeDetails[3] / nObs
+      outputDF[i, paste0(names(yValDict)[2]," -- N % of Node Dataset")] <- nodeDetails[3] / (nodeDetails[2] + nodeDetails[3])
+    }
+    output$classTreeDF <- renderTable(include.rownames=FALSE, {
+      print(outputDF)
+      return(outputDF)
+    })
   })
 }

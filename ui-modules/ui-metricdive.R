@@ -2,8 +2,8 @@ metricDivePage <- function() {
   
   tabPanel("Metric Dive",
            value="metric",
-           sidebarLayout(
-             sidebarPanel(
+           sidebarLayout(   
+             sidebarPanel( 
                h3(textOutput("currentY_dive")),
                tags$br(),
                tags$br(),
@@ -16,10 +16,7 @@ metricDivePage <- function() {
                    checkboxInput("pageFilterCheck", label = "Date Pages", value = FALSE),
                    conditionalPanel(
                      condition = "output.pageFilterCheck",
-                     div(
-                       DTOutput("pageFilterTable")
-                       )
-                     ),
+                     div(DTOutput("pageFilterTable")),
                    conditionalPanel(
                      condition = "!output.bigDataCheck",
                      checkboxInput("pointFilterCheck", label = "Filter Using Scatter", value = FALSE)
@@ -34,7 +31,7 @@ metricDivePage <- function() {
                    ),
                  downloadButton('downloadReport', 'Download Report')
                  )
-               ),
+               )),
              mainPanel(
                tabsetPanel(
                  tabPanel(
@@ -96,6 +93,18 @@ metricDivePage <- function() {
                          condition = "!output.dateColCheck || !output.catColCheck",
                          h3("Select a date column and category column to see rank volatility over time.")
                          )
+                       ),
+                    tabPanel(
+                       "Classification Tree",
+                       conditionalPanel(
+                         condition = "output.binaryYCheck",
+                         tableOutput("classTreeDF"),
+                         plotOutput("classTreePlot")
+                         ),
+                       conditionalPanel(
+                         condition = "!output.binaryYCheck",
+                         h3("Y values not binary, or too few datapoints for that X and that Y.")
+                         )
                        )
                      )
                    ),
@@ -103,7 +112,7 @@ metricDivePage <- function() {
                    "Details",
                    tabsetPanel(
                      tabPanel("ANOVA", verbatimTextOutput('aovSummary')),
-                     tabPanel("Performance", DTOutput("datePerformance", height="300")),
+                     tabPanel("Performance", DTOutput("datePerformance")),
                      tabPanel("Summary", tableOutput("summaryStats"))
                      )
                    )

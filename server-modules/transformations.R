@@ -1,8 +1,9 @@
 observeAddTransformation <- function(input, output, session, vals) {
   
+
   
   observeEvent(input$addTransformation, {
-
+    
     transformation <- input$transformationselected
     transformationName <- names(transformationList[transformationList==transformation])
     vals$transformationCount <- vals$transformationCount + 1
@@ -183,6 +184,19 @@ observeAddTransformation <- function(input, output, session, vals) {
                 selectInput(paste0("transformBucketAggregation", cnt), "Bucket Method", choices = bucketFuncList),
                 tags$hr(), class="transformation")
               )
+          },
+          quintile = {
+            insertUI(
+              selector="#transformations",
+              where="afterBegin",
+              ui = tags$div(
+                h3(transformationName),
+                tags$div(textInput(paste0("transformationType", cnt), label = NULL, value=transformation),style="display:none;"),
+                textInput(paste0("transformationSuffix", cnt), "Column Suffix Name", value = ""),
+                selectInput(paste0("transformCols", cnt), "Columns to transform into quintile", choices=vals$getCols(), multiple=TRUE),
+                selectInput(paste0("transformCategoryCol", cnt), "Select category columns to group by (optional)", choices=vals$getCols(), multiple = TRUE),
+                tags$hr(), class="transformation")
+              )
           }
         )
   }) 
@@ -192,6 +206,8 @@ observeAddTransformation <- function(input, output, session, vals) {
 observeCreateTransformations <- function(input, output, session, vals) {
 
   createTransformations <- function(alert, dateformat=FALSE){
+
+  
 
     # tryCatch({
       
@@ -251,6 +267,8 @@ observeCreateTransformations <- function(input, output, session, vals) {
         transformAggLvl <- input[[paste0("transformAggregationLevel", cnt)]]
         transformBucketCols <- input[[paste0("transformBucketCols", cnt)]]
         transformBucketAggregation <- input[[paste0("transformBucketAggregation", cnt)]]
+        
+        
         
         if(type %in% c("ctc", "dateagg", "bucket") && transformSuffix == "") {
           shinyalert(
@@ -381,6 +399,11 @@ observeCreateTransformations <- function(input, output, session, vals) {
                    
                    m <- numeric()
                    for (i in seq_along(n)) {
+                     dp <- sum(!is.na(n[1:i]))
+                     if(dp < 3) {
+                       m[length(m)+1] <- NA
+                       next
+                     }
                      m[length(m)+1] <- (n[i] - mean(n[1:i], na.rm = TRUE)) / sd(n[1:i], na.rm = TRUE)
                    }
                    
@@ -481,6 +504,14 @@ observeCreateTransformations <- function(input, output, session, vals) {
                           })
                    return(n)
                  }
+               },
+               quintile={
+                 transformFunc <- function(x,...) {
+                   n <- as.numeric(x)
+                   q <-quint(n)
+                     
+                   return(q)
+                 }
                }
         )
   
@@ -511,7 +542,8 @@ observeCreateTransformations <- function(input, output, session, vals) {
                                           transformValue=transformBinaryValue,
                                           transformSlider = transformSlider,
                                           transformBucketCols = transformBucketCols,
-                                          transformBucketAggregation = transformBucketAggregation
+                                          transformBucketAggregation = transformBucketAggregation,
+                                        
                                           )
             
   

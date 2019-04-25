@@ -8,6 +8,19 @@ a[data-title="Produced with Plotly"]{
 	display: none;
 }
 
+#DataTables_Table_0_processing {
+    background-color: #efe5d6 !important;
+    width: 400px !important;
+    height: 96px !important;
+    border: solid #d4c09f 4px !important;
+    font-size: 27px !important;
+}
+
+#datePerformance .dataTables_scrollBody,
+#dateDataPointsDF .dataTables_scrollBody {
+    height: inherit !important;
+}
+
 .report_btn {
     padding: 8px;
     font-size: 20px;

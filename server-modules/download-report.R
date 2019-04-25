@@ -1,11 +1,14 @@
 observeDownloadReport <- function(input, output, session, vals) {
     
     output$downloadReport <- downloadHandler(
-    # For PDF output, change this to "report.pdf"
+
     filename = function(){
       xname <- input$xCol
       xname <- gsub("[\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\-\\=\\+\\.]", '',xname)
-      paste0(xname, " report.html")
+      
+      yname <- input$yCol
+      yname <- gsub("[\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\-\\=\\+\\.]", '',yname)
+      paste0(xname, " against ", yname, ".html")
     },
     content = function(file) {
       # Copy the report file to a temporary directory before processing it, in
@@ -26,6 +29,7 @@ observeDownloadReport <- function(input, output, session, vals) {
                      df = df,
                      perf = vals$perfdf,
                      dateCol = vals$dateCol,
+                     categoryCol = input$categoryCol,
                      dateFormat = vals$dateFormat,
                      yCol = vals$yCol)
       

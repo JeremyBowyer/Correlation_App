@@ -2,12 +2,16 @@ for(i = 2; i < $('#summaryTable th').length; i++) {
 colorTableByCol('summaryTable', i);
 }
 
-for(i = 7; i < $('#dateCorrelations th').length; i++) {
+for(i = 6; i < $('#dateCorrelations th').length; i++) {
 colorTableByCol('dateCorrelations', i);
 }
 
 for(i = 0; i < $('#datePerformance th').length; i++) {
 colorTableByCol('datePerformance', i);
+}
+
+for(i = 1; i < $('#dateDataPointsDF th').length; i++) {
+colorTableByCol('dateDataPointsDF', i);
 }
 
 function colorTableByCol(tableid, colindex){

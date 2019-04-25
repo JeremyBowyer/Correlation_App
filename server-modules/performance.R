@@ -111,7 +111,7 @@ calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df
     if(nrow(df) == 0) { return(data.frame(All=NA)) }
     
     df[,"quints"] <- NA
-    df$quints <- quint(as.numeric(df[,xCol]))
+    df$quints <- quint(x=as.numeric(df[,xCol]))
     
   } else {
     
@@ -123,12 +123,14 @@ calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df
     df[,"quints"] <- NA
     
     aggs <- by(df, INDICES = df[, dateCol], function(x) {
-    
+
       tryCatch({
         x[,"quints"] <- quint(as.numeric(x[,xCol]))
       }, error = function(e) {
+        print(e)
         x[,"quints"] <- rep(NA, nrow(x))
       })
+
       return(x)
     
     })
