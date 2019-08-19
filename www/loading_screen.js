@@ -1,10 +1,12 @@
-function loadingScreen(load) {
-    if(load) {
+function loadingScreen(load,runanalysis) {
+    if(load && !runanalysis) {
         $('.container-fluid').addClass('blur');
         $('.loading-div').show();
-    } else {
+    } else if(!runanalysis) {
         $('.container-fluid').removeClass('blur');
         $('.loading-div').hide();
+    } else{
+        $('.container-fluid').addClass('blur');
     }
     
 }
@@ -37,11 +39,13 @@ $(document).on({
     },
 
     'shiny:busy': function(event) {
-        myTimeout = setTimeout(function(){ loadingScreen(true) }, 500);
+          myTimeout = setTimeout(function(){ if(!document.getElementById("shiny-notification-panel")){loadingScreen(true,runanalysis=false) }
+            else{loadingScreen(true,true)}}, 500)
+          
     },
     
     'shiny:idle': function(event) {
         clearTimeout(myTimeout);
-        loadingScreen(false);
+        loadingScreen(false,false);
     }
 });

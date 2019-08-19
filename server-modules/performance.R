@@ -7,7 +7,7 @@ calculatePerformanceBinary <- function(df, xCol, yCol, dateCol, dateFormat, incl
   # Returns a dataframe containing the average Y value for the
   # two unique values of X, and the difference between them.
   #
-  
+
   # Subset df by complete cases
   if (dateCol == "") {
     
@@ -74,10 +74,10 @@ calculatePerformanceDatesBinary <- function(df, xCol, yCol, dateCol, dateFormat)
   
   # Loop through each date and calculate average Y value and differential
   dates <- parse_date_time(as.character(df[, dateCol]), order=dateFormat)
+  
   dateChars <- unique(format(dates[order(dates)], dateFormat))
   
   for(date in dateChars) {
-    
     datedf <- df[format(dates, dateFormat) == date, ]
     allPerformance[, as.character(date)] <- NA
     
@@ -114,7 +114,6 @@ calculatePerformance <- function(df, xCol, yCol, dateCol, dateFormat, include_df
     df$quints <- quint(x=as.numeric(df[,xCol]))
     
   } else {
-    
     df <- df[,c(xCol,yCol,dateCol)]
     df <- df[complete.cases(df), ]
     
@@ -175,12 +174,12 @@ calculatePerformanceDates <- function(df, xCol, yCol, dateCol, dateFormat) {
   #
   # A column for each date is included, in addition to an "All" column
   #
-  
+
   # Grab initial performance table with "All" column
   output <- calculatePerformance(df, xCol, yCol, dateCol, dateFormat, include_df=TRUE) 
   allPerformance <- output$allPerformance  
 
-  # This dataframe is already quintiled appropriate
+  # This dataframe is already quintiled
   df <- output$df
   # If there is no date, no need to add columns for each date
   if(dateCol == "") { return(allPerformance) }
@@ -190,7 +189,7 @@ calculatePerformanceDates <- function(df, xCol, yCol, dateCol, dateFormat) {
   if(length(unique_vals) == 2) {
     return(calculatePerformanceDatesBinary(df, xCol, yCol, dateCol, dateFormat))
   }
-  
+  write.csv(df, "full.csv")
   # Loop through each date and calculate average Y value and differential
   dates <- parse_date_time(as.character(df[, dateCol]), order=dateFormat)
   dateChars <- unique(format(dates[order(dates)], dateFormat))
@@ -198,7 +197,6 @@ calculatePerformanceDates <- function(df, xCol, yCol, dateCol, dateFormat) {
     
     datedf <- df[format(dates, dateFormat) == date, ]
     allPerformance[, as.character(date)] <- NA
-    
     tryCatch({
       
       datedf[, "quints"] <- quint(datedf[,xCol])

@@ -1,11 +1,12 @@
 observeMetricDiveFilters <- function(input, output, session, vals) {
-  
-  ## Page Filter ##
-  observeEvent(input$pageFilterCheck, {
-    
+
+  #### Date Page Filter ####
+  observeEvent(input$pageFilterCheck,{
+
     if(input$pageFilterCheck){
       
       vals$dateFilterdf <- data.frame(Date = unique(vals$metricdivedf[, input$dateCol]))
+
       output$pageFilterTable <- renderDT(vals$dateFilterdf,
                                          options = list(
                                            pageLength = 100,
@@ -36,60 +37,60 @@ observeMetricDiveFilters <- function(input, output, session, vals) {
       vals$metricdivedfPage <- data.frame()
       return(NULL)
     }
-    
-    
   })
   
+  # On Date Page Selection
   observeEvent(input$pageFilterTable_rows_selected, {
 
       if(length(input$pageFilterTable_rows_selected) == 0) {
         vals$metricdivedf <- vals$originalmetricdivedf
         return(NULL)
       }
-    
+
       selectedDates <- vals$dateFilterdf[input$pageFilterTable_rows_selected, "Date"]
-      
+
       df <- if(input$pointFilterCheck) vals$metricdivedfPoint else vals$originalmetricdivedf
       df <- df[df[,input$dateCol] %in% selectedDates, ]
       vals$metricdivedf <- df
       vals$metricdivedfPage <- df
   })
-  
-  ## Point Filter ##
+
+  #### Point Filter ####
+  # Point Filter Check
   observeEvent(input$pointFilterCheck, {
-    
+
     vals$metricdivedfPoint <- if(input$pageFilterCheck) vals$metricdivedfPage  else vals$originalmetricdivedf
-    
+
     if(!input$pointFilterCheck && !input$pageFilterCheck) {
       vals$metricdivedf <- vals$originalmetricdivedf
       vals$metricdivedfPoint <- data.frame()
       return(NULL)
     }
-    
+
     if(!input$pointFilterCheck && input$pageFilterCheck) {
       vals$metricdivedf <- vals$metricdivedfPage
       vals$metricdivedfPoint <- data.frame()
       return(NULL)
     }
-    
+
   })
-  
+  # Keep Points
   observeEvent({input$keepPoints}, {
-    
+
     event.data <- event_data("plotly_selected", source = "metricScatter")
     if(is.null(event.data) == TRUE) return(NULL)
-    
+
     df <- vals$metricdivedf
-    
+
     mod <- 1
-    
+
     if (input$categoryCol != ""){
       df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
       aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
-        
+
         cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
         x[cat.index*mod, ]
-        
+
       })
       df <- do.call("rbind", aggs)
     } else {
@@ -97,29 +98,29 @@ observeMetricDiveFilters <- function(input, output, session, vals) {
     }
     vals$metricdivedf <- df
     vals$metricdivedfPoint <- df
-    
+
   })
-  
+  # Remove Points
   observeEvent({input$removePoints}, {
-    
+
     event.data <- event_data("plotly_selected", source = "metricScatter")
     if(is.null(event.data) == TRUE) return(NULL)
-    
+
     df <- vals$metricdivedf
-    
+
     mod <- -1
-    
+
     if (input$categoryCol != ""){
       df$CatFactor <- as.numeric(as.factor(df[, input$categoryCol]))
       aggs <- by(df, INDICES = list(df[, "CatFactor"]), function(x) {
-        
+
         cat.index <- event.data[event.data$curveNumber == x[1,"CatFactor"] - 1, "pointNumber"] + 1
         if(length(cat.index) > 0){
           x[cat.index*mod, ]
         } else {
           x
         }
-        
+
       })
       df <- do.call("rbind", aggs)
     } else {
@@ -127,17 +128,14 @@ observeMetricDiveFilters <- function(input, output, session, vals) {
     }
     vals$metricdivedf <- df
     vals$metricdivedfPoint <- df
-    
-  })
-  
-}
 
+  })
+
+}
 metricDivePlots <- function(input, output, session, vals) {
-  
-  ##################
-  # Reactive plots #
-  ##################
-  # Metric Scatter
+ 
+  #### Metric Scatter ####
+  # Dynamic
   output$metricScatter <- renderPlotly({
 
     if(input$xCol == "" || input$yCol == "" || nrow(vals$metricdivedf) > MAX_ROW_LIMIT)  {
@@ -166,7 +164,7 @@ metricDivePlots <- function(input, output, session, vals) {
       layout(dragmode = "lasso")
     p
   })
-  
+  # Static
   output$staticScatter <- renderPlot({
 
     if(input$xCol == "" || input$yCol == "" || nrow(vals$metricdivedf) <= MAX_ROW_LIMIT)  {
@@ -182,9 +180,114 @@ metricDivePlots <- function(input, output, session, vals) {
 
   })
   
-  # Metric Histogram
-  output$metricHist <- renderPlotly({
+  #### Quad Circles ####
+  output$quadcircles <- renderPlot({
     
+    if(input$xCol == "" || input$yCol == "") {
+      return(NULL)
+    }
+    
+    df <- vals$metricdivedf
+    left1st <- sum(df[,input$yCol] == 1 & df[,input$xCol] == 0)
+    left2nd =sum(df[,input$yCol] == 1 & df[,input$xCol] == 1)
+    right1st= sum(df[,input$yCol] == 0 & df[,input$xCol] == 1)
+    right2nd=sum(df[,input$yCol] == 0 & df[,input$xCol] == 0)
+    sum0sand1s = sum(complete.cases(data.frame(x=df[,input$xCol],y=df[,input$yCol])))
+    plotdf = data.frame(colours = c("yellow","red","forestgreen","orange1"), x = rep(.5,4), y = rep(.5,4), radii = c(sqrt(left1st/sum0sand1s)/(3.14^2),sqrt(left2nd/sum0sand1s)/(3.14^2),sqrt(right2nd/sum0sand1s)/(3.14^2),sqrt(right1st/sum0sand1s)/(3.14^2)))
+    
+    plotdf$xpanel = c(0, 1, 0, 1)
+    plotdf$ypanel = c(0, 0, 1, 1)
+    plotdf$ypanel = factor(plotdf$ypanel, labels = rev(unique(plotdf$ypanel)),  ordered = TRUE)
+    maxxy = max(plotdf$radii*2)
+    plot <- ggplot() + 
+    geom_circle(aes(x0=x, y0=y, r=radii, fill=colours),data = plotdf)+
+    coord_fixed()+ 
+      facet_grid(ypanel~xpanel, switch="both")+
+      scale_colour_identity(aesthetics = 'fill')+
+      theme(axis.title.y=  element_text( angle=0, vjust = 0.5,size=20), axis.title.x = element_text(size=20), axis.line=element_line(), panel.spacing.x=unit(1, "lines"), panel.spacing.y=unit(1, "lines"), panel.background = element_rect(colour = "black", size=1, fill=NA),strip.text.y = element_text(angle = -180,size=20), strip.text.x = element_text(size=20), axis.ticks.y = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks.x = element_blank(),strip.background=element_blank()) 
+
+    return(plot)
+    })
+
+    output$VennDiagram2 = renderPlot({
+      
+      if(input$xCol == "" || input$yCol == "") {
+        return(NULL)
+      }
+      
+      vendf = vals$metricdivedf[,c(input$yCol,input$xCol)]
+      vendf[,input$yCol] = as.character(vendf[,input$yCol])
+      vendf[,input$xCol] = as.character(vendf[,input$xCol])
+      all = which(complete.cases(vals$metricdivedf[,c(input$yCol,input$xCol)]))
+      nx = which(vals$metricdivedf[,c(input$xCol)]  == "1"  )
+      ny = which(  vals$metricdivedf[,c(input$yCol)] == "1")
+ 
+      tryCatch({
+        plotobj1 = Venn(list(nx=as.character(nx),ny=as.character(ny),all=as.character(all)))
+        
+        #gp = VennThemes(compute.Venn(plotobj1))
+        #gp$Face$`011` = gpar(col = "black", lty = "solid", lwd = 1, fontsize = 16,fill='yellow')
+        # gp$Face$`111` = gpar(col = "black", lty = "solid", lwd = 1, fontsize = 16,fill='red')
+        # gp$Face$`101` = gpar(col = "black", lty = "solid", lwd = 1, fontsize = 16,fill='orange1')
+        # gp$Face$`010` = gpar(col = "black", lty = "solid", lwd = 2, fontsize = 16,fill='yellow')
+        # gp$Face$`001` = gpar(col = "black", lty = "solid", lwd = 1, fontsize = 16,fill='forestgreen')
+        # gp$Face$`001-1` = gpar(col = "black", lty = "solid", lwd = 1, fontsize = 16,fill='forestgreen')
+        # gp$Face$`100` = gpar(col = "black", lty = "solid", lwd = 2, fontsize = 16,fill='orange1')
+        # gp$Face$`110` = gpar(col = "black", lty = "solid", lwd = 2, fontsize = 16,fill='red')
+        # gp$Set$Set3$col = '#111111' 
+        # gp$Set$Set1$col = '#111111'
+        # gp$Set$Set2$col = '#111111'
+        # gp$Set$Set3$lwd = 1
+        # gp$Set$Set1$lwd = 1
+        # gp$Set$Set2$lwd = 1
+        # gp$SetText$Set1$alpha = 0
+        # gp$SetText$Set2$alpha = 0
+        # gp$SetText$Set3$alpha = 0
+        # gp$FaceText$`011`$alpha = 0
+        # gp$FaceText$`111`$alpha = 0
+        # gp$FaceText$`101`$alpha = 0
+        # gp$FaceText$`001`$alpha = 0
+        # gp$FaceText$`001-1`$alpha = 0
+        # gp$FaceText$`010`$alpha = 0
+        # gp$FaceText$`110`$alpha = 0
+        # gp$FaceText$`100`$alpha = 0
+        # gp$FaceText$`001-2`$alpha = 0
+        #  
+      }, error=function(e) {
+        print(e)
+        left1st <- which(vals$metricdivedf[,input$yCol] == 1 & vals$metricdivedf[,input$xCol] == 0)
+        left2nd <- which(vals$metricdivedf[,input$yCol] == 1 & vals$metricdivedf[,input$xCol] == 1)
+        right1st <- which(vals$metricdivedf[,input$yCol] == 0 & vals$metricdivedf[,input$xCol] == 1)
+        right2nd <- which(vals$metricdivedf[,input$yCol] == 0 & vals$metricdivedf[,input$xCol] == 0)
+        plotobj1 <- Venn(list(nx=as.character(nx),ny=as.character(ny),n=as.character(right2nd)))
+        
+        gp = VennThemes(compute.Venn(plotobj1))
+ 
+        
+       
+      })
+      return(plot(plotobj1,doWeights=TRUE,doEuler =TRUE,gp=gp,type="circles"))
+    })
+    
+    output$myImage <- renderPlot({
+      
+      if(input$xCol == "" || input$yCol == "") {
+        return(NULL)
+      }
+      
+      nxy = sum(as.numeric(vals$metricdivedf[,input$yCol]) == 1 & as.numeric(vals$metricdivedf[,input$xCol]) == 1)
+      
+      nx = sum(as.numeric(vals$metricdivedf[,input$yCol]) == 0 & as.numeric(vals$metricdivedf[,input$xCol]) == 1)
+      ny = sum(as.numeric(vals$metricdivedf[,input$yCol]) == 1 & as.numeric(vals$metricdivedf[,input$xCol]) == 0)
+      n = sum(as.numeric(vals$metricdivedf[,input$yCol]) == 0 & as.numeric(vals$metricdivedf[,input$xCol]) == 0)
+      
+      plot <- ggplot(data=data.frame(color=c("yellow", "red",'orange1',"forestgreen"),xlabel=rep(0.25-0.2*5/7+(0.25-0.2*5/7)/2+(0.25-0.2*5/7)*3+(0.39-0.2*5/7)*.6,4),xdot=rep(0.39-0.1*5/7-.2+.6+(0.25-0.2*5/7)/2+(0.25-0.2*5/7)*1.2+(0.39-0.2*5/7)*.6,4),y=c(3.5,2.5,1.5,0.5),label=paste0(c('False Negative ',"True Positive ","False Positive ",'True Negative '),c("(X=0,Y=1)","(X=1,Y=1)","(X=1,Y=0)","(X=0,Y=0)")))) +geom_point(aes(x=xdot,y=y),color=c("yellow", "red",'orange1',"forestgreen"),size=6)+xlim(-.5,0.4+.4+.4+.2)+ylim(.25,3.75)+theme(legend.title = element_blank(),axis.ticks.y = element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none") +geom_text(aes(x=rep((0.25-0.2*5/7)/6+(0.25-0.2*5/7+(0.25-0.2*5/7)/2+(0.25-0.2*5/7)*3+(0.39-0.2*5/7)*.6)/2-(0.25-0.2*5/7)*.6,4),y=y,label=label),size=10,family='raleway')+geom_text(aes(x=rep(0.39-0.2*5/7+.9+(0.39-0.2*5/7)*.6,4),y=y,label=c(paste0("n=",ny),paste0("n=",nxy),paste0("n=",nx),paste0("n=",n))),size=10,family='raleway')+theme(legend.title = element_blank(),axis.ticks.y = element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(), panel.background = element_blank(),axis.ticks.x=element_blank())+labs(x=NULL,y=NULL)
+      
+      return(plot)
+    })
+    
+  #### Metric Histogram ####
+  output$metricHist <- renderPlotly({
     if(input$xCol == "" || input$yCol == "") {
       return(NULL)
     }
@@ -192,24 +295,20 @@ metricDivePlots <- function(input, output, session, vals) {
     df <- vals$metricdivedf
     xform <- as.formula(paste0("~`",input$xCol,"`"))
     plot_ly(data = df, x = xform, type = "histogram")
-    
   })
   
-  # Metric Data Points
+  #### Metric Data Points ####
   # By Date
   output$metricDataPointsDate <- renderPlotly({
-    
     if(input$xCol == "" || input$dateCol == "" || input$yCol == "") {
       return(NULL)
     }
-    
-    metricDF <- vals$datadf
+  
+    metricDF <- vals$metricdivedf
     dataPointsDF <- aggregate(metricDF[, input$xCol], by=list(metricDF[, input$dateCol]), function(x) sum(!is.na(as.numeric(x))))
     names(dataPointsDF) <- c("Date", "DataPoints")
-   # dataPointsDF$Date <- as.Date(as.character(dataPointsDF$Date), format = vals$dateFormat)
     dataPointsDF$Date <- parse_date_time(dataPointsDF$Date,order=vals$dateFormat)
     dataPointsDF <- dataPointsDF[order(dataPointsDF$Date), ]
-    ##dataPointsDF$Date <- format(dataPointsDF$Date,vals$dateFormat)
     
     plot_ly(data = dataPointsDF, x = ~Date, y = ~DataPoints, type = 'scatter', mode = 'lines')
     
@@ -221,7 +320,7 @@ metricDivePlots <- function(input, output, session, vals) {
       return(NULL)
     }
     
-    metricDF <- vals$datadf
+    metricDF <- vals$metricdivedf
     dataPointsDF <- aggregate(metricDF[, input$xCol], by=list(metricDF[, input$categoryCol]), function(x) sum(!is.na(as.numeric(x))))
     names(dataPointsDF) <- c("Category", "DataPoints")
     dataPointsDF <- dataPointsDF[order(dataPointsDF$Category), ]
@@ -229,7 +328,7 @@ metricDivePlots <- function(input, output, session, vals) {
     
   })
   
-  # Metric QQ Normal Dist
+  #### Metric QQ Normal Dist ####
   output$metricQQNorm <- renderPlotly({
     
     if(input$xCol == "" || input$yCol == "") {
@@ -249,7 +348,7 @@ metricDivePlots <- function(input, output, session, vals) {
     
   })
   
-  # Metric QQ Y
+  #### Metric QQ Y ####
   output$metricQQy <- renderPlotly({
     
     if(input$xCol == "" || input$yCol == "") {
@@ -269,7 +368,7 @@ metricDivePlots <- function(input, output, session, vals) {
     
   })
   
-  # Metric Rank Volatility
+  #### Metric Rank Volatility ####
   output$metricRankVolatility <- renderPlotly({
     
     if(input$xCol == "" || input$yCol == "" || input$dateCol == "") {
@@ -289,7 +388,7 @@ metricDivePlots <- function(input, output, session, vals) {
     
   })
   
-  # ANOVA
+  #### ANOVA ####
   output$aovSummary = reactivePrint(function() {
     
     if(input$xCol == "" || input$yCol == "") {
@@ -301,20 +400,20 @@ metricDivePlots <- function(input, output, session, vals) {
     summary(lm(form, data = df))
   })
   
-  # Classification Tree
+  #### Classification Tree ####
   output$classTreePlot = renderPlot({
     
     if(input$xCol == "" || input$yCol == "") {
       return(NULL)
     }
-    
     df <- vals$metricdivedf[, c(input$xCol, input$yCol)]
     form <- as.formula(paste0("`", input$yCol, "` ~ `", input$xCol, "`"))
-    control <- rpart.control(minsplit=1, minbucket=1, cp=0.00001, maxdepth=1)
+    control <- rpart.control(minsplit=1, minbucket=1, cp=0, maxdepth=1)
     mod <- rpart(form, df, control = control, method = "class")
     rpart.plot(mod)
   })
-  
+
+
 }
 
 processMetricDiveDF <- function(input, output, session, vals) {
@@ -327,10 +426,10 @@ processMetricDiveDF <- function(input, output, session, vals) {
       if(input$xCol == "" || input$yCol == ""){
         return(NULL)  
       }
-        
+
       # Process Data
       df <- vals$datadf
-      
+
       df[,input$xCol] <- as.numeric(df[,input$xCol])
       df[,input$yCol] <- as.numeric(df[,input$yCol])
       df <- subset(df, !is.na(df[,input$xCol]) & !is.na(df[,input$yCol]))
@@ -340,17 +439,17 @@ processMetricDiveDF <- function(input, output, session, vals) {
 
       vals$metricdivedf <- df
       vals$originalmetricdivedf <- df
-    
+
     })
   
 }
 
 calculateMetricStats <- function(input, output, session, vals) {
 
-    # Update metric dive Y column indicator on Y change
-    output$currentY_dive <- renderText({ 
-        paste0("Current Y column: ", input$yCol)
-    })
+  # Update metric dive Y column indicator on Y change
+  output$currentY_dive <- renderText({ 
+      paste0("Current Y column: ", input$yCol)
+  })
 
   observeEvent({
       c(
@@ -362,21 +461,21 @@ calculateMetricStats <- function(input, output, session, vals) {
       input$keepPoints,
       input$removePoints
       )
-  }, {
-    
+   }, {
+
     if(input$xCol == "" || input$yCol == ""){
-      return(NULL)  
+      return(NULL)
     }
-    
+
+   
     df <- vals$metricdivedf
     if(!is.null(input$dateCol) && input$dateCol != "") df <- subset(df, !is.na(df[,input$dateCol]))
 
-    if(nrow(df) == 0) {
-      return(NULL)
-    } 
+    if(is.null(df)) return(NULL)
+    if(nrow(df) == 0) return(NULL)
 
     if(sum(!is.na(as.numeric(df[, input$xCol]))) == 0) {
-      
+
       shinyalert(
         title = "",
         text = "Column has no data after being coerced to numeric. Try removing some filters or choosing a different column.",
@@ -392,14 +491,14 @@ calculateMetricStats <- function(input, output, session, vals) {
         imageUrl = "",
         animation = TRUE
       )
-      
+
       return(NULL)
-      
+
     }
-    
+
     xData <- as.numeric(df[, input$xCol])
     yData <- as.numeric(df[, input$yCol])
-      
+
     summarydf <- data.frame(
       x = c(
         sum(!is.na(xData)),
@@ -419,16 +518,16 @@ calculateMetricStats <- function(input, output, session, vals) {
       ),
       row.names = c("Data Points", "Standard Deviation", "Mean", "Median", "Max","Min")
     )
-    
+
     names(summarydf) <- c(input$xCol,input$yCol)
-    
+
     output$summaryStats <- renderTable(include.rownames = TRUE, {
       return(summarydf)
     })
-    
+
     # Create quintiles by date and more processing
     vals$perfdf <- calculatePerformanceDates(df, input$xCol, input$yCol, input$dateCol, vals$dateFormat)
-    
+
     # Performance Output
     output$datePerformance = renderDT(vals$perfdf,
                                       options = list(
@@ -442,66 +541,67 @@ calculateMetricStats <- function(input, output, session, vals) {
                                       fillContainer = TRUE,
                                       style = "bootstrap",
                                       selection = "none")
-  
+
     # Classification Tree DF
     # Create Model
     df <- vals$metricdivedf[, c(input$xCol, input$yCol)]
     form <- as.formula(paste0("`", input$yCol, "` ~ `", input$xCol, "`"))
-    control <- rpart.control(minsplit=1, minbucket=1, cp=0.00001, maxdepth=1)
-    mod <- rpart(form, df, control = control, method = "class")
-    
-    modYVals <- unique(mod$y)
-    yVals = unique(df[!is.na(df[,input$yCol]), input$yCol])
-    yValDict <- list()
-    yValDict[as.character(yVals[1])] <- modYVals[1]
-    yValDict[as.character(yVals[2])] <- modYVals[2]
-    
-    # Create empty output dataframe
-    outputDF <- data.frame("1" = c("Root","Left", "Right"),
-                           "2" = numeric(3),
-                           "3" = numeric(3),
-                           "4" = numeric(3),
-                           "5" = numeric(3),
-                           "6" = numeric(3),
-                           "7" = numeric(3),
-                           "8" = numeric(3),
-                           "9" = numeric(3),
-                           "10" = numeric(3))
-    
-    dfnames <- c("Node",
-                 "Predicted Value",
-                 "N",
-                 "N % of Dataset",
-                 paste0(names(yValDict)[1]," -- N"),
-                 paste0(names(yValDict)[1]," -- N % of Dataset"),
-                 paste0(names(yValDict)[1]," -- N % of Node Dataset"),
-                 paste0(names(yValDict)[2]," -- N"),
-                 paste0(names(yValDict)[2]," -- N % of Dataset"),
-                 paste0(names(yValDict)[2]," -- N % of Node Dataset"))
-    names(outputDF) <- dfnames
-    
-    
-    # Extract Stats
-    nObs <- length(mod$y)
-    nVal1 <- length(mod$y[mod$y == yValDict[1]])
-    nVal2 <- length(mod$y[mod$y == yValDict[2]])
-    
-    for(i in 1:dim(mod$frame$yval2)[1]){
-      nodeDetails = mod$frame$yval2[i,]
-
-      outputDF[i, "Predicted Value"] <- as.numeric(names(yValDict)[nodeDetails[1]])
-      outputDF[i, "N"] <- nodeDetails[2] + nodeDetails[3]
-      outputDF[i, "N % of Dataset"] <- nodeDetails[6]
-      outputDF[i, paste0(names(yValDict)[1]," -- N")] <- nodeDetails[2]
-      outputDF[i, paste0(names(yValDict)[1]," -- N % of Dataset")] <- nodeDetails[2] / nObs
-      outputDF[i, paste0(names(yValDict)[1]," -- N % of Node Dataset")] <- nodeDetails[2] / (nodeDetails[2] + nodeDetails[3])
-      outputDF[i, paste0(names(yValDict)[2]," -- N")] <- nodeDetails[3]
-      outputDF[i, paste0(names(yValDict)[2]," -- N % of Dataset")] <- nodeDetails[3] / nObs
-      outputDF[i, paste0(names(yValDict)[2]," -- N % of Node Dataset")] <- nodeDetails[3] / (nodeDetails[2] + nodeDetails[3])
-    }
-    output$classTreeDF <- renderTable(include.rownames=FALSE, {
-      print(outputDF)
-      return(outputDF)
-    })
+    control <- rpart.control(minsplit=1, minbucket=1, cp=0, maxdepth=1)
+    tryCatch({
+      mod <- rpart(form, df, control = control, method = "class")
+      modYVals <- unique(mod$y)
+      yVals = unique(df[!is.na(df[,input$yCol]), input$yCol])
+      yValDict <- list()
+      yValDict[as.character(yVals[1])] <- modYVals[1]
+      yValDict[as.character(yVals[2])] <- modYVals[2]
+  
+      # Create empty output dataframe
+      outputDF <- data.frame("1" = c("Root","Left", "Right"),
+                             "2" = numeric(3),
+                             "3" = numeric(3),
+                             "4" = numeric(3),
+                             "5" = numeric(3),
+                             "6" = numeric(3),
+                             "7" = numeric(3),
+                             "8" = numeric(3),
+                             "9" = numeric(3),
+                             "10" = numeric(3))
+  
+      dfnames <- c("Node",
+                   "Predicted Value",
+                   "N",
+                   "N % of Dataset",
+                   paste0(names(yValDict)[1]," -- N"),
+                   paste0(names(yValDict)[1]," -- N % of Dataset"),
+                   paste0(names(yValDict)[1]," -- N % of Node Dataset"),
+                   paste0(names(yValDict)[2]," -- N"),
+                   paste0(names(yValDict)[2]," -- N % of Dataset"),
+                   paste0(names(yValDict)[2]," -- N % of Node Dataset"))
+      names(outputDF) <- dfnames
+  
+  
+      # Extract Stats
+      nObs <- length(mod$y)
+      nVal1 <- length(mod$y[mod$y == yValDict[1]])
+      nVal2 <- length(mod$y[mod$y == yValDict[2]])
+      
+      for(i in 1:dim(mod$frame$yval2)[1]){
+        nodeDetails = mod$frame$yval2[i,]
+        outputDF[i, "Predicted Value"] <- as.numeric(names(yValDict)[nodeDetails[1]])
+        outputDF[i, "N"] <- nodeDetails[2] + nodeDetails[3]
+        outputDF[i, "N % of Dataset"] <- nodeDetails[6]
+        outputDF[i, paste0(names(yValDict)[1]," -- N")] <- nodeDetails[2]
+        outputDF[i, paste0(names(yValDict)[1]," -- N % of Dataset")] <- nodeDetails[2] / nObs
+        outputDF[i, paste0(names(yValDict)[1]," -- N % of Node Dataset")] <- nodeDetails[2] / (nodeDetails[2] + nodeDetails[3])
+        outputDF[i, paste0(names(yValDict)[2]," -- N")] <- nodeDetails[3]
+        outputDF[i, paste0(names(yValDict)[2]," -- N % of Dataset")] <- nodeDetails[3] / nObs
+        outputDF[i, paste0(names(yValDict)[2]," -- N % of Node Dataset")] <- nodeDetails[3] / (nodeDetails[2] + nodeDetails[3])
+      }
+      output$classTreeDF <- renderTable(include.rownames=FALSE, {
+        return(outputDF)
+      })
+    }, error = function(e) {
+        NULL
+      })
   })
 }

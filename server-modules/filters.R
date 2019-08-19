@@ -79,6 +79,15 @@ applyFilters <- function(alert, dateformat, input, output, session, vals) {
       }
     }
     
+    # String Filter
+    if(vals$stringFilterCount > 0) {
+      for(filter in 1:vals$stringFilterCount){
+        filterCol <- input[[paste0("stringFilter",filter)]]
+        filterstring  <- input[[paste0("string",filter)]]
+        df <- subset(df, (df[,filterCol] == filterstring))
+      }
+    }
+    
     vals$datadf <- df
   
     if(alert) {
@@ -130,7 +139,7 @@ observeAddFilter <- function(input, output, session, vals) {
                       where="afterBegin",
                       ui = tags$div(h3(filterName),
                                     tags$div(textInput(paste0("filterType", cnt), label = NULL, value=filter),style="display:none;"),
-                                    selectInput(paste0("valueFilter", cnt), paste0("Filter ",vals$valueFilterCount), vals$getCols()),
+                                    selectInput(paste0("valueFilter", cnt), "Column", vals$getCols()),
                                     tags$div(textInput(paste0("valueFilter", cnt, "Min"), "Min"), style="display:inline-block"),
                                     tags$div(textInput(paste0("valueFilter", cnt, "Max"), "Max"), style="display:inline-block"),
                                     tags$div(tags$hr()), class="valueFilter"))
@@ -142,7 +151,7 @@ observeAddFilter <- function(input, output, session, vals) {
                       where="afterBegin",
                       ui = tags$div(h3(filterName),
                                     tags$div(textInput(paste0("filterType", cnt), label = NULL, value=filter),style="display:none;"),
-                                    selectInput(paste0("percentileFilter", cnt), paste0("Filter ", cnt), vals$getCols()),
+                                    selectInput(paste0("percentileFilter", cnt), "Column", vals$getCols()),
                                     sliderInput(paste0("percentileFilterSlider", cnt), NULL, min=0, max=1, value=c(0,1), step=0.01),
                                     tags$div(tags$hr()), class="percentileFilter"))
            },
@@ -152,7 +161,7 @@ observeAddFilter <- function(input, output, session, vals) {
              insertUI(selector="#filters",
                       where="afterBegin",
                       ui = tags$div(h3(filterName),
-                                    selectInput(paste0("dateFilter", cnt), paste0("Filter ", cnt), vals$getCols()),
+                                    selectInput(paste0("dateFilter", cnt), "Column", vals$getCols()),
                                     tags$div(
                                       tags$div(textInput(paste0("dateFilter", cnt, "Min"), "Min"), style="display:inline-block"),
                                       tags$div(textInput(paste0("dateFilter", cnt, "Max"), "Max"), style="display:inline-block")
@@ -162,6 +171,17 @@ observeAddFilter <- function(input, output, session, vals) {
                                       tags$div(a("Example Formats", href="http://www.statmethods.net/input/dates.html", target="_blank"), style="display:inline-block")
                                     ),
                                     tags$div(tags$hr(), class="dateFilter"), class="dateFilter"))
+           },
+           strFilter = {
+             vals$stringFilterCount <- vals$stringFilterCount + 1
+             cnt <- vals$stringFilterCount
+             insertUI(selector="#filters",
+                      where="afterBegin",
+                      ui = tags$div(h3(filterName),
+                                    tags$div(textInput(paste0("filterType", cnt), label = NULL, value=filter),style="display:none;"),
+                                    selectInput(paste0("stringFilter", cnt), "Column", vals$getCols()),
+                                    tags$div(textInput(paste0("string", cnt), "String (only rows with these values will be kept)"), style="display:inline-block"),
+                                    tags$div(tags$hr()), class="stringFilter"))
            }
         )
     
@@ -190,9 +210,11 @@ observeClearFilters <- function(input, output, session, vals) {
     removeUI(".valueFilter", multiple = TRUE)
     removeUI(".percentileFilter", multiple = TRUE)
     removeUI(".dateFilter", multiple = TRUE)
+    removeUI(".stringFilter", multiple = TRUE)
     vals$valueFilterCount <- 0
     vals$percentileFilterCount <- 0
     vals$dateFilterCount <- 0
+    vals$stringFilterCount <- 0
     vals$datadf <- vals$originaldf
 
     shinyalert(

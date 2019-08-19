@@ -3,7 +3,7 @@ metricDivePage <- function() {
   tabPanel("Metric Dive",
            value="metric",
            sidebarLayout(   
-             sidebarPanel( 
+             sidebarPanel(
                h3(textOutput("currentY_dive")),
                tags$br(),
                tags$br(),
@@ -14,9 +14,10 @@ metricDivePage <- function() {
                  conditionalPanel(
                    condition = "output.dateColCheck",
                    checkboxInput("pageFilterCheck", label = "Date Pages", value = FALSE),
-                   conditionalPanel(
-                     condition = "output.pageFilterCheck",
-                     div(DTOutput("pageFilterTable")),
+                   conditionalPanel(  
+                     condition = "input.pageFilterCheck",
+                     DTOutput("pageFilterTable")
+                   ),
                    conditionalPanel(
                      condition = "!output.bigDataCheck",
                      checkboxInput("pointFilterCheck", label = "Filter Using Scatter", value = FALSE)
@@ -27,11 +28,11 @@ metricDivePage <- function() {
                      actionButton("removePoints", "Remove Selection", value = FALSE),
                      tags$br(),
                      tags$br()
-                     )
-                   ),
+                     ),
                  downloadButton('downloadReport', 'Download Report')
                  )
-               )),
+               )
+             ),
              mainPanel(
                tabsetPanel(
                  tabPanel(
@@ -105,10 +106,19 @@ metricDivePage <- function() {
                          condition = "!output.binaryYCheck",
                          h3("Y values not binary, or too few datapoints for that X and that Y.")
                          )
-                       )
-                     )
+                       ),
+                    tabPanel(
+                      "Area Diagrams",
+                      tabsetPanel(
+                        tabPanel("Venn Diagram",
+                                 fluidRow(column(plotOutput("myImage"),width=5,offset=2)),
+                                 fluidRow(column(plotOutput("quadcircles"),width=6),column(imageOutput("VennDiagram2"),width=6))
+                                 )
+                        )
+                      )
+                    )
                    ),
-                 tabPanel(
+                tabPanel(
                    "Details",
                    tabsetPanel(
                      tabPanel("ANOVA", verbatimTextOutput('aovSummary')),
@@ -116,8 +126,8 @@ metricDivePage <- function() {
                      tabPanel("Summary", tableOutput("summaryStats"))
                      )
                    )
-                 )
+                )
                )
              )
-           )
+  )
 }

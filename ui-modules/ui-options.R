@@ -1,20 +1,17 @@
 optionsPage <- function() {
-  
+
   tabPanel(
     "Options",
     value = "options",
     sidebarLayout(
       sidebarPanel(
+        #### Left Side ####
         useShinyalert(),
-        fileInput(
-          "csvfile",
-          "Choose CSV File",
-          accept = c(
-            "text/csv",
-            "text/comma-separated-values,text/plain",
-            ".csv"
-            )
-          ),
+        tags$div(
+          tags$div(shinyFilesButton("file", "Upload CSV", "Please select a file", multiple = TRUE)),
+          tags$div(textOutput("name"), style="display:table-cell;vertical-align: middle;padding-left: 50px;font-size: 28px;font-weight: 600;color: #00ab00;"),
+          style="display: table;"
+        ),
         tags$hr(),
         tabsetPanel(
           tabPanel(
@@ -25,7 +22,7 @@ optionsPage <- function() {
               selectInput("dateCol", "Select Date column (optional)", choices=list("", "Please upload data first.")),
               conditionalPanel(
                 condition = "output.dateColCheck",
-                textInput("dateColFormat", "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y")
+                textInput("dateColFormat", "Format dates are in (check 'Data Preview' tab)", "%Y-%m-%d")
                 ),
               selectInput("categoryCol", "Select Category column (optional)", choices=list("", "Please upload data first.")),
               selectInput("ignoreCols", "Select Columns to Ignore (optional)", choices=list("Please upload data first."), multiple = TRUE),
@@ -46,7 +43,7 @@ optionsPage <- function() {
                   tags$br()
                 ),
                 selectInput("dateAggDateCol", "Select Date column", choices=list("", "Please upload data first.")),
-                textInput("dateAggDateColFormat", "Format dates are in (check 'Data Preview' tab)", "%m/%d/%Y"),
+                textInput("dateAggDateColFormat", "Format dates are in (check 'Data Preview' tab)", "%Y-%m-%d"),
                 selectInput("groupByCols", "Select Category column(s) (optional)", multiple = TRUE, choices=list("", "Please upload data first.")),
                 selectInput("aggregationLevel", "Aggregation Level (your data must be more granular than selected level)", choices = aggregationLevelList),
                 selectInput("aggregationFunc", "Aggregation Function", choices = aggregationFuncList),
@@ -120,6 +117,7 @@ optionsPage <- function() {
           tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
           )
         ),
+      #### Main Panel ####
       mainPanel(
         tabsetPanel(
           tabPanel(

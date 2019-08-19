@@ -8,6 +8,12 @@ a[data-title="Produced with Plotly"]{
 	display: none;
 }
 
+#shiny-notification-panel{
+	bottom: 500px !important;
+    right: 800px !important;
+	width: 400px !important;
+}
+
 #DataTables_Table_0_processing {
     background-color: #efe5d6 !important;
     width: 400px !important;
@@ -192,4 +198,7 @@ div[data-value="Instructions"] table th {
     -webkit-transform: scale(1);
             transform: scale(1);
   }
+}
+
+
 }

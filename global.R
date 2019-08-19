@@ -1,12 +1,13 @@
-DEBUG_MODE = TRUE
+DEBUG_MODE = F
 MAX_ROW_LIMIT = 5e4
 
 
-vals <- reactiveValues(
+vals <- reactiveValues(filecount=0,inputcount=0,
     completeCasesFilterCount = 0,
     valueFilterCount = 0,
     percentileFilterCount = 0,
     dateFilterCount = 0,
+    stringFilterCount=0,
     transformationCount = 0,
     transformColIndex = NULL,
     offsetCount = 0,
@@ -21,10 +22,10 @@ vals <- reactiveValues(
     summaryDF = data.frame(),
     yCol = "",
     dateCol = "",
-    dateFormat = "%m/%d/%Y",
+    dateFormat = "%Y-%m-%d",
     IsAggregated = FALSE,
-    inputList = c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "corMatCols", "xCol", "dateAggDateCol", "groupByCols")
-    )
+    inputList = c("hierCol", "yCol", "dateCol", "categoryCol", "ignoreCols", "multiCols", "corMatCols", "xCol", "dateAggDateCol", "groupByCols"),volumes='',name='',dir=''
+    ,name2='',dir2='')
 
     
 transformationList = list("Difference" = "diff",
@@ -47,12 +48,14 @@ transformationList = list("Difference" = "diff",
                           "Column Arithmetic" = "ca",
                           "Date Aggregation" = "dateagg",
                           "Bucket" = "bucket",
-                          "Quintile" = "quintile")
+                          "Quintile" = "quintile",
+                          "Binary, Multiple"="binarymultiple")
 
 filterList = list("Value Filter" = "valueFilter",
                   "Percentile Filter" = "percentileFilter",
                   "Date Filter" = "dateFilter",
-                  "Complete Cases Filter" = "completeCasesFilter")
+                  "Complete Cases Filter" = "completeCasesFilter", 
+                  "String Filter" = "strFilter")
 
 aggregationLevelList = list("Month" = "%Y/%m",
                             "Year" = "%Y")

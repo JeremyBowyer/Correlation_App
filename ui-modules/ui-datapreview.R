@@ -5,7 +5,7 @@ dataPreviewPage <- function() {
     DTOutput("dataPreview", height = "auto"),
     conditionalPanel(
                 condition = "output.fileUploaded",
-                    downloadButton('downloadData', 'Download Customized Data')
+                    shinySaveButton("save", "Save file", "Save file as...", filetype = list(text = "csv"))
                 )
     )
 }

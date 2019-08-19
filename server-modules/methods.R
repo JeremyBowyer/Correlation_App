@@ -1,5 +1,17 @@
 loadMethods <- function(input, output, session, vals) {
   
+    vals$getTransformName <- function(type, col, transformSuffix, transformInputCols){
+      if(type %in% c("ctc", "dateagg", "bucket")){
+        return(transformSuffix)
+      } else if(type %in% c("binarymultiple")){
+        transformName <- paste(transformInputCols,collapse="__")
+        transformName <- if(transformSuffix != "") paste0(transformName, "_", transformSuffix) else transformName
+        return(transformName)
+      } else {
+        return(paste0(col, "_", transformSuffix))
+      }
+    }
+  
     vals$getCols <- function(){
         df = vals$datadf
         return(names(df))
@@ -7,29 +19,41 @@ loadMethods <- function(input, output, session, vals) {
 
     vals$refreshInputs <- function(session, input, vals) {
 
-        cnt <- vals$transformationCount
-        transformInputs <- character()
-        for(i in 1:cnt) {
-          transformInputs <- c(transformInputs,
-                               paste0("transformCols", cnt),
-                               paste0("transformDateCol", cnt),
-                               paste0("transformCategoryCol", cnt),
-                               paste0("transformY", cnt)
-                               )
-        }
+      cnt <- vals$transformationCount
+      transformInputs <- character()
+      for(i in 1:cnt) {
+        transformInputs <- c(transformInputs,
+                             paste0("transformCols", cnt),
+                             paste0("transformDateCol", cnt),
+                             paste0("transformCategoryCol", cnt),
+                             paste0("transformY", cnt)
+                             )
+      }
 
-        for(col in c(vals$inputList, transformInputs)) {
-            updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
-        }
+      for(col in c(vals$inputList, transformInputs)) {
+          updateSelectInput(session, col, choices=vals$getCols(), selected=input[[col]])
+      }
     }
 
+    vals$clearSelections <- function(session, input, vals){
+      
+      lapply(1:length(vals$inputList), function(i) {
+        observe({
+          updateSelectInput(session, 
+                            inputId = vals$inputList[i],
+                            choices=vals$getCols(),
+                            selected = "")
+          }) 
+      })
+      
+    }
+    
     vals$unloadData <- function(session, input, output, vals) {
-        for(col in vals$inputList) {
-            updateSelectInput(session, col, choices=list(), selected=NULL)
-        }
 
-        vals$datadf <- NULL
-        vals$originaldf <- NULL
+      vals$clearSelections(session, input, vals)
+      vals$datadf <- NULL
+      vals$originaldf <- NULL
+      
     }
 
     vals$validateDates <- function(dateColumn){

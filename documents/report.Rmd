@@ -12,11 +12,10 @@ params:
   dateCol: NA
   categoryCol: NA
   dateFormat: NA
+runtime: shiny  
 ---
 
----
-title: `r paste0(params$metric, " ~ ", params$yCol)`
----
+
 
 <style>
 .navbar-fixed-top {

@@ -5,6 +5,7 @@ library(plotly)
 library(dplyr)
 library(XLConnect)
 library(DT)
+library(shinyFiles)
 
 source("global.R", local=TRUE)
 source("ui-modules/ui-options.R", local=TRUE)
@@ -13,7 +14,7 @@ source("ui-modules/ui-metriccomparison.R", local=TRUE)
 source("ui-modules/ui-metricdive.R", local=TRUE)
 
 
-shinyUI(
+ui <- shinyUI(
   navbarPage(
     title = "analyzeR",
     theme = shinytheme("sandstone"),
